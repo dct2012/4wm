@@ -1,9 +1,9 @@
-FrankensteinWM
+frankensteinwm
 =============
 
 
 ----------------------
-**FrankensteinWM** is a minimal, lightweight, and a dynamic tiling window manager with 
+**frankensteinwm** is a minimal, lightweight, and a dynamic tiling window manager with 
 two borders. Its aim is to be small, fast, and allow for more dynamic tiling. It has one 
 tiling layout with four different splitting modes, and two fullscreen layouts. Each 
 virtual desktop has its own properties, unaffected by other desktops' or monitors' 
@@ -25,7 +25,7 @@ The user can define an empty space (by default 16px) on the bottom or top(defaul
 screen, to be used by a panel. The panel is toggleable, but will be visible if no windows
 are on the screen.
 
-FrankensteinWM does not provide a panel and/or statusbar itself. Instead it adheres
+Frankensteinwm does not provide a panel and/or statusbar itself. Instead it adheres
 to the [UNIX philosophy][unix] and outputs information about the existent
 desktop, the number of windows on each, the mode of each desktop, the current
 desktop and urgent hints whenever needed. The user can use whatever tool or
@@ -67,8 +67,8 @@ Bugs
 
 For any bug or request [fill an issue][bug] on [GitHub][ghp].
 
-  [bug]: https://github.com/dct2012/FrankensteinWM/issues
-  [ghp]: https://github.com/dct2012/FrankensteinWM
+  [bug]: https://github.com/dct2012/frankensteinwm/issues
+  [ghp]: https://github.com/dct2012/frankensteinwm
 
 
 License

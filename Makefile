@@ -1,4 +1,4 @@
-# Makefile for FrankensteinWM - see LICENSE for license and copyright information
+# Makefile for frankensteinwm - see LICENSE for license and copyright information
 
 VERSION = alpha
 WMNAME  = frankensteinwm
