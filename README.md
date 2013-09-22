@@ -65,7 +65,7 @@ Build and install.
 TODO
 ----
 
-Work on steam (the storefront, games seem to work)
+Work on steam (the store front, games seem to work)
 
 Bugs
 ----
