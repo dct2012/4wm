@@ -76,7 +76,7 @@ License
 
 Licensed under MIT/X Consortium License, see [LICENSE][law] file for more copyright and license information.
 
-   [law]: https://raw.github.com/dct2012/Franken/master/LICENSE
+   [law]: https://raw.github.com/dct2012/frankensteinwm/master/LICENSE
 
 Thanks
 ------
