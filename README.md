@@ -62,6 +62,11 @@ Build and install.
     $ make
     # make clean install
 
+TODO
+----
+
+Work on steam (the storefront, games seem to work)
+
 Bugs
 ----
 
