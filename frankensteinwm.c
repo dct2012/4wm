@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -1333,7 +1333,7 @@ void maprequest(xcb_generic_event_t *e) {
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); /* TODO: error handling */
     if (prop_reply) {
         if (prop_reply->format == 32) {
-            //xcb_atom_t *v = xcb_get_property_value(prop_reply);
+            xcb_atom_t *v = xcb_get_property_value(prop_reply);
             for (unsigned int i=0; i<prop_reply->value_len; i++)
                 DEBUGP("%d : %d\n", i, v[0]);
             //setfullscreen(c, (v[0] == netatoms[NET_FULLSCREEN]));
@@ -2362,52 +2362,51 @@ void tilenew(const int x, const int y, const int w, const int h, desktop *d) {
     else {
         //x = c->x; y = c->y; w = c->w; h = c->h;
         DEBUG("tilenew: check");
-        
+
         if (d->mode == RIGHTT) { // tile current to the left and new to the right
             DEBUG("tilenew: right");
             n->xp = c->xp + (c->wp/2);
             n->yp = c->yp;
-            n->wp = c->wp/2;
+            n->wp = (c->xp + c->wp) - n->xp;
             n->hp = c->hp;
-            c->wp /= 2;
+            c->wp /= 2; 
         }
         else if (d->mode == BOTTOMT) { // tile current to the top and new to the bottom
-            DEBUG("tilenew: bottom");
+            DEBUG("tilenew: bottom"); 
             n->xp = c->xp;
             n->yp = c->yp + (c->hp/2);
             n->wp = c->wp;
-            n->hp = c->hp/2;
+            n->hp = (c->yp + c->hp) - n->yp;
             c->hp /= 2;
         }
         else if (d->mode == LEFTT){ // tile current to the right and new to the left
             DEBUG("tilenew: left");
             n->xp = c->xp;
             n->yp = c->yp;
-            n->wp = (c->wp/2);
+            n->wp = c->wp/2;
             n->hp = c->hp;
-            c->xp = c->xp + (c->wp/2);
-            c->wp /=2;
+            c->xp = n->xp + n->wp;
+            c->wp = (n->xp + c->wp) - c->xp;
         }
         else { // TOPT // tile current to the bottom and new to the top
             DEBUG("tilenew: top");
             n->xp = c->xp;
             n->yp = c->yp;
             n->wp = c->wp;
-            n->hp = (c->hp/2);
-            c->yp = c->yp + (c->hp/2);
-            c->hp /=2;
+            n->hp = c->hp/2;
+            c->yp = n->yp + n->hp;
+            c->hp = (n->yp + c->hp) - c->yp;
         } 
 
         adjustclientgaps(w, h, gap, c);
+        adjustclientgaps(w, h, gap, n);
 
-        xcb_move_resize(dis, c->win, 
+        xcb_move_resize(dis, c->win,
                         (c->x = x + (w * c->xp) + c->gapx), 
                         (c->y = y + (h * c->yp) + c->gapy), 
-                        (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
                         (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
         DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (w * c->xp), (h * c->yp), (w * c->wp) , (h * c->hp));
-
-        adjustclientgaps(w, h, gap, n); 
 
         xcb_move_resize(dis, n->win, 
                         (n->x = x + (w * n->xp) + n->gapx), 
