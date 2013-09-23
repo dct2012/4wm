@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -167,6 +167,7 @@ static void adjustclientgaps(const int w, const int h, const int gap, client *c)
 static void buttonpress(xcb_generic_event_t *e);
 static void cleanup(void);
 static void clientmessage(xcb_generic_event_t *e);
+static desktop *clienttodesktop(client *c);
 static void configurerequest(xcb_generic_event_t *e);
 static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop);
 static void deletewindow(xcb_window_t w);
@@ -185,21 +186,21 @@ static void grabkeys(void);
 static void keypress(xcb_generic_event_t *e);
 static void mappingnotify(xcb_generic_event_t *e);
 static void maprequest(xcb_generic_event_t *e);
-static void monocle(int x, int y, int w, int h, const desktop *d);
+static void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m);
 static client* prev_client(client *c, desktop *d);
 static void propertynotify(xcb_generic_event_t *e);
 static monitor* ptrtomon(int x, int y);
-static void removeclient(client *c, desktop *d);
-static void retile(const int x, const int y, const int w, const int h, const desktop *d);
+static void removeclient(client *c, desktop *d, const monitor *m);
+static void retile(const int x, const int y, const int w, const int h, const desktop *d, const monitor *m);
 static void run(void);
 static void setborders(desktop *d);
 static void setfullscreen(client *c, bool fullscrn);
 static int setup(int default_screen);
 static int  setuprandr(void);
 static void sigchld();
-static void tile(monitor *m, desktop *d);
-static void tilenew(const int x, const int y, const int w, const int h, desktop *d);
-static void tileremove(const int x, const int y, const int w, const int h, desktop *d);
+static void tile(const monitor *m, desktop *d);
+static void tilenew(const int x, const int y, const int w, const int h, desktop *d, const monitor *m);
+static void tileremove(const int x, const int y, const int w, const int h, desktop *d, const monitor *m);
 static void unmapnotify(xcb_generic_event_t *e);
 static client *wintoclient(xcb_window_t w);
 static monitor *wintomon(xcb_window_t w);
@@ -566,6 +567,23 @@ void clientmessage(xcb_generic_event_t *e) {
     DEBUG("clientmessage: leaving");
 }
 
+desktop *clienttodesktop(client *c) {
+    client *n = NULL; desktop *d = NULL;
+    int i;
+
+    DEBUG("clienttodesktop: entering");
+    for (i = 0; i < DESKTOPS; i++)
+        for (d = &desktops[i], n = d->head; n; n = n->next)
+            if(n == c) {
+                DEBUG("clienttodesktop: leaving, returning found desktop");
+                return d;
+            }
+    
+    DEBUG("clienttodesktop: leaving, returning NULL desktop");
+    return NULL;
+
+}
+
 /* a configure request means that the window requested changes in its geometry
  * state. if the window is fullscreen discard and fill the screen else set the
  * appropriate values as requested, and tile the window again so that it fills
@@ -704,19 +722,22 @@ void deletewindow(xcb_window_t w) {
  * once the info is collected, immediately flush the stream */
 // if a monitor is displaying a empty desktop go ahead and say it has a window
 void desktopinfo(void) {
-    desktop *d = NULL; client *c = NULL;
+    desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false;
-    
+    DEBUG("desktopinfo: entering");
+    DEBUGP("%d\n", selmon->curr_dtop);
+
     for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = False) {
         for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
-        for (monitor *m = mons; m; m = m->next)
-            if (i == m->curr_dtop)
-                if (w == 0)
-                    w++;
+        for (m = mons; m; m = m->next)
+            if (i == m->curr_dtop && w == 0)
+                w++;
         printf("%d:%d:%d:%d:%d%c", i, w, d->mode, i == selmon->curr_dtop, urgent, (i < DESKTOPS - 1) ? ' ':'|');
     }
     printf("%s\n", desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
     fflush(stdout);
+
+    DEBUG("desktopinfo: leaving");
 }
 
 /* a destroy notification is received when a window is being closed
@@ -727,8 +748,10 @@ void destroynotify(xcb_generic_event_t *e) {
     
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
     client *c = wintoclient(ev->window);
+    desktop *d = clienttodesktop(c);
+    monitor *m = wintomon(ev->window);
     if (c) 
-        removeclient(c, &desktops[selmon->curr_dtop]); 
+        removeclient(c, d, m); 
     desktopinfo();
 
     DEBUG("destroynotify: leaving");
@@ -775,6 +798,8 @@ void enternotify(xcb_generic_event_t *e) {
     }
 
     focus(c, d);
+
+    desktopinfo();
 
     DEBUG("enternotify: leaving");
 }
@@ -974,15 +999,21 @@ void focus(client *c, desktop *d) {
             grabbuttons(c); 
     } 
 
+    DEBUG("check1");
+
     /* restack */
     for (ft = 0; ft <= n; ++ft) 
         xcb_raise_window(dis, w[n-ft]);
- 
+
+    DEBUG("check2");
+
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
     xcb_flush(dis);
+
+    DEBUG("check2");
     
-    desktopinfo();
+    //desktopinfo();
 
     DEBUG("focus: leaving");
 }
@@ -1258,7 +1289,7 @@ void killclient() {
     }
     if (got) deletewindow(d->current->win);
     else xcb_kill_client(dis, d->current->win);
-    removeclient(d->current, d);
+    removeclient(d->current, d, selmon);
     DEBUG("killclient: leaving");
 }
 
@@ -1331,13 +1362,7 @@ void maprequest(xcb_generic_event_t *e) {
     }
 
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); /* TODO: error handling */
-    if (prop_reply) {
-        if (prop_reply->format == 32) {
-            xcb_atom_t *v = xcb_get_property_value(prop_reply);
-            for (unsigned int i=0; i<prop_reply->value_len; i++)
-                DEBUGP("%d : %d\n", i, v[0]);
-            //setfullscreen(c, (v[0] == netatoms[NET_FULLSCREEN]));
-        }
+    if (prop_reply) { 
         free(prop_reply);
     } 
 
@@ -1428,12 +1453,12 @@ void mousemotion(const Arg *arg) {
 }
 
 /* each window should cover all the available screen space */
-void monocle(int x, int y, int w, int h, const desktop *d) {
+void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     int gap = d->gap;
     for (client *c = d->head; c; c = c->next) 
         if (!ISFFT(c)){
             if (d->mode == VIDEO)
-                xcb_move_resize(dis, c->win, x, (y - ((selmon->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((selmon->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
+                xcb_move_resize(dis, c->win, x, (y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
             else
                 xcb_move_resize(dis, c->win, (x + gap), (y + gap), (w - 2*gap), (h - 2*gap));
         }
@@ -1721,7 +1746,7 @@ void quit(const Arg *arg) {
  * we must return back to the current focused desktop.
  * if c was the previously focused, prevfocus must be updated
  * else if c was the current one, current must be updated. */
-void removeclient(client *c, desktop *d) {
+void removeclient(client *c, desktop *d, const monitor *m) {
     DEBUG("removeclient: entering");
     
     client **p = NULL, *dead, *n;
@@ -1747,10 +1772,14 @@ void removeclient(client *c, desktop *d) {
             n = dead;
         }
         d->flag = TILEREMOVE;
-        tile(selmon, d);
+        DEBUG("check");
+        tile(m, d);
     } 
     free(c); c = NULL;
-    focus(d->current, d); //we need to to re-adjust the borders after window removal
+    setborders(d);
+    //focus(d->current, d);
+    //focus(desktops[selmon->curr_dtop].current, &desktops[selmon->curr_dtop]);
+    //focus(d->current, d); //we need to to re-adjust the borders after window removal
     desktopinfo();
     DEBUG("removeclient: leaving");
 }
@@ -2018,34 +2047,39 @@ void resizeclienttop(const Arg *arg) {
     DEBUG("resizeclientbottom: leaving");
 }
 
-void retile(const int x, const int y, const int w, const int h, const desktop *d) {
+void retile(const int x, const int y, const int w, const int h, const desktop *d, const monitor *m) {
     int n = 0, gap = d->gap;
    
     DEBUG("retile: entering");
     
-    for (client *c = d->head; c; c=c->next) 
-        if (!ISFFT(c)) 
-            ++n;
-   
-    for (client *c = d->head; c; c=c->next) {
-        if (!ISFFT(c)) {
-            if (n == 1) {
-                c->gapx = c->gapy = c->gapw = c->gaph = gap;
-                xcb_move_resize(dis, c->win, 
-                                (c->x = x + (w * c->xp) + gap), 
-                                (c->y = y + (h * c->yp) + gap), 
-                                (c->w = (w * c->wp) - 2*gap), 
-                                (c->h = (h * c->hp) - 2*gap));
-            }
-            else { 
-                xcb_move_resize(dis, c->win, 
-                                (c->x = x + (w * c->xp) + c->gapx), 
-                                (c->y = y + (h * c->yp) + c->gapy), 
-                                (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                                (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+
+    if (d->mode != MONOCLE && d->mode != VIDEO) {
+        for (client *c = d->head; c; c=c->next) 
+            if (!ISFFT(c)) 
+                ++n;
+       
+        for (client *c = d->head; c; c=c->next) {
+            if (!ISFFT(c)) {
+                if (n == 1) {
+                    c->gapx = c->gapy = c->gapw = c->gaph = gap;
+                    xcb_move_resize(dis, c->win, 
+                                    (c->x = x + (w * c->xp) + gap), 
+                                    (c->y = y + (h * c->yp) + gap), 
+                                    (c->w = (w * c->wp) - 2*gap), 
+                                    (c->h = (h * c->hp) - 2*gap));
+                }
+                else { 
+                    xcb_move_resize(dis, c->win, 
+                                    (c->x = x + (w * c->xp) + c->gapx), 
+                                    (c->y = y + (h * c->yp) + c->gapy), 
+                                    (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                                    (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                }
             }
         }
     }
+    else
+        monocle(x, y, w, h, d, m);
 
     DEBUG("retile: leaving");
 }
@@ -2306,26 +2340,25 @@ void switch_mode(const Arg *arg) {
 }
 
 /* tile all windows of current desktop - call the handler tiling function */
-void tile(monitor *m, desktop *d) {
+void tile(const monitor *m, desktop *d) {
     DEBUG("tile: entering");
     if (!d->head || d->mode == FLOAT) 
         return; // nothing to arange
-    else if (d->mode != MONOCLE && d->mode != VIDEO) {
+    else {
         if (d->flag == TILENEW)
-            tilenew(m->x, m->y, m->w, m->h, d);
+            tilenew(m->x, m->y, m->w, m->h, d, m);
         else if (d->flag == TILEREMOVE)
-            tileremove(m->x, m->y, m->w, m->h, d);
+            tileremove(m->x, m->y, m->w, m->h, d, m);
         else
-            retile(m->x, m->y, m->w, m->h, d);
+            retile(m->x, m->y, m->w, m->h, d, m);
 
         d->flag = NONE;
     }
-    else monocle(m->x, m->y, m->w, m->h, d);
         
     DEBUG("tile: leaving");
 }
 
-void tilenew(const int x, const int y, const int w, const int h, desktop *d) {
+void tilenew(const int x, const int y, const int w, const int h, desktop *d, const monitor *m) {
     client *c = d->current, *n, *dead = d->dead;
     int gap = d->gap;
 
@@ -2400,26 +2433,30 @@ void tilenew(const int x, const int y, const int w, const int h, desktop *d) {
 
         adjustclientgaps(w, h, gap, c);
         adjustclientgaps(w, h, gap, n);
+        
+        if (d->mode != MONOCLE && d->mode != VIDEO) {
+            xcb_move_resize(dis, c->win,
+                            (c->x = x + (w * c->xp) + c->gapx), 
+                            (c->y = y + (h * c->yp) + c->gapy), 
+                            (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                            (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+            DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (w * c->xp), (h * c->yp), (w * c->wp) , (h * c->hp));
 
-        xcb_move_resize(dis, c->win,
-                        (c->x = x + (w * c->xp) + c->gapx), 
-                        (c->y = y + (h * c->yp) + c->gapy), 
-                        (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
-                        (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (w * c->xp), (h * c->yp), (w * c->wp) , (h * c->hp));
-
-        xcb_move_resize(dis, n->win, 
-                        (n->x = x + (w * n->xp) + n->gapx), 
-                        (n->y = y + (h * n->yp) + n->gapy), 
-                        (n->w = (w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                        (n->h = (h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
-        DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (w * n->xp), (h * n->yp), (w * n->wp), (h * n->hp));
+            xcb_move_resize(dis, n->win, 
+                            (n->x = x + (w * n->xp) + n->gapx), 
+                            (n->y = y + (h * n->yp) + n->gapy), 
+                            (n->w = (w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                            (n->h = (h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+            DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (w * n->xp), (h * n->yp), (w * n->wp), (h * n->hp));
+        }
+        else
+            monocle(x, y, w, h, d, m);
     }
 
     DEBUG("tilenew: leaving");
 }
 
-void tileremove(const int x, const int y, const int w, const int h, desktop *d) {
+void tileremove(const int x, const int y, const int w, const int h, desktop *d, const monitor *m) {
     int gap = d->gap, n = 0;
     client *dead = d->dead, **list;
     
@@ -2438,13 +2475,15 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d) 
                 list[i]->hp += dead->hp;
                 if (((h * list[i]->yp) + (h * list[i]->hp)) == h) list[i]->gaph = gap;
                 else list[i]->gaph = gap/2;
-                xcb_move_resize(dis, list[i]->win, 
-                                list[i]->x, 
-                                list[i]->y, 
-                                list[i]->w, 
-                                (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                if (d->mode != MONOCLE && d->mode != VIDEO) {
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    list[i]->y, 
+                                    list[i]->w, 
+                                    (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                }
             }
-            retile(x, y, w, h, d);
+            retile(x, y, w, h, d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2459,13 +2498,15 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d) 
                 list[i]->wp += dead->wp;
                 if (((w * list[i]->xp) + (h * list[i]->wp)) == w) list[i]->gapw = gap;
                 else list[i]->gapw = gap/2;
-                xcb_move_resize(dis, list[i]->win, 
-                                list[i]->x, 
-                                list[i]->y, 
-                                (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                list[i]->h);
+                if (d->mode != MONOCLE && d->mode != VIDEO) {
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    list[i]->y, 
+                                    (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                    list[i]->h);
+                }
             }
-            retile(x, y, w, h, d);
+            retile(x, y, w, h, d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2483,13 +2524,15 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d) 
                 else list[i]->gapy = gap/2;
                 if (((h * list[i]->yp) + (h * list[i]->hp)) == h) list[i]->gaph = gap;
                 else list[i]->gaph = gap/2;
-                xcb_move_resize(dis, list[i]->win, 
-                                list[i]->x, 
-                                (list[i]->y = y + (h * list[i]->yp) + list[i]->gapy), 
-                                list[i]->w, 
-                                (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                if (d->mode != MONOCLE && d->mode != VIDEO) {
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    (list[i]->y = y + (h * list[i]->yp) + list[i]->gapy), 
+                                    list[i]->w, 
+                                    (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                }
             }
-            retile(x, y, w, h, d);
+            retile(x, y, w, h, d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2507,13 +2550,15 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d) 
                 else list[i]->gapx = gap/2;
                 if (((w * list[i]->xp) + (w * list[i]->wp)) == w) list[i]->gapw = gap;
                 else list[i]->gapw = gap/2;
-                xcb_move_resize(dis, list[i]->win, 
-                                (list[i]->x = x + (w * list[i]->xp) + list[i]->gapx), 
-                                list[i]->y, 
-                                (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                list[i]->h);
+                if (d->mode != MONOCLE && d->mode != VIDEO) {
+                    xcb_move_resize(dis, list[i]->win, 
+                                    (list[i]->x = x + (w * list[i]->xp) + list[i]->gapx), 
+                                    list[i]->y, 
+                                    (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                    list[i]->h);
+                } 
             }
-            retile(x, y, w, h, d);
+            retile(x, y, w, h, d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2541,19 +2586,20 @@ void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: entering");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     client *c = wintoclient(ev->window);
-    if (c && ev->event != screen->root) removeclient(c, &desktops[selmon->curr_dtop]);
+    monitor *m = wintomon(ev->window);
+    if (c && ev->event != screen->root) removeclient(c, &desktops[selmon->curr_dtop], m);
     desktopinfo();
     DEBUG("unmapnotify: leaving");
 }
 
 /* find which client the given window belongs to */
 client *wintoclient(xcb_window_t w) {
-    monitor *m; client *c = NULL;
+    client *c = NULL;
     int i;
 
     DEBUG("wintoclient: entering");
-    for (i = 0, m = mons; i < nmons; m = m->next, i++)
-        for (c = desktops[m->curr_dtop].head; c; c = c->next)
+    for (i = 0; i < DESKTOPS; i++)
+        for (c = desktops[i].head; c; c = c->next)
             if(c->win == w) {
                 DEBUG("wintoclient: leaving, returning found client");
                 return c;
@@ -2569,12 +2615,13 @@ monitor *wintomon(xcb_window_t w) {
     monitor *m; client *c;
     int i;
 
+    DEBUG("wintomon: entering");
+
     if(w == screen->root && getrootptr(&x, &y)) {
         DEBUG("wintomon: leaving, returning ptrtomon");
         return ptrtomon(x, y);
     }
-    
-    DEBUG("wintomon: entering");
+     
     for (i = 0, m = mons; i < nmons; m = m->next, i++)
         for (c = desktops[m->curr_dtop].head; c; c = c->next)
             if(c->win == w) {
