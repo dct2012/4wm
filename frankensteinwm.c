@@ -1479,6 +1479,7 @@ void mousemotion(const Arg *arg) {
 /* each window should cover all the available screen space */
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     int gap = d->gap;
+    DEBUG("monocle: entering");
     for (client *c = d->head; c; c = c->next) 
         if (!ISFFT(c)){
             if (d->mode == VIDEO)
@@ -1486,6 +1487,7 @@ void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
             else
                 xcb_move_resize(dis, c->win, (x + gap), (y + gap), (w - 2*gap), (h - 2*gap));
         }
+    DEBUG("monocle: leaving");
 }
 
 // switch the current client with the first client we find above it
@@ -2479,9 +2481,9 @@ void tilenew(desktop *d, const monitor *m) {
                                 (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
                 DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
             }
+            else
+                monocle(m->x, m->y, m->w, m->h, d, m);
         }
-        else
-            monocle(m->x, m->y, m->w, m->h, d, m);
     }
 
     DEBUG("tilenew: leaving");
