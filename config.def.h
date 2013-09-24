@@ -68,8 +68,8 @@
  */
 static const AppRule rules[] = { \
     /*  class     desktop  follow  float */
-    { "MPlayer",     3,    True,   False },
-    { "Gimp",        0,    False,  True  },
+    //{ "MPlayer",     3,    True,   False },
+    //{ "Gimp",        0,    False,  True  },
 };
 
 // helper for spawning shell commands
