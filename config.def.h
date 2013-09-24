@@ -68,7 +68,7 @@
  */
 static const AppRule rules[] = { \
     /*  class     desktop  follow  float */
-    //{ "MPlayer",     3,    True,   False },
+    { "MPlayer",     3,    False,   False },
     //{ "Gimp",        0,    False,  True  },
 };
 
