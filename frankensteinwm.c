@@ -191,7 +191,7 @@ static client* prev_client(client *c, desktop *d);
 static void propertynotify(xcb_generic_event_t *e);
 static monitor* ptrtomon(int x, int y);
 static void removeclient(client *c, desktop *d, const monitor *m);
-static void retile(const int x, const int y, const int w, const int h, const desktop *d, const monitor *m);
+static void retile(const desktop *d, const monitor *m);
 static void run(void);
 static void setborders(desktop *d);
 static void setfullscreen(client *c, bool fullscrn);
@@ -199,8 +199,8 @@ static int setup(int default_screen);
 static int  setuprandr(void);
 static void sigchld();
 static void tile(const monitor *m, desktop *d);
-static void tilenew(const int x, const int y, const int w, const int h, desktop *d, const monitor *m);
-static void tileremove(const int x, const int y, const int w, const int h, desktop *d, const monitor *m);
+static void tilenew(desktop *d, const monitor *m);
+static void tileremove(desktop *d, const monitor *m);
 static void unmapnotify(xcb_generic_event_t *e);
 static client *wintoclient(xcb_window_t w);
 static monitor *wintomon(xcb_window_t w);
@@ -822,6 +822,7 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
     (*num) = 0;
     switch (direction) { 
         case 0: //above
+            DEBUG("findtouchingclients: looking above");
             width = c->wp;
             for (client *n = d->head; n; n = n->next) {
                 if ((c != n) && !ISFFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
@@ -829,22 +830,28 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
                         if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
                             list[(*num)] = n;
                             (*num)++;
+                            DEBUG("findtouchingclients: leaving found direct match");
                             return true;
                         }
                         else if (n->xp >= c->xp) { //part
                             width -= n->wp;
                             list[(*num)] = n;
                             (*num)++;
-                            if (width == 0) 
+                            if (width == 0) {
+                                DEBUG("findtouchingclients: leaving true");
                                 return true;
-                            if (width < 0)
+                            }
+                            if (width < 0) {
+                                DEBUG("findtouchingclients: leaving false");
                                 return false;
+                            }
                         }
                     }
                     
                     if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
                         // width exceeds, but we should go ahead and make sure list isnt NULL
                         list[(*num)] = n;
+                        DEBUG("findtouchingclients: leaving false");
                         return false;
                     }
                 }
@@ -852,6 +859,7 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
             break;
 
         case 1: //left
+            DEBUG("findtouchingclients: looking left");
             height = c->hp;
             for (client *n = d->head; n; n = n->next) {
                 if ((c != n ) && !ISFFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
@@ -859,22 +867,28 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
                         if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
                             list[(*num)] = n;
                             (*num)++;
+                            DEBUG("findtouchingclients: leaving found direct match     ");
                             return true;
                         }
                         else if (n->yp >= c->yp) { //part
                             height -= n->hp;
                             list[(*num)] = n;
                             (*num)++;
-                            if (height == 0) 
+                            if (height == 0) {
+                                DEBUG("findtouchingclients: leaving true");
                                 return true;
-                            if (height < 0)
+                            }
+                            if (height < 0) {
+                                DEBUG("findtouchingclients: leaving false");
                                 return false;
+                            }
                         }
                     }
                     
                     if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
                         // height exceeds, but we should go ahead and make sure list isnt NULL
                         list[(*num)] = n;
+                        DEBUG("findtouchingclients: leaving false");
                         return false;
                     }
                 }
@@ -889,7 +903,6 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
                         if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
                             DEBUG("findtouchingclients: found direct match");
                             list[(*num)] = n;
-                            DEBUG("findtouchingclients: check");
                             (*num)++;
                             DEBUG("findtouchingclients: leaving, found direct match");
                             return true;
@@ -898,16 +911,21 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
                             width -= n->wp;
                             list[(*num)] = n;
                             (*num)++;
-                            if (width == 0) 
+                            if (width == 0) {
+                                DEBUG("findtouchingclients: leaving true");
                                 return true;
-                            if (width < 0)
+                            }
+                            if (width < 0) {
+                                DEBUG("findtouchingclients: leaving false");
                                 return false;
+                            }
                         }
                     }
                     
                     if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
                         // width exceeds, but we should go ahead and make sure list isnt NULL
                         list[(*num)] = n;
+                        DEBUG("findtouchingclients: leaving false");
                         return false;
                     }
                 }
@@ -921,22 +939,28 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
                         if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
                             list[(*num)] = n;
                             (*num)++;
+                            DEBUG("findtouchingclients: leaving, found direct match");
                             return true;
                         }
                         else if (n->yp >= c->yp) { //part
                             height -= n->hp;
                             list[(*num)] = n;
                             (*num)++;
-                            if (height == 0) 
+                            if (height == 0) {
+                                DEBUG("findtouchingclients: leaving true");
                                 return true;
-                            if (height < 0)
+                            }
+                            if (height < 0) {
+                                DEBUG("findtouchingclients: leaving false");
                                 return false;
+                            }
                         }
                     }
                     // y is less than or equal, overall height 
                     if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
                         // height exceeds, but we should go ahead and make sure list isnt NULL
                         list[(*num)] = n;
+                        DEBUG("findtouchingclients: leaving false");
                         return false;
                     }
                 }
@@ -2047,7 +2071,7 @@ void resizeclienttop(const Arg *arg) {
     DEBUG("resizeclientbottom: leaving");
 }
 
-void retile(const int x, const int y, const int w, const int h, const desktop *d, const monitor *m) {
+void retile(const desktop *d, const monitor *m) {
     int n = 0, gap = d->gap;
    
     DEBUG("retile: entering");
@@ -2063,23 +2087,23 @@ void retile(const int x, const int y, const int w, const int h, const desktop *d
                 if (n == 1) {
                     c->gapx = c->gapy = c->gapw = c->gaph = gap;
                     xcb_move_resize(dis, c->win, 
-                                    (c->x = x + (w * c->xp) + gap), 
-                                    (c->y = y + (h * c->yp) + gap), 
-                                    (c->w = (w * c->wp) - 2*gap), 
-                                    (c->h = (h * c->hp) - 2*gap));
+                                    (c->x = m->x + (m->w * c->xp) + gap), 
+                                    (c->y = m->y + (m->h * c->yp) + gap), 
+                                    (c->w = (m->w * c->wp) - 2*gap), 
+                                    (c->h = (m->h * c->hp) - 2*gap));
                 }
                 else { 
                     xcb_move_resize(dis, c->win, 
-                                    (c->x = x + (w * c->xp) + c->gapx), 
-                                    (c->y = y + (h * c->yp) + c->gapy), 
-                                    (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                                    (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                                    (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                                    (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                                    (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                                    (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
             }
         }
     }
     else
-        monocle(x, y, w, h, d, m);
+        monocle(m->x, m->y, m->w, m->h, d, m);
 
     DEBUG("retile: leaving");
 }
@@ -2346,11 +2370,11 @@ void tile(const monitor *m, desktop *d) {
         return; // nothing to arange
     else {
         if (d->flag == TILENEW)
-            tilenew(m->x, m->y, m->w, m->h, d, m);
+            tilenew(d, m);
         else if (d->flag == TILEREMOVE)
-            tileremove(m->x, m->y, m->w, m->h, d, m);
-        else
-            retile(m->x, m->y, m->w, m->h, d, m);
+            tileremove(d, m);
+        else if (m != NULL)
+            retile(d, m);
 
         d->flag = NONE;
     }
@@ -2358,7 +2382,7 @@ void tile(const monitor *m, desktop *d) {
     DEBUG("tile: leaving");
 }
 
-void tilenew(const int x, const int y, const int w, const int h, desktop *d, const monitor *m) {
+void tilenew(desktop *d, const monitor *m) {
     client *c = d->current, *n, *dead = d->dead;
     int gap = d->gap;
 
@@ -2368,11 +2392,14 @@ void tilenew(const int x, const int y, const int w, const int h, desktop *d, con
         xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);    
     else if (n == d->head) {
         DEBUG("tilenew: tiling empty monitor");
-        xcb_move_resize(dis, n->win, 
-                        (n->x = x + (w * (n->xp = 0)) + gap), 
-                        (n->y = y + (h * (n->yp = 0)) + gap), 
-                        (n->w = (w * (n->wp = 1)) - 2*gap), 
-                        (n->h = (h * (n->hp = 1)) - 2*gap));
+        n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
+        if (m != NULL) {
+            xcb_move_resize(dis, n->win, 
+                            (n->x = m->x + (m->w * n->xp) + gap), 
+                            (n->y = m->y + (m->h * n->yp) + gap), 
+                            (n->w = (m->w * n->wp) - 2*gap), 
+                            (n->h = (m->h * n->hp) - 2*gap));
+        }
         if (dead) {
             d->dead = d->dead->next;
             free(dead); dead = NULL;
@@ -2383,11 +2410,13 @@ void tilenew(const int x, const int y, const int w, const int h, desktop *d, con
         //also need to assign n->xp etc
         n->xp = dead->xp; n->yp = dead->yp; n->wp = dead->wp; n->hp = dead->hp;
         n->gapx = dead->gapx; n->gapy = dead->gapy; n->gapw = dead->gapw; n->gaph = dead->gaph;
-        xcb_move_resize(dis, n->win, 
-                        (n->x = x + (w * n->xp) + n->gapx), 
-                        (n->y = y + (h * n->yp) + n->gapy), 
-                        (n->w = (w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                        (n->h = (h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+        if (m != NULL) {
+            xcb_move_resize(dis, n->win, 
+                            (n->x = m->x + (m->w * n->xp) + n->gapx), 
+                            (n->y = m->y + (m->h * n->yp) + n->gapy), 
+                            (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                            (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+        }
         d->dead = d->dead->next;
         free(dead); dead = NULL;
         //TODO: we should go ahead and try to fill other dead clients
@@ -2431,32 +2460,34 @@ void tilenew(const int x, const int y, const int w, const int h, desktop *d, con
             c->hp = (n->yp + c->hp) - c->yp;
         } 
 
-        adjustclientgaps(w, h, gap, c);
-        adjustclientgaps(w, h, gap, n);
-        
-        if (d->mode != MONOCLE && d->mode != VIDEO) {
-            xcb_move_resize(dis, c->win,
-                            (c->x = x + (w * c->xp) + c->gapx), 
-                            (c->y = y + (h * c->yp) + c->gapy), 
-                            (c->w = (w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
-                            (c->h = (h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (w * c->xp), (h * c->yp), (w * c->wp) , (h * c->hp));
+        if (m != NULL) {
+            adjustclientgaps(m->w, m->h, gap, c);
+            adjustclientgaps(m->w, m->h, gap, n);
+            
+            if (d->mode != MONOCLE && d->mode != VIDEO) {
+                xcb_move_resize(dis, c->win,
+                                (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                                (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                                (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                                (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
 
-            xcb_move_resize(dis, n->win, 
-                            (n->x = x + (w * n->xp) + n->gapx), 
-                            (n->y = y + (h * n->yp) + n->gapy), 
-                            (n->w = (w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                            (n->h = (h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
-            DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (w * n->xp), (h * n->yp), (w * n->wp), (h * n->hp));
+                xcb_move_resize(dis, n->win, 
+                                (n->x = m->x + (m->w * n->xp) + n->gapx), 
+                                (n->y = m->y + (m->h * n->yp) + n->gapy), 
+                                (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                                (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+                DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+            }
         }
         else
-            monocle(x, y, w, h, d, m);
+            monocle(m->x, m->y, m->w, m->h, d, m);
     }
 
     DEBUG("tilenew: leaving");
 }
 
-void tileremove(const int x, const int y, const int w, const int h, desktop *d, const monitor *m) {
+void tileremove(desktop *d, const monitor *m) {
     int gap = d->gap, n = 0;
     client *dead = d->dead, **list;
     
@@ -2473,17 +2504,19 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d, 
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->hp += dead->hp;
-                if (((h * list[i]->yp) + (h * list[i]->hp)) == h) list[i]->gaph = gap;
-                else list[i]->gaph = gap/2;
-                if (d->mode != MONOCLE && d->mode != VIDEO) {
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    list[i]->y, 
-                                    list[i]->w, 
-                                    (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                if (m != NULL) {
+                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    if (d->mode != MONOCLE && d->mode != VIDEO) {
+                        xcb_move_resize(dis, list[i]->win, 
+                                        list[i]->x, 
+                                        list[i]->y, 
+                                        list[i]->w, 
+                                        (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                    }
                 }
             }
-            retile(x, y, w, h, d, m);
+            if (m != NULL)
+                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2496,17 +2529,19 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d, 
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->wp += dead->wp;
-                if (((w * list[i]->xp) + (h * list[i]->wp)) == w) list[i]->gapw = gap;
-                else list[i]->gapw = gap/2;
-                if (d->mode != MONOCLE && d->mode != VIDEO) {
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    list[i]->y, 
-                                    (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                    list[i]->h);
+                if (m != NULL) {
+                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    if (d->mode != MONOCLE && d->mode != VIDEO) {
+                        xcb_move_resize(dis, list[i]->win, 
+                                        list[i]->x, 
+                                        list[i]->y, 
+                                        (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                        list[i]->h);
+                    }
                 }
             }
-            retile(x, y, w, h, d, m);
+            if (m != NULL)
+                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2514,25 +2549,26 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d, 
         }
     }
     
-    if((h * dead->yp) + (h * dead->hp) < h) { //capable of having windows below?
+    if((m->h * dead->yp) + (m->h * dead->hp) < m->h) { 
+    //capable of having windows below?
         if (findtouchingclients(d, dead, list, &n, 2)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->yp = dead->yp;
                 list[i]->hp += dead->hp;
-                if (list[i]->yp == 0) list[i]->gapy = gap;
-                else list[i]->gapy = gap/2;
-                if (((h * list[i]->yp) + (h * list[i]->hp)) == h) list[i]->gaph = gap;
-                else list[i]->gaph = gap/2;
-                if (d->mode != MONOCLE && d->mode != VIDEO) {
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    (list[i]->y = y + (h * list[i]->yp) + list[i]->gapy), 
-                                    list[i]->w, 
-                                    (list[i]->h = (h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                if (m != NULL) {
+                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    if (d->mode != MONOCLE && d->mode != VIDEO) {
+                        xcb_move_resize(dis, list[i]->win, 
+                                        list[i]->x, 
+                                        (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
+                                        list[i]->w, 
+                                        (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                    }
                 }
             }
-            retile(x, y, w, h, d, m);
+            if (m != NULL)
+                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2540,25 +2576,26 @@ void tileremove(const int x, const int y, const int w, const int h, desktop *d, 
         }
     }
     
-    if((dead->xp + dead->wp) < w) { //capable of having windows to the right?
+    if((dead->xp + dead->wp) < m->w) { 
+    //capable of having windows to the right?
         if (findtouchingclients(d, dead, list, &n, 3)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->xp = dead->xp;
                 list[i]->wp += dead->wp;
-                if (list[i]->xp == 0) list[i]->gapx = gap;
-                else list[i]->gapx = gap/2;
-                if (((w * list[i]->xp) + (w * list[i]->wp)) == w) list[i]->gapw = gap;
-                else list[i]->gapw = gap/2;
-                if (d->mode != MONOCLE && d->mode != VIDEO) {
-                    xcb_move_resize(dis, list[i]->win, 
-                                    (list[i]->x = x + (w * list[i]->xp) + list[i]->gapx), 
-                                    list[i]->y, 
-                                    (list[i]->w = (w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                    list[i]->h);
-                } 
+                if (m != NULL) {
+                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    if (d->mode != MONOCLE && d->mode != VIDEO) {
+                        xcb_move_resize(dis, list[i]->win, 
+                                        (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
+                                        list[i]->y, 
+                                        (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                        list[i]->h);
+                    }
+                }
             }
-            retile(x, y, w, h, d, m);
+            if (m != NULL)
+                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
