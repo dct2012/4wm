@@ -77,6 +77,8 @@ Applications that ask before leaving
   want to exit, and you say no, that client is already gone.
   * firefox, libreoffice
 
+When switch monitors to a empty desktop, desktopinfo doesnt show/produce update
+
 Bugs
 ----
 
