@@ -66,14 +66,14 @@ TODO
 ----
 
 Work on steam
-  - a lot of configure requests when window sized too small
-  - games sometimes work, when they dont they're black/blank windows
+  * a lot of configure requests when window sized too small
+  * games sometimes work, when they dont they're black/blank windows
 Gimp
-  - when killing client, another window pops up, without configure request, map notify, etc
+  * when killing client, another window pops up, without configure request, map notify, etc
 Applications that ask before leaving
-  - client get killed before question is answered. so if the question is, are you sure you
+  * client get killed before question is answered. so if the question is, are you sure you
   want to exit, and you say no, they client is already gone.
-  - firefox, libreoffice
+  * firefox, libreoffice
 
 Bugs
 ----
