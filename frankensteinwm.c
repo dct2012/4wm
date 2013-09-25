@@ -1012,29 +1012,12 @@ void focus(client *c, desktop *d) {
         d->prevfocus = d->current; 
         d->current = c; 
     }
-           
-    /* num of n:all fl:fullscreen ft:floating/transient windows */
-    int n = 0, fl = 0, ft = 0;
-    for (c = d->head; c; c = c->next, ++n) 
-        if (ISFFT(c)) { 
-            fl++; 
-            if (!c->isfullscrn) 
-                ft++; 
-        } 
-    xcb_window_t w[n];
-    w[(d->current->isfloating || d->current->istransient) ? 0:ft] = d->current->win;
     setborders(d);
-    for (fl += !ISFFT(d->current) ? 1:0, c = d->head; c; c = c -> next) { 
-        gettitle(c);
-        if (c != d->current) 
-            w[c->isfullscrn ? --fl : ISFFT(c) ? --ft : --n] = c->win;
-        if (CLICK_TO_FOCUS) 
-            grabbuttons(c); 
-    } 
-
-    /* restack */
-    for (ft = 0; ft <= n; ++ft) 
-        xcb_raise_window(dis, w[n-ft]);
+    gettitle(c);
+    if (CLICK_TO_FOCUS) 
+        grabbuttons(c);
+    if (ISFFT(c))
+        xcb_raise_window(dis, c->win);
 
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
