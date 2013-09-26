@@ -363,14 +363,17 @@ void buttonpress(xcb_generic_event_t *e) {
     DEBUG("buttonpress: entering");
     xcb_button_press_event_t *ev = (xcb_button_press_event_t*)e; 
     monitor *m = wintomon(ev->event);
-    
-    if (m && CLICK_TO_FOCUS && m != selmon && ev->detail == XCB_BUTTON_INDEX_1)
-        selmon = m;
-
     client *c = wintoclient(ev->event);
- 
-    if (c && CLICK_TO_FOCUS && c != desktops[selmon->curr_dtop].current && ev->detail == XCB_BUTTON_INDEX_1) 
-        focus(c, &desktops[m->curr_dtop]);
+
+    if (CLICK_TO_FOCUS && ev->detail == XCB_BUTTON_INDEX_1) {
+        if (m && m != selmon)
+            selmon = m; 
+     
+        if (c && c != desktops[selmon->curr_dtop].current) 
+            focus(c, &desktops[m->curr_dtop]);
+
+        desktopinfo();
+    }
 
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail &&
@@ -782,21 +785,8 @@ void enternotify(xcb_generic_event_t *e) {
         selmon = m;
 
     desktop *d = &desktops[m->curr_dtop];
-    //if (d->current->istransient) {
-        //DEBUG("enternotify: leaving under desktop rules to not enter");
-        //return;
-    //}
+    
     DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp), (m->h * c->hp));
-
-    if ((d->mode == MONOCLE) || (d->mode == VIDEO)) {
-        gettitle(c);
-        if(CLICK_TO_FOCUS)
-            grabbuttons(c);
-        xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
-        xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
-        xcb_flush(dis);
-        return;
-    }
 
     focus(c, d);
 
