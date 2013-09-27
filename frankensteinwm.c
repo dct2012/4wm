@@ -965,10 +965,12 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
 }
 
 int findnumclientsondesktop(const desktop *d) {
+    DEBUG("findnumclientsondesktop: entering");
     int n = 0;
     for (client *c = d->head; c; c = c->next)
             if (!ISFFT(c))
                 n++;
+    DEBUG("findnumclientsondesktop: leaving");
     return n;
 }
 
@@ -1735,8 +1737,13 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         *p = c->next;
     if (c == d->prevfocus) 
         d->prevfocus = prev_client(d->current, d);
-    if (c == d->current || (d->head && !d->head->next)) 
-        focus(d->prevfocus, d);
+    if (c == d->current || (d->head && !d->head->next)) { 
+        if (d->prevfocus)
+            focus(d->prevfocus, d);
+        else
+            focus(d->head, d);
+            // if a child gets killed and kills its parent, prevfocus could be NULL
+    }
     if (!ISFFT(c)) {
         dead = (client *)malloc_safe(sizeof(client));
         *dead = *c;
@@ -1754,9 +1761,6 @@ void removeclient(client *c, desktop *d, const monitor *m) {
     } 
     free(c); c = NULL;
     setborders(d);
-    //focus(d->current, d);
-    //focus(desktops[selmon->curr_dtop].current, &desktops[selmon->curr_dtop]);
-    //focus(d->current, d); //we need to to re-adjust the borders after window removal
     desktopinfo();
     DEBUG("removeclient: leaving");
 }
@@ -2393,6 +2397,8 @@ void tilenew(desktop *d, const monitor *m) {
             c->hp = (n->yp + c->hp) - c->yp;
         } 
 
+        DEBUG("check");
+
         if (m != NULL) {
             adjustclientgaps(m->w, m->h, gap, c);
             adjustclientgaps(m->w, m->h, gap, n);
@@ -2429,7 +2435,7 @@ void tileremove(desktop *d, const monitor *m) {
     n = findnumclientsondesktop(d);
 
     list = (client**)malloc_safe(n * sizeof(client*));
-
+    
     if(dead->yp > 0) { //capable of having windows above?
         if (findtouchingclients(d, dead, list, &n, 0)) {
             // clients in list should gain the emptyspace
