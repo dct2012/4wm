@@ -72,9 +72,8 @@ Work on steam
 
   * games 
     * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
-      killing these pulseaudio processes allow the game to resume.
-    * hitting escape and leaving the game window; other windows cant be focused and 
-      game cant return focus either.
+      killing these pulseaudio processes allow the game to resume. alternatively you can
+      launch steam or the game with SDL_AUDIODRIVER=alsa
 
 Gimp
   * when killing client, another window pops up, without configure request, map notify, etc
@@ -83,6 +82,8 @@ Applications that ask before leaving
   * client gets killed before question is answered. so if the question is, are you sure you
   want to exit, and you say no, that client is already gone.
   * firefox, libreoffice
+
+Exiting the Libreoffice suite when it has windows on other desktops cause crash
 
 Bugs
 ----
