@@ -2434,6 +2434,25 @@ void tileremove(desktop *d, const monitor *m) {
 
     n = findnumclientsondesktop(d);
 
+    if (n == 1) {
+        DEBUG("tileremove: only one client; fitting screen");
+        client *c = d->head;
+        c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
+
+        if (m != NULL) {
+            adjustclientgaps(m->w, m->h, gap, c);
+            xcb_move_resize(dis, c->win, 
+                            (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                            (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                            (c->w = (m->w * c->wp) - 2*c->gapw), 
+                            (c->h = (m->h * c->hp) - 2*c->gaph));
+        }
+        d->dead = d->dead->next;
+        free(dead); dead = NULL;
+        DEBUG("tileremove: leaving");
+        return;
+    }
+
     list = (client**)malloc_safe(n * sizeof(client*));
 
     if(dead->yp > 0) { //capable of having windows above?
@@ -2455,6 +2474,7 @@ void tileremove(desktop *d, const monitor *m) {
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
+            DEBUG("tileremove: leaving");
             return;
         }
     }
@@ -2478,6 +2498,7 @@ void tileremove(desktop *d, const monitor *m) {
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
+            DEBUG("tileremove: leaving");
             return;
         }
     }
@@ -2503,6 +2524,7 @@ void tileremove(desktop *d, const monitor *m) {
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
+            DEBUG("tileremove: leaving");
             return;
         }
     }
@@ -2528,13 +2550,14 @@ void tileremove(desktop *d, const monitor *m) {
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
+            DEBUG("tileremove: leaving");
             return;
         }
     }
 
     free(list);
 
-    DEBUG("tileremove: leaving");
+    DEBUG("tileremove: leaving, nothing tiled");
 }
 
 /* toggle visibility state of the panel */
