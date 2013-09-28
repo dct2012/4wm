@@ -141,6 +141,7 @@ typedef struct client {
  * mode         - the desktop's tiling layout mode
  * gap          - the desktops gap size
  * flag         - a tiling special flag
+ * count        - the number of clients on that desktop
  * head         - the start of the client list
  * current      - the currently highlighted window
  * prevfocus    - the client that previously had focus
@@ -148,7 +149,7 @@ typedef struct client {
  * showpanel    - the visibility status of the panel
  */
 typedef struct {
-    int mode, gap, flag;
+    int mode, gap, flag, count;
     client *head, *current, *prevfocus, *dead;
     bool showpanel;
 } desktop;
@@ -176,7 +177,6 @@ static void destroynotify(xcb_generic_event_t *e);
 static void enternotify(xcb_generic_event_t *e);
 static void expose(xcb_generic_event_t *e);
 static bool findtouchingclients(desktop *d, client *c, client **list, int *num, int direction);
-static int findnumclientsondesktop(const desktop *d);
 static void focus(client *c, desktop *d);
 static void focusin(xcb_generic_event_t *e);
 static unsigned int getcolor(char* color);
@@ -337,6 +337,9 @@ client* addwindow(xcb_window_t w, desktop *d) {
     if (!d->head) d->head = c;
     else if (t) t->next = c; 
     else d->head->next = c;
+
+    d->count += 1;
+    DEBUGP("addwindow: d->count = %d\n", d->count);
 
     unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
     xcb_change_window_attributes_checked(dis, (c->win = w), XCB_CW_EVENT_MASK, values);
@@ -964,16 +967,6 @@ bool findtouchingclients(desktop *d, client *c, client **list, int *num, int dir
     return false;
 }
 
-int findnumclientsondesktop(const desktop *d) {
-    DEBUG("findnumclientsondesktop: entering");
-    int n = 0;
-    for (client *c = d->head; c; c = c->next)
-            if (!ISFFT(c))
-                n++;
-    DEBUG("findnumclientsondesktop: leaving");
-    return n;
-}
-
 /* highlight borders and set active window and input focus
  * if given current is NULL then delete the active window property
  *
@@ -1481,7 +1474,8 @@ void moveclientdown() {
 
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < 1)) { //capable of having windows below?
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("moveclientdown: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 2);
@@ -1525,7 +1519,8 @@ void moveclientleft() {
 
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->xp > 0)) { //capable of having windows to the left?
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("moveclientleft: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 1);
@@ -1568,7 +1563,8 @@ void moveclientright() {
     }
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("moveclientright: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 3);
@@ -1611,7 +1607,8 @@ void moveclientup() {
     }
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows above?
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("moveclientup: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 0); // even if it not a direct match it should return with something touching
@@ -1642,15 +1639,16 @@ void moveclientup() {
     DEBUG("moveclientup: leaving");
 }
 
-void movefocusup() {
+void movefocusdown() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows to the right?
-        int n = findnumclientsondesktop(d);
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < 1)) { //capable of having windows to the right?
+        int n = d->count;
+        DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 0);
+        findtouchingclients(d, c, list, &n, 2);
         focus(list[0], d);
         free(list);
     }
@@ -1661,24 +1659,11 @@ void movefocusleft() {
     client *c = d->current, **list;
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->xp > 0)) { //capable of having windows to the right?
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("movefocusleft: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 1);
-        focus(list[0], d);
-        free(list);
-    }
-}
-
-void movefocusdown() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, **list;
-
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < selmon->h)) { //capable of having windows to the right?
-        int n = findnumclientsondesktop(d);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 2);
         focus(list[0], d);
         free(list);
     }
@@ -1688,11 +1673,27 @@ void movefocusright() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < selmon->w)) { //capable of having windows to the right?
-        int n = findnumclientsondesktop(d);
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
+        int n = d->count;
+        DEBUGP("movefocusright: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients(d, c, list, &n, 3);
+        focus(list[0], d);
+        free(list);
+    }
+}
+
+void movefocusup() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    client *c = d->current, **list;
+
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows to the right?
+        int n = d->count;
+        DEBUGP("movefocusup: d->count = %d\n", d->count);
+        c = d->current;
+        list = (client**)malloc_safe(n * sizeof(client*)); 
+        findtouchingclients(d, c, list, &n, 0);
         focus(list[0], d);
         free(list);
     }
@@ -1778,6 +1779,7 @@ void removeclient(client *c, desktop *d, const monitor *m) {
             focus(d->head, d);
             // if a child gets killed and kills its parent, prevfocus could be NULL
     }
+    d->count -= 1;
     if (!ISFFT(c)) {
         dead = (client *)malloc_safe(sizeof(client));
         *dead = *c;
@@ -1793,7 +1795,7 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         d->flag = TILEREMOVE;
         tile(m, d);
     } 
-    free(c); c = NULL;
+    free(c); c = NULL; 
     setborders(d);
     desktopinfo();
     DEBUG("removeclient: leaving");
@@ -1804,7 +1806,8 @@ void resizeclientbottom(const Arg *arg) {
     client *c, **list;
     DEBUG("resizeclientbottom: entering"); 
 
-    int n = findnumclientsondesktop(d);
+    int n = d->count;
+    DEBUGP("resizeclientbottom: d->count = %d\n", d->count);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
@@ -1873,7 +1876,8 @@ void resizeclientleft(const Arg *arg) {
     client *c, **list;
     DEBUG("resizeclientleft: entering"); 
 
-    int n = findnumclientsondesktop(d);
+    int n = d->count;
+    DEBUGP("resizeclientleft: d->count = %d\n", d->count);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
@@ -1940,7 +1944,8 @@ void resizeclientright(const Arg *arg) {
     client *c, **list;
     DEBUG("resizeclientright: entering");
 
-    int n = findnumclientsondesktop(d);
+    int n = d->count;
+    DEBUGP("resizeclientright: d->count = %d\n", d->count);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
@@ -2008,7 +2013,8 @@ void resizeclienttop(const Arg *arg) {
     client *c, **list;
     DEBUG("resizeclienttop: entering"); 
 
-    int n = findnumclientsondesktop(d);
+    int n = d->count;
+    DEBUGP("resizeclienttop: d->count = %d\n", d->count);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
@@ -2077,7 +2083,8 @@ void retile(const desktop *d, const monitor *m) {
     
 
     if (d->mode != MONOCLE && d->mode != VIDEO) {
-        int n = findnumclientsondesktop(d);
+        int n = d->count;
+        DEBUGP("retile: d->count = %d\n", d->count);
        
         for (client *c = d->head; c; c=c->next) {
             if (!ISFFT(c)) {
@@ -2158,7 +2165,8 @@ void setborders(desktop *d)
 
 
     // find n = number of windows with set borders
-    int n = findnumclientsondesktop(d);
+    int n = d->count;
+    DEBUGP("setborders: d->count = %d\n", d->count);
 
     for (c = d->head; c; c = c -> next) {
         // rules for no border
@@ -2264,7 +2272,7 @@ int setup(int default_screen) {
 
     selmon = mons; 
     for (unsigned int i=0; i<DESKTOPS; i++)
-        desktops[i] = (desktop){ .mode = DEFAULT_MODE, .showpanel = SHOW_PANEL, .gap = GAP, };
+        desktops[i] = (desktop){ .mode = DEFAULT_MODE, .showpanel = SHOW_PANEL, .gap = GAP, .count = 0, };
 
     win_focus   = getcolor(FOCUS);
     win_unfocus = getcolor(UNFOCUS);
@@ -2486,7 +2494,8 @@ void tileremove(desktop *d, const monitor *m) {
     
     DEBUG("tileremove: entering");
 
-    n = findnumclientsondesktop(d);
+    n = d->count;
+    DEBUGP("tileremove: d->count = %d\n", d->count);
 
     if (n == 1) {
         DEBUG("tileremove: only one client; fitting screen");
