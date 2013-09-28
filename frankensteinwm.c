@@ -1468,16 +1468,23 @@ void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: leaving");
 }
 
-// switch the current client with the first client we find above it
-void moveclientup() {
+// switch the current client with the first client we find below it
+void moveclientdown() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, *cold, **list;
+    DEBUG("moveclientdown: entering");
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows above?
+    if (!c) {
+        DEBUG("moveclientdown: leaving, no d->current");
+        return;
+    }
+
+
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < 1)) { //capable of having windows below?
         int n = findnumclientsondesktop(d);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 0); // even if it not a direct match it should return with something touching
+        findtouchingclients(d, c, list, &n, 2);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1501,12 +1508,21 @@ void moveclientup() {
         }
         free(list);
     }
+
+    DEBUG("moveclientdown: leaving");
 }
 
 // switch the current client with the first client we find to the left of it
 void moveclientleft() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, *cold, **list;
+    DEBUG("moveclientleft: entering");
+
+    if (!c) {
+        DEBUG("moveclientleft: leaving, no d->current");
+        return;
+    }
+
 
     if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->xp > 0)) { //capable of having windows to the left?
         int n = findnumclientsondesktop(d);
@@ -1536,49 +1552,22 @@ void moveclientleft() {
         }
         free(list);
     } 
-}
 
-// switch the current client with the first client we find below it
-void moveclientdown() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *cold, **list;
-
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < selmon->h)) { //capable of having windows below?
-        int n = findnumclientsondesktop(d);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 2);
-        // switch stuff
-        if (list[0] != NULL) {
-            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
-            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
-            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
-            // move stuff
-            xcb_move_resize(dis, list[0]->win, 
-                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-            setborders(d);
-        }
-        free(list);
-    }
+    DEBUG("moveclientleft: leaving");
 }
 
 // switch the current client with the first client we find to the right of it
 void moveclientright() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, *cold, **list;
+    DEBUG("moveclientright: entering");
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < selmon->w)) { //capable of having windows to the right?
+    if (!c) {
+        DEBUG("moveclientright: leaving, no d->current");
+        return;
+    }
+
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
         int n = findnumclientsondesktop(d);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
@@ -1606,6 +1595,51 @@ void moveclientright() {
         }
         free(list);
     }
+
+    DEBUG("moveclientright: leaving");
+}
+
+// switch the current client with the first client we find above it
+void moveclientup() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    client *c = d->current, *cold, **list;
+    DEBUG("moveclientup: entering");
+
+    if (!c) {
+        DEBUG("moveclientup: leaving, no d->current");
+        return;
+    }
+
+    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows above?
+        int n = findnumclientsondesktop(d);
+        c = d->current;
+        list = (client**)malloc_safe(n * sizeof(client*)); 
+        findtouchingclients(d, c, list, &n, 0); // even if it not a direct match it should return with something touching
+        // switch stuff
+        if (list[0] != NULL) {
+            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
+            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
+            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
+            // move stuff
+            xcb_move_resize(dis, list[0]->win, 
+                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+            xcb_move_resize(dis, c->win, 
+                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+            setborders(d);
+        }
+        free(list);
+    }
+
+    DEBUG("moveclientup: leaving");
 }
 
 void movefocusup() {
@@ -1775,7 +1809,12 @@ void resizeclientbottom(const Arg *arg) {
     list = (client**)malloc_safe(n * sizeof(client*));
    
     c = d->current;
-    if(((selmon->h * c->yp) + (selmon->h * c->hp)) < selmon->h) { //capable of having windows below?
+    if (!c){
+        DEBUG("resizeclientbottom: leaving, no d->current");
+        return;
+    }
+    
+    if((c->yp + c->hp) < 1) { //capable of having windows below?
         if (findtouchingclients(d, c, list, &n, 2)) {
             //client in list y increases and height decreases
             for (int i = 0; i < n; i++) {
@@ -1839,6 +1878,11 @@ void resizeclientleft(const Arg *arg) {
     list = (client**)malloc_safe(n * sizeof(client*));
    
     c = d->current;
+    if (!c){
+        DEBUG("resizeclientleft: leaving, no d->current");
+        return;
+    }
+
     if(c->xp > 0) { //capable of having windows to the left?
         if (findtouchingclients(d, c, list, &n, 1)) {
             //client in list width decreases
@@ -1894,14 +1938,19 @@ void resizeclientleft(const Arg *arg) {
 void resizeclientright(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c, **list;
-    DEBUG("resizeclientleft: entering");
+    DEBUG("resizeclientright: entering");
 
     int n = findnumclientsondesktop(d);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
     c = d->current;
-    if(((selmon->w * c->xp) + (selmon->w * c->wp)) < selmon->w) { //capable of having windows to the right?
+    if (!c){
+        DEBUG("resizeclientright: leaving, no d->current");
+        return;
+    }
+
+    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
         if (findtouchingclients(d, c, list, &n, 3)) { 
             //clients in list x increases and width decrease
             for (int i = 0; i < n; i++) {
@@ -1964,6 +2013,11 @@ void resizeclienttop(const Arg *arg) {
     list = (client**)malloc_safe(n * sizeof(client*));
    
     c = d->current;
+    if (!c){
+        DEBUG("resizeclienttop: leaving, no d->current");
+        return;
+    }
+    
     if(c->yp > 0) { //capable of having windows above?
         if (findtouchingclients(d, c, list, &n, 0)) {
             //client in list height decreases
@@ -2013,7 +2067,7 @@ void resizeclienttop(const Arg *arg) {
         return;
     } 
 
-    DEBUG("resizeclientbottom: leaving");
+    DEBUG("resizeclienttop: leaving");
 }
 
 void retile(const desktop *d, const monitor *m) {
