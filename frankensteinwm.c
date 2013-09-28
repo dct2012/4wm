@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -223,10 +223,12 @@ static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 static void* malloc_safe(size_t size)
 {
+    DEBUG("malloc_safe: entering");
     void *ret;
     if(!(ret = malloc(size)))
         puts("malloc_safe: fatal: could not malloc()");
     memset(ret, 0, size);
+    DEBUG("malloc_safe: leaving");
     return ret;
 }
 
@@ -579,7 +581,7 @@ desktop *clienttodesktop(client *c) {
     for (i = 0; i < DESKTOPS; i++)
         for (d = &desktops[i], n = d->head; n; n = n->next)
             if(n == c) {
-                DEBUG("clienttodesktop: leaving, returning found desktop");
+                DEBUGP("clienttodesktop: leaving, returning found desktop #%d\n", i);
                 return d;
             }
     
@@ -2435,7 +2437,7 @@ void tileremove(desktop *d, const monitor *m) {
     n = findnumclientsondesktop(d);
 
     list = (client**)malloc_safe(n * sizeof(client*));
-    
+
     if(dead->yp > 0) { //capable of having windows above?
         if (findtouchingclients(d, dead, list, &n, 0)) {
             // clients in list should gain the emptyspace
@@ -2452,15 +2454,13 @@ void tileremove(desktop *d, const monitor *m) {
                     }
                 }
             }
-            if (m != NULL)
-                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
             return;
         }
     }
-    
+
     if(dead->xp > 0) { //capable of having windows to the left?
         if (findtouchingclients(d, dead, list, &n, 1)) {
             // clients in list should gain the emptyspace
@@ -2477,16 +2477,14 @@ void tileremove(desktop *d, const monitor *m) {
                     }
                 }
             }
-            if (m != NULL)
-                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
             return;
         }
     }
-    
-    if((m->h * dead->yp) + (m->h * dead->hp) < m->h) { 
+
+    if((dead->yp + dead->hp) < 1) { 
     //capable of having windows below?
         if (findtouchingclients(d, dead, list, &n, 2)) {
             // clients in list should gain the emptyspace
@@ -2504,8 +2502,6 @@ void tileremove(desktop *d, const monitor *m) {
                     }
                 }
             }
-            if (m != NULL)
-                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
@@ -2513,7 +2509,7 @@ void tileremove(desktop *d, const monitor *m) {
         }
     }
     
-    if((dead->xp + dead->wp) < m->w) { 
+    if((dead->xp + dead->wp) < 1) { 
     //capable of having windows to the right?
         if (findtouchingclients(d, dead, list, &n, 3)) {
             // clients in list should gain the emptyspace
@@ -2531,8 +2527,6 @@ void tileremove(desktop *d, const monitor *m) {
                     }
                 }
             }
-            if (m != NULL)
-                retile(d, m);
             d->dead = d->dead->next;
             free(dead); dead = NULL;
             free(list);
