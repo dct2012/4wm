@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 1
+#if 0
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -223,12 +223,10 @@ static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 static void* malloc_safe(size_t size)
 {
-    DEBUG("malloc_safe: entering");
     void *ret;
     if(!(ret = malloc(size)))
         puts("malloc_safe: fatal: could not malloc()");
     memset(ret, 0, size);
-    DEBUG("malloc_safe: leaving");
     return ret;
 }
 
