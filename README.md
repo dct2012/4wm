@@ -83,8 +83,6 @@ Applications that ask before leaving
   want to exit, and you say no, that client is already gone.
   * firefox, libreoffice
 
-Exiting the Libreoffice suite when it has windows on other desktops cause crash
-
 Bugs
 ----
 
