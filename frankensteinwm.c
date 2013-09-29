@@ -103,6 +103,7 @@ static void movefocusleft();
 static void movefocusdown();
 static void movefocusright();
 static void mousemotion(const Arg *arg);
+static void pushtotiling();
 static void quit(const Arg *arg);
 static void resizeclientbottom(const Arg *arg);
 static void resizeclientleft(const Arg *arg);
@@ -164,7 +165,7 @@ typedef struct monitor {
 
 /* Hidden function prototypes sorted alphabetically */
 static client* addwindow(xcb_window_t w, desktop *d);
-static void adjustclientgaps(const int w, const int h, const int gap, client *c);
+static void adjustclientgaps(const int gap, client *c);
 static void buttonpress(xcb_generic_event_t *e);
 static void cleanup(void);
 static void clientmessage(xcb_generic_event_t *e);
@@ -195,7 +196,6 @@ static void removeclient(client *c, desktop *d, const monitor *m);
 static void retile(const desktop *d, const monitor *m);
 static void run(void);
 static void setborders(desktop *d);
-static void setfullscreen(client *c, bool fullscrn);
 static int setup(int default_screen);
 static int  setuprandr(void);
 static void sigchld();
@@ -347,15 +347,15 @@ client* addwindow(xcb_window_t w, desktop *d) {
     return c;
 }
 
-void adjustclientgaps(const int w, const int h, const int gap, client *c) {
+void adjustclientgaps(const int gap, client *c) {
 
         if (c->xp == 0) c->gapx = gap;
         else c->gapx = gap/2;
         if (c->yp == 0) c->gapy = gap;
         else c->gapy = gap/2;
-        if (((w * c->xp) + (w * c->wp)) == w) c->gapw = gap;
+        if ((c->xp + c->wp) == 1) c->gapw = gap;
         else c->gapw = gap/2;
-        if (((h * c->yp) + (h * c->hp)) == h) c->gaph = gap;
+        if ((c->yp + c->hp) == 1) c->gaph = gap;
         else c->gaph = gap/2;
 }
 
@@ -693,7 +693,7 @@ void decreasegap(const Arg *arg) {
     if(d->gap > MINGAP) {
         d->gap -= arg->i;
         for (client *c = d->head; c; c = c->next)
-            adjustclientgaps(selmon->w, selmon->h, d->gap, c);
+            adjustclientgaps(d->gap, c);
         d->flag = RETILE;
         tile(selmon, d);
         setborders(d);
@@ -1247,7 +1247,7 @@ void increasegap(const Arg *arg) {
     if(d->gap < MAXGAP) {
         d->gap += arg->i;
         for (client *c = d->head; c; c = c->next)
-            adjustclientgaps(selmon->w, selmon->h, d->gap, c);
+            adjustclientgaps(d->gap, c);
         d->flag = RETILE;
         tile(selmon, d);
         setborders(d); 
@@ -1361,6 +1361,8 @@ void maprequest(xcb_generic_event_t *e) {
         free(prop_reply);
     } 
 
+    //DEBUGP("");
+
     monitor *m = wintomon(c->win);
     if (cd == newdsk) {
         desktops[m->curr_dtop].flag = TILENEW;
@@ -1412,7 +1414,6 @@ void mousemotion(const Arg *arg) {
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME), NULL);
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
-    if (d->current->isfullscrn) setfullscreen(d->current, False);
     if (!d->current->isfloating) d->current->isfloating = True;
     d->flag = RETILE;
     tile(selmon, d); 
@@ -1482,11 +1483,10 @@ void moveclientdown() {
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
             c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
+            adjustclientgaps(d->gap, c);
             list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
+            adjustclientgaps(d->gap, list[0]);
             // move stuff
             xcb_move_resize(dis, list[0]->win, 
                             (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
@@ -1527,11 +1527,10 @@ void moveclientleft() {
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
             c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
+            adjustclientgaps(d->gap, c);
             list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
+            adjustclientgaps(d->gap, list[0]);
             // move stuff
             xcb_move_resize(dis, list[0]->win, 
                             (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
@@ -1571,11 +1570,10 @@ void moveclientright() {
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
             c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
+            adjustclientgaps(d->gap, c);
             list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
+            adjustclientgaps(d->gap, list[0]);
             // move stuff
             xcb_move_resize(dis, list[0]->win, 
                             (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
@@ -1615,11 +1613,11 @@ void moveclientup() {
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            cold->gapx = c->gapx; cold->gapy = c->gapy; cold->gapw = c->gapw; cold->gaph = c->gaph;
+            adjustclientgaps(d->gap, list[0]);
             c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            c->gapx = list[0]->gapx; c->gapy = list[0]->gapy; c->gapw = list[0]->gapw; c->gaph = list[0]->gaph;
+            adjustclientgaps(d->gap, c);
             list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            list[0]->gapx = cold->gapx; list[0]->gapy = cold->gapy; list[0]->gapw = cold->gapw; list[0]->gaph = cold->gaph;
+            adjustclientgaps(d->gap, list[0]);
             // move stuff
             xcb_move_resize(dis, list[0]->win, 
                             (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
@@ -1745,6 +1743,98 @@ monitor* ptrtomon(int x, int y) {
         if(INRECT(x, y, m->x, m->y, m->w, m->h))
             return m;
     return selmon;
+}
+
+void pushtotiling() {
+    DEBUG("pushtotiling: entering");
+    
+    desktop *d = &desktops[selmon->curr_dtop];
+    int gap = d->gap;
+    client *c = NULL, *n = d->current; // the client to push
+    monitor *m = selmon;
+    
+    n->isfloating = false;
+    n->istransient = false;
+    n->isfullscrn = false;
+
+    if (d->prevfocus)
+        c = d->prevfocus;
+    else if (d->head && (d->head != n))
+        c = d->head;
+    else { // it must be the only client on this desktop
+        n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
+        adjustclientgaps(gap, n);
+        xcb_move_resize(dis, n->win, 
+                            (n->x = m->x + n->gapx), 
+                            (n->y = m->y + n->gapy), 
+                            (n->w = m->w - 2*n->gapw), 
+                            (n->h = m->h - 2*n->gaph));
+        DEBUG("pushtotiling: leaving, tiled only client on desktop");
+        return;
+    }
+
+    if(!c) {
+        DEBUG("pushtotiling: leaving, error, !c");
+        return;
+    }
+
+    if (d->mode == RIGHTT) { // tile current to the left and new to the right
+            DEBUG("tilenew: right");
+            n->xp = c->xp + (c->wp/2);
+            n->yp = c->yp;
+            n->wp = (c->xp + c->wp) - n->xp;
+            n->hp = c->hp;
+            c->wp /= 2; 
+        }
+        else if (d->mode == BOTTOMT) { // tile current to the top and new to the bottom
+            DEBUG("tilenew: bottom"); 
+            n->xp = c->xp;
+            n->yp = c->yp + (c->hp/2);
+            n->wp = c->wp;
+            n->hp = (c->yp + c->hp) - n->yp;
+            c->hp /= 2;
+        }
+        else if (d->mode == LEFTT){ // tile current to the right and new to the left
+            DEBUG("tilenew: left");
+            n->xp = c->xp;
+            n->yp = c->yp;
+            n->wp = c->wp/2;
+            n->hp = c->hp;
+            c->xp = n->xp + n->wp;
+            c->wp = (n->xp + c->wp) - c->xp;
+        }
+        else { // TOPT // tile current to the bottom and new to the top
+            DEBUG("tilenew: top");
+            n->xp = c->xp;
+            n->yp = c->yp;
+            n->wp = c->wp;
+            n->hp = c->hp/2;
+            c->yp = n->yp + n->hp;
+            c->hp = (n->yp + c->hp) - c->yp;
+        } 
+
+        adjustclientgaps(gap, c);
+        adjustclientgaps(gap, n);
+        
+        if (d->mode != MONOCLE && d->mode != VIDEO) {
+            xcb_move_resize(dis, c->win,
+                            (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                            (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                            (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                            (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+            DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
+
+            xcb_move_resize(dis, n->win, 
+                            (n->x = m->x + (m->w * n->xp) + n->gapx), 
+                            (n->y = m->y + (m->h * n->yp) + n->gapy), 
+                            (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                            (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+            DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+        }
+        else
+            monocle(m->x, m->y, m->w, m->h, d, m);
+
+    DEBUG("pushtotiling: leaving");
 }
 
 /* to quit just stop receiving events
@@ -2216,18 +2306,6 @@ void setborders(desktop *d)
     DEBUG("setborders: leaving");
 }
 
-/* set or unset fullscreen state of client */
-void setfullscreen(client *c, bool fullscrn) { 
-    long data[] = { fullscrn ? netatoms[NET_FULLSCREEN] : XCB_NONE };
-    DEBUG("setfullscreen: entering");
-    if (fullscrn != c->isfullscrn) 
-        xcb_change_property(dis, XCB_PROP_MODE_REPLACE, c->win, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 32, fullscrn, data);
-    if ((c->isfullscrn = fullscrn)) 
-        xcb_move_resize(dis, c->win, selmon->x, selmon->y, selmon->w, selmon->h + PANEL_HEIGHT);
-    focus(c, &desktops[selmon->curr_dtop]);
-    DEBUG("setfullscreen: leaving");
-}
-
 /* get numlock modifier using xcb */
 int setup_keyboard(void)
 {
@@ -2462,8 +2540,8 @@ void tilenew(desktop *d, const monitor *m) {
         DEBUG("check");
 
         if (m != NULL) {
-            adjustclientgaps(m->w, m->h, gap, c);
-            adjustclientgaps(m->w, m->h, gap, n);
+            adjustclientgaps(gap, c);
+            adjustclientgaps(gap, n);
             
             if (d->mode != MONOCLE && d->mode != VIDEO) {
                 xcb_move_resize(dis, c->win,
@@ -2503,7 +2581,7 @@ void tileremove(desktop *d, const monitor *m) {
         c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
 
         if (m != NULL) {
-            adjustclientgaps(m->w, m->h, gap, c);
+            adjustclientgaps(gap, c);
             xcb_move_resize(dis, c->win, 
                             (c->x = m->x + (m->w * c->xp) + c->gapx), 
                             (c->y = m->y + (m->h * c->yp) + c->gapy), 
@@ -2524,7 +2602,7 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->hp += dead->hp;
                 if (m != NULL) {
-                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    adjustclientgaps(gap, list[i]);
                     if (d->mode != MONOCLE && d->mode != VIDEO) {
                         xcb_move_resize(dis, list[i]->win, 
                                         list[i]->x, 
@@ -2548,7 +2626,7 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->wp += dead->wp;
                 if (m != NULL) {
-                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    adjustclientgaps(gap, list[i]);
                     if (d->mode != MONOCLE && d->mode != VIDEO) {
                         xcb_move_resize(dis, list[i]->win, 
                                         list[i]->x, 
@@ -2574,7 +2652,7 @@ void tileremove(desktop *d, const monitor *m) {
                 list[i]->yp = dead->yp;
                 list[i]->hp += dead->hp;
                 if (m != NULL) {
-                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    adjustclientgaps(gap, list[i]);
                     if (d->mode != MONOCLE && d->mode != VIDEO) {
                         xcb_move_resize(dis, list[i]->win, 
                                         list[i]->x, 
@@ -2600,7 +2678,7 @@ void tileremove(desktop *d, const monitor *m) {
                 list[i]->xp = dead->xp;
                 list[i]->wp += dead->wp;
                 if (m != NULL) {
-                    adjustclientgaps(m->w, m->h, gap, list[i]);
+                    adjustclientgaps(gap, list[i]);
                     if (d->mode != MONOCLE && d->mode != VIDEO) {
                         xcb_move_resize(dis, list[i]->win, 
                                         (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
