@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 1
+#if 0
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -529,14 +529,10 @@ void client_to_desktop(const Arg *arg) {
     n->count += 1;
     DEBUGP("client_to_desktop: n->count = %d\n", n->count);
 
-    if ((m = wintomon(n->head->win))) {
-        n->flag = TILENEW;
-        tile(m, n);
-    }
-    else if (d->mode != MONOCLE && d->mode != VIDEO) {
-        n->flag = TILENEW;
-        tile(selmon, n);
-    }
+    m = wintomon(n->head->win);
+    n->flag = TILENEW;
+    tile(m, n); // itll be ok if m == NULL
+    
     focus(c, n);
 
     if (FOLLOW_WINDOW) 
