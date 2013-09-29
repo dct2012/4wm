@@ -19,7 +19,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -499,8 +499,10 @@ void client_to_desktop(const Arg *arg) {
     else 
         p->next = c->next;
     c->next = NULL;
+    d->count -= 1;
+    DEBUGP("client_to_desktop: d->count = %d\n", d->count);
 
-    if (!flag) { // window is moving to another monitor 
+    if (!flag) { // window is not moving to another monitor 
         xcb_unmap_window(dis, c->win);
     }
 
@@ -524,6 +526,8 @@ void client_to_desktop(const Arg *arg) {
         n->head->next = c;
     else
         n->head = c;
+    n->count += 1;
+    DEBUGP("client_to_desktop: n->count = %d\n", n->count);
 
     if ((m = wintomon(n->head->win))) {
         n->flag = TILENEW;
