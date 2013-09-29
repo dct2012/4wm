@@ -119,6 +119,8 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_h,           moveclientleft,     {NULL}},
     {  MOD1|SHIFT,      XK_j,           moveclientdown,     {NULL}},
     {  MOD1|SHIFT,      XK_l,           moveclientright,    {NULL}},
+    // push client into tiling
+    {  MOD1,            XK_t,           pushtotiling,       {NULL}},
     // Switch layouts
     {  MOD1|SHIFT,      XK_w,           switch_mode,        {.i = TOPT}},
     {  MOD1|SHIFT,      XK_m,           switch_mode,        {.i = MONOCLE}},
