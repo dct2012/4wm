@@ -338,7 +338,6 @@ client* addwindow(xcb_window_t w, desktop *d) {
     else if (t) t->next = c; 
     else d->head->next = c;
 
-    d->count += 1;
     DEBUGP("addwindow: d->count = %d\n", d->count);
 
     unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
@@ -499,7 +498,8 @@ void client_to_desktop(const Arg *arg) {
     else 
         p->next = c->next;
     c->next = NULL;
-    d->count -= 1;
+    if (!ISFFT(c))
+        d->count -= 1;
     DEBUGP("client_to_desktop: d->count = %d\n", d->count);
 
     if (!flag) { // window is not moving to another monitor 
@@ -1356,6 +1356,10 @@ void maprequest(xcb_generic_event_t *e) {
         }
     }
 
+    if (!ISFFT(c))
+        desktops[newdsk].count += 1;
+        
+
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); /* TODO: error handling */
     if (prop_reply) { 
         free(prop_reply);
@@ -1764,6 +1768,7 @@ void pushtotiling() {
     else { // it must be the only client on this desktop
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         adjustclientgaps(gap, n);
+        d->count += 1;
         xcb_move_resize(dis, n->win, 
                             (n->x = m->x + n->gapx), 
                             (n->y = m->y + n->gapy), 
@@ -1812,6 +1817,8 @@ void pushtotiling() {
             c->yp = n->yp + n->hp;
             c->hp = (n->yp + c->hp) - c->yp;
         } 
+        
+        d->count += 1;
 
         adjustclientgaps(gap, c);
         adjustclientgaps(gap, n);
@@ -1868,9 +1875,9 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         else
             focus(d->head, d);
             // if a child gets killed and kills its parent, prevfocus could be NULL
-    }
-    d->count -= 1;
+    } 
     if (!ISFFT(c)) {
+        d->count -= 1;
         dead = (client *)malloc_safe(sizeof(client));
         *dead = *c;
         dead->next = NULL;
