@@ -1359,7 +1359,6 @@ void maprequest(xcb_generic_event_t *e) {
     if (!ISFFT(c))
         desktops[newdsk].count += 1;
         
-
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); /* TODO: error handling */
     if (prop_reply) { 
         free(prop_reply);
@@ -2543,8 +2542,6 @@ void tilenew(desktop *d, const monitor *m) {
             c->yp = n->yp + n->hp;
             c->hp = (n->yp + c->hp) - c->yp;
         } 
-
-        DEBUG("check");
 
         if (m != NULL) {
             adjustclientgaps(gap, c);
