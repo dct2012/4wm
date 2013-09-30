@@ -1,24 +1,23 @@
 .TH frankensteinwm 1 frankensteinwm
 .SH NAME
-frankensteinwm \- minimal, versatile, dynamic tiling window manager
+frankensteinwm \- a dynamic tiling window manager
 .SH SYNOPSIS
 .B frankensteinwm
 .RB [ \-v ]
 .SH DESCRIPTION
-frankensteinwm is a very minimal, lightweight, dynamic tiling window manager with two
-borders.
+frankensteinwm is a small, lightweight, versatile, dynamic tiling window manager with two borders.
 .P
 .SH MODES
-It splits the current window in half and adds the new window to either the left, right,
+There is one tiling layout with four modes that split the current window in half and add the new window to either the left, right,
 top, or bottom.
 .P
 .B frankensteinwm
-other modes
+other modes are:
 .I Monocle mode
-a fullscreen mode, where the clients take up the entire workspace excluding the gap, and 
+, a fullscreen mode, where the clients take up the entire workspace excluding the gap, and 
 additional clients are hidden behind the current shown window.
 .I Video mode
-a fullscreen mode, where the clients take up the entire workspace, and additional clients
+, a fullscreen mode, where the clients take up the entire workspace, and additional clients
 are hidden behind the current shown window.
 .I Floating mode
 where, windows can move and be resized freely in the screen space. Windows
@@ -42,58 +41,45 @@ and recompiling. The default key-bindings include:
 Start
 .BR xterm (1).
 .TP
-.B Mod4\-v
-Start
-.BR dmenu (1).
-.TP
 .B Mod1\-b
 Toggles the panel on and off.
 .TP
-.B Mod1\-Shift\-t
-Sets tiled layout.
+.B Mod1\-Shift\-w
+Sets tiling layout to the top.
+.TP
+.B Mod1\-Shift\-a
+Sets tiling layout to the left.
+.TP
+.B Mod1\-Shift\-s
+Sets tiling layout to the bottom.
+.TP
+.B Mod1\-Shift\-d
+Sets tiling layout to the right.
 .TP
 .B Mod1\-Shift\-m
 Sets monocle layout.
 .TP
 .B Mod1\-Shift\-b
-Sets bottom stack layout
+Sets video layout.
 .TP
-.B Mod1\-Shift\-g
-Sets grid layout
+.B Mod1\-Control\-k
+Moves focus up.
 .TP
-.B Mod1\-j
-Focus next window.
+.B Mod1\-Control\-h
+Moves focus left.
 .TP
-.B Mod1\-k
-Focus previous window.
+.B Mod1\-Control\-j
+Moves focus down.
 .TP
-.B Mod1\-Shift\-j
-Move the focussed window down the stack
-.TP
-.B Mod1\-Shift\-k
-Move the focussed window up the stack
-.TP
-.B Mod1\-l
-Increase master area size.
-.TP
-.B Mod1\-h
-Decrease master area size.
-.TP
-.B Mod1\-Return
-Swaps the focused window to/from master area (tiled layouts only).
+.B Mod1\-Control\-l
+Moves focus right.
 .TP
 .B Mod1\-Backspace
 Focus the window that raised an urgent hint. If no such window in current desktop,
 search other desktops, and focus the desktop and window that raised the urgent hint.
 .TP
-.B Mod1\-Shift\-{Left,Right}
-Rotate to the next/previous desktop
-.TP
 .B Mod1\-Shift\-c
 Close focused window.
-.TP
-.B Mod1\-Tab
-Toggles to the last selected desktop.
 .TP
 .B Mod1\-Shift\-q
 Quit frankensteinwm.
@@ -101,7 +87,7 @@ Quit frankensteinwm.
 .B Mod1\-F{1..n}
 Move to the nth workspace. By default,
 .I frankensteinwm
-is configured with four workspaces.
+is configured with nine workspaces.
 .TP
 .B Mod1\-Shift\-F{1..n}
 Move focused window to nth workspace.
@@ -112,10 +98,6 @@ Dragging the mouse will move the selected window
 .B Mod1\-Button3
 Dragging the mouse will resize the selected window
 .TP
-.B Mod4\-Button3
-will bring up
-.I dmenu
-.TP
 .SH CUSTOMIZATION
 .I frankensteinwm
 is customized by copying
@@ -124,11 +106,9 @@ to
 .I config.h
 and (re)compiling the source code.
 .SH SEE ALSO
-.BR dmenu (1)
+.BR xterm (1)
 .SH BUGS
 .I frankensteinwm
 is under active development. Please report all bugs to the author.
 .SH AUTHOR
-Ivan Kanakarakis <ivan.kanak at gmail.com>
-Jari Vetoniemi <cloudef at cloudef.eu>
 Derek Taaffe <cameron.taaffe at gmail.com>
