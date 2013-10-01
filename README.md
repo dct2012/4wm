@@ -88,10 +88,12 @@ Applications that ask before leaving
 Bugs
 ----
 
-For any bug or request [fill an issue][bug] on [GitHub][ghp].
+For any bug or request [fill an issue][bug] on [GitHub][ghp]. Also check the [TODO][tdo]
+for your issue.
 
   [bug]: https://github.com/dct2012/frankensteinwm/issues
   [ghp]: https://github.com/dct2012/frankensteinwm
+  [tdo]: https://github.com/dct2012/frankensteinwm#TODO
 
 
 License
