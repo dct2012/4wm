@@ -3,10 +3,12 @@ frankensteinwm
 
 
 ----------------------
-**frankensteinwm** is a minimal, lightweight, dynamic tiling window manager with 
-two borders. Its aim is to be small, fast, and versatile. It has one tiling layout, where
-it splits windows in four different ways, and two fullscreen layouts. Each virtual desktop
-has its own properties, unaffected by other desktops' or monitors' settings.
+**frankensteinwm** is a versatile, lightweight, dynamic tiling window manager with 
+two borders. Its mission is to be as small and versatile as possible and as well to be 
+quick. It has one tiling layout, where it splits windows in four different ways, and two 
+fullscreen layouts. Each virtual desktop has its own properties, unaffected by other 
+desktops' or monitors' settings. Each window can be resized in four directions and the
+gap between windows can be increased and decreased dynamically.
 
 Modes
 -----
