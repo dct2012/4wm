@@ -1075,7 +1075,6 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
     monitor *m;
     int i, n;
     bool flag;
-    nmons = 0;
 
     DEBUG("getoutputs: entered");
     // get output cookies
@@ -1102,9 +1101,12 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
             for (n = 0, m = mons; m; m = m->next, n++) {
                 if (outputs[i] == m->id) {
                     flag = false;
-                    //if they are the same check to see if the demensions have
+                    //if they are the same check to see if the dimensions have
                     //changed. and retile
-                    if (crtc->x != m->x||crtc->y != m->y||crtc->width != m->w||crtc->height != m->h) {
+                    DEBUGP("%d %d %d %d %d %d %d %d\n", crtc->x, m->x,(crtc->y + ((SHOW_PANEL && TOP_PANEL) ? PANEL_HEIGHT:0)), 
+                            m->y, crtc->width, m->w, (crtc->height - (SHOW_PANEL ? PANEL_HEIGHT:0)), m->h);
+                    if (crtc->x != m->x||(crtc->y + ((SHOW_PANEL && TOP_PANEL) ? PANEL_HEIGHT:0)) != m->y||
+                        crtc->width != m->w|| (crtc->height - (SHOW_PANEL ? PANEL_HEIGHT:0)) != m->h) {
                         DEBUG("getoutputs: adjusting monitor");
                         m->x = crtc->x;
                         m->y = crtc->y;
@@ -1132,7 +1134,6 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
                     }
                 //} 
             }
-            DEBUG("getoutputs: finished adding monitor");
         }
         else {
             //find monitor and delete
@@ -1144,6 +1145,7 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
                         selmon = mons;
                     DEBUG("getoutputs: deleting monitor");
                     free(m);
+                    nmons--;
                     break;
                 } 
             }
