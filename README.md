@@ -68,10 +68,6 @@ TODO
 ----
 
 Work on steam
-  * store front
-    * a lot of configure requests when window sized too small
-    * mouse cursor not in proper alignment
-
   * games 
     * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
       killing these pulseaudio processes allow the game to resume. alternatively you can
