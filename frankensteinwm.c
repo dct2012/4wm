@@ -592,79 +592,73 @@ desktop *clienttodesktop(client *c) {
 }
 
 /* a configure request means that the window requested changes in its geometry
- * state. if the window is fullscreen discard and fill the screen else set the
- * appropriate values as requested, and tile the window again so that it fills
- * the gaps that otherwise could have been created
+ * state. if the window doesnt have a client set the appropriate values as 
+ * requested, else fake it.
  */
 void configurerequest(xcb_generic_event_t *e) {
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e; 
     unsigned int v[7];
     unsigned int i = 0;
-    monitor *m;
+    monitor *m; client *c;
 
     DEBUG("configurerequest: entering"); 
-    
-    if ((m = wintomon(ev->window))) {
-        DEBUGP("configurerequest: x: %d y: %d w: %d h: %d\n", ev->x, ev->y, ev->width, ev->height);
+   
+    if (!(c = wintoclient(ev->window))) { // if it has no client, configure it
+        if ((m = wintomon(ev->window))) {
+            DEBUGP("configurerequest: x: %d y: %d w: %d h: %d\n", ev->x, ev->y, ev->width, ev->height);
 
-        if (ev->value_mask & XCB_CONFIG_WINDOW_X) {
-            DEBUGP("configurerequest: m->x: %d\n", m->x);
-            if (ev->x > m->x)
+            if (ev->value_mask & XCB_CONFIG_WINDOW_X) {
+                DEBUGP("configurerequest: m->x: %d\n", m->x);
+                if (ev->x > m->x)
+                    v[i++] = ev->x;
+                else
+                    v[i++] = (m->x + ev->x);
+            }
+            if (ev->value_mask & XCB_CONFIG_WINDOW_Y) {
+                DEBUGP("configurerequest: m->y: %d\n", m->y);
+                if (ev->y > m->y)
+                    v[i++] = (ev->y + (desktops[m->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
+                else 
+                    v[i++] = ((m->y + ev->y) + (desktops[m->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
+            }
+        }
+        else {
+            if (ev->value_mask & XCB_CONFIG_WINDOW_X) {
+                DEBUGP("configurerequest: selmon->x: %d\n", selmon->x);
                 v[i++] = ev->x;
-            else
-                v[i++] = (m->x + ev->x);
-        }
-        if (ev->value_mask & XCB_CONFIG_WINDOW_Y) {
-            DEBUGP("configurerequest: m->y: %d\n", m->y);
-            if (ev->y > m->y)
+            }
+            if (ev->value_mask & XCB_CONFIG_WINDOW_Y) {
+                DEBUGP("configurerequest: selmon->y: %d\n", selmon->y);
                 v[i++] = (ev->y + (desktops[selmon->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
-            else 
-                v[i++] = ((m->y + ev->y) + (desktops[selmon->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
+            }
         }
-    }
-    else {
-        if (ev->value_mask & XCB_CONFIG_WINDOW_X) {
-            DEBUGP("configurerequest: selmon->x: %d\n", selmon->x);
-            if (ev->x > selmon->x)
-                v[i++] = ev->x;
-            else
-                v[i++] = (selmon->x + ev->x);
-        }
-        if (ev->value_mask & XCB_CONFIG_WINDOW_Y) {
-            DEBUGP("configurerequest: selmon->y: %d\n", selmon->y);
-            if (ev->y > selmon->y)
-                v[i++] = (ev->y + (desktops[selmon->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
-            else
-                v[i++] = ((selmon->y + ev->y) + (desktops[selmon->curr_dtop].showpanel && TOP_PANEL) ? PANEL_HEIGHT : 0);
-        }
-    }
 
-    if (ev->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
-        DEBUG("configurerequest: width");
-        v[i++] = (ev->width  < selmon->w - BORDER_WIDTH) ? ev->width  : selmon->w + BORDER_WIDTH;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+            DEBUG("configurerequest: width");
+            v[i++] = (ev->width  < selmon->w - BORDER_WIDTH) ? ev->width  : selmon->w - BORDER_WIDTH;
+        }
+        if (ev->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+            DEBUG("configurerequest: height");
+            v[i++] = (ev->height < selmon->h - BORDER_WIDTH) ? ev->height : selmon->h - BORDER_WIDTH;
+        }
+        if (ev->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+            DEBUG("configurerequest: border_width");
+            v[i++] = ev->border_width;
+        }
+        if (ev->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
+            DEBUG("configurerequest: sibling");
+            v[i++] = ev->sibling;
+        }
+        if (ev->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+            DEBUG("configurerequest: stack_mode");
+            v[i++] = ev->stack_mode;
+        }
+        xcb_configure_window_checked(dis, ev->window, ev->value_mask, v);
     }
-    if (ev->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-        DEBUG("configurerequest: height");
-        v[i++] = (ev->height < selmon->h - BORDER_WIDTH) ? ev->height : selmon->h + BORDER_WIDTH;
+    else { // has a client, fake configure it
+        xcb_send_event(dis, false, c->win, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
     }
-    if (ev->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
-        DEBUG("configurerequest: border_width");
-        v[i++] = ev->border_width;
-    }
-    if (ev->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
-        DEBUG("configurerequest: sibling");
-        v[i++] = ev->sibling;
-    }
-    if (ev->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-        DEBUG("configurerequest: stack_mode");
-        v[i++] = ev->stack_mode;
-    }
-    xcb_configure_window_checked(dis, ev->window, ev->value_mask, v);
     xcb_flush(dis);
-
-    desktop *d = &desktops[selmon->curr_dtop];
-    d->flag = RETILE;
-    tile(selmon, d);
 
     DEBUG("configurerequest: leaving");
 }
