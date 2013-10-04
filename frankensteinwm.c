@@ -2628,7 +2628,7 @@ void tileremove(desktop *d, const monitor *m) {
                                     list[i]->x, 
                                     list[i]->y, 
                                     (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                        list[i]->h);
+                                    list[i]->h);
                 }
             }
             d->dead = d->dead->next;
@@ -2676,7 +2676,7 @@ void tileremove(desktop *d, const monitor *m) {
                                     (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
                                     list[i]->y, 
                                     (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                        list[i]->h);
+                                    list[i]->h);
                 }
             }
             d->dead = d->dead->next;
