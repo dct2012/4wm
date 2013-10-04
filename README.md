@@ -73,14 +73,6 @@ Work on steam
       killing these pulseaudio processes allow the game to resume. alternatively you can
       launch steam or the game with SDL_AUDIODRIVER=alsa
 
-Gimp
-  * when killing client, another window pops up, without configure request, map notify, etc
-
-Applications that ask before leaving
-  * client gets killed before question is answered. so if the question is, are you sure you
-  want to exit, and you say no, that client is already gone.
-  * firefox, libreoffice
-
 Bugs
 ----
 
