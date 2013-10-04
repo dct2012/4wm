@@ -24,8 +24,8 @@
 #define PANEL_HEIGHT            16
 // Panel monitor number, 1 = first, 2 = second, etc
 #define PANEL_MON               1
-// initial layout/mode: RIGHTT LEFTT TOPT BOTTOMT MONOCLE VIDEO
-#define DEFAULT_MODE            RIGHTT
+// initial layout/mode: TRIGHT TLEFT TTOP TBOTTOM MONOCLE VIDEO
+#define DEFAULT_MODE            TRIGHT
 // follow the window when moved to a different desktop
 #define FOLLOW_WINDOW           False
 // focus the window the mouse just entered
@@ -122,11 +122,11 @@ static Key keys[] = {
     // push client into tiling
     {  MOD1,            XK_t,           pushtotiling,       {NULL}},
     // Switch layouts
-    {  MOD1|SHIFT,      XK_w,           switch_mode,        {.i = TOPT}},
+    {  MOD1|SHIFT,      XK_w,           switch_mode,        {.i = TTOP}},
     {  MOD1|SHIFT,      XK_m,           switch_mode,        {.i = MONOCLE}},
-    {  MOD1|SHIFT,      XK_s,           switch_mode,        {.i = BOTTOMT}},
-    {  MOD1|SHIFT,      XK_d,           switch_mode,        {.i = RIGHTT}},
-    {  MOD1|SHIFT,      XK_a,           switch_mode,        {.i = LEFTT}},
+    {  MOD1|SHIFT,      XK_s,           switch_mode,        {.i = TBOTTOM}},
+    {  MOD1|SHIFT,      XK_d,           switch_mode,        {.i = TRIGHT}},
+    {  MOD1|SHIFT,      XK_a,           switch_mode,        {.i = TLEFT}},
     {  MOD1|SHIFT,      XK_v,           switch_mode,        {.i = VIDEO}},
     //{  MOD1|SHIFT,      XK_z,           switch_mode,        {.i = FLOAT}},
     // quit with exit value 0
