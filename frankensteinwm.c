@@ -52,8 +52,8 @@ static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", 
 #define USAGE           "usage: monsterwm [-h] [-v]"
 
 enum { RESIZE, MOVE };
-enum { LEFTT, RIGHTT, BOTTOMT, TOPT, MONOCLE, VIDEO, FLOAT };
-enum { RETILE, TILENEW, TILEREMOVE, NONE };
+enum { TLEFT, TRIGHT, TBOTTOM, TTOP, MONOCLE, VIDEO, FLOAT };
+enum { TILENEW, TILEREMOVE, RETILE, TCASE };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
 enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
@@ -150,7 +150,7 @@ typedef struct client {
  * showpanel    - the visibility status of the panel
  */
 typedef struct {
-    int mode, gap, flag, count;
+    int mode, gap, count;
     client *head, *current, *prevfocus, *dead;
     bool showpanel;
 } desktop;
@@ -193,13 +193,13 @@ static client* prev_client(client *c, desktop *d);
 static void propertynotify(xcb_generic_event_t *e);
 static monitor* ptrtomon(int x, int y);
 static void removeclient(client *c, desktop *d, const monitor *m);
-static void retile(const desktop *d, const monitor *m);
+static void retile(desktop *d, const monitor *m);
 static void run(void);
 static void setborders(desktop *d);
 static int setup(int default_screen);
 static int  setuprandr(void);
 static void sigchld();
-static void tile(const monitor *m, desktop *d);
+static void tile(desktop *d, const monitor *m, int rule);
 static void tilenew(desktop *d, const monitor *m);
 static void tileremove(desktop *d, const monitor *m);
 static void unmapnotify(xcb_generic_event_t *e);
@@ -229,6 +229,10 @@ static void* malloc_safe(size_t size)
     memset(ret, 0, size);
     return ret;
 }
+
+static void (*tcase[TCASE])(desktop *d, const monitor *m) = {
+    [TILENEW] = tilenew, [TILEREMOVE] = tileremove, [RETILE] = retile,
+};
 
 /* get screen of display */
 static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
@@ -416,23 +420,20 @@ void change_desktop(const Arg *arg) {
     if (flag) { // desktop exists on another monitor
         DEBUG("change_desktop: tiling current monitor, new desktop");
         if (n->head) {
-            d->flag = RETILE;
-            tile(selmon, n);
+            tile(n, selmon, RETILE);
             setborders(n);
         }
         
         DEBUG("change_desktop: tiling other monitor, old desktop");
         if (d->head){
-            d->flag = RETILE;
-            tile(m, d);
+            tile(d, m, RETILE);
             setborders(d);
         }
     }
     else { 
         DEBUG("change_desktop: retiling new windows on current monitor");
         if (n->head) {
-            d->flag = RETILE;
-            tile(selmon, n);
+            tile(n, selmon, RETILE);
             setborders(n);
         }
         DEBUG("change_desktop: mapping new windows on current monitor"); 
@@ -517,8 +518,7 @@ void client_to_desktop(const Arg *arg) {
         for (itr = d->dead; itr; itr = itr->next);
         itr = dead;
     }
-    d->flag = TILEREMOVE;
-    tile(selmon, d);
+    tile(d, selmon, TILEREMOVE);
     focus(d->prevfocus, d);
     if (l)
         l->next = c;
@@ -530,8 +530,7 @@ void client_to_desktop(const Arg *arg) {
     DEBUGP("client_to_desktop: n->count = %d\n", n->count);
 
     m = wintomon(n->head->win);
-    n->flag = TILENEW;
-    tile(m, n); // itll be ok if m == NULL
+    tile(n, m, TILENEW); // itll be ok if m == NULL
     
     focus(c, n);
 
@@ -564,10 +563,8 @@ void clientmessage(xcb_generic_event_t *e) {
     if (c && ev->type                      == netatoms[NET_WM_STATE]
           && ((unsigned)ev->data.data32[1] == netatoms[NET_FULLSCREEN]
           ||  (unsigned)ev->data.data32[2] == netatoms[NET_FULLSCREEN])) {
-            if (!(c->isfloating || c->istransient) || !d->head->next) {
-                d->flag = RETILE;
-                tile(selmon, d);
-            }
+            if (!(c->isfloating || c->istransient) || !d->head->next)
+                tile(d, selmon, RETILE);
     } else if (c && ev->type == netatoms[NET_ACTIVE]) 
         focus(c, d);
 
@@ -688,8 +685,7 @@ void decreasegap(const Arg *arg) {
         d->gap -= arg->i;
         for (client *c = d->head; c; c = c->next)
             adjustclientgaps(d->gap, c);
-        d->flag = RETILE;
-        tile(selmon, d);
+        tile(d, selmon, RETILE);
         setborders(d);
     }
 }
@@ -1112,8 +1108,7 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
                         m->y = crtc->y;
                         m->w = crtc->width;
                         m->h = crtc->height;
-                        desktops[m->curr_dtop].flag = RETILE;
-                        tile(m, &desktops[m->curr_dtop]);
+                        tile(&desktops[m->curr_dtop], m, RETILE);
                     }
                     break;
                 }
@@ -1244,8 +1239,7 @@ void increasegap(const Arg *arg) {
         d->gap += arg->i;
         for (client *c = d->head; c; c = c->next)
             adjustclientgaps(d->gap, c);
-        d->flag = RETILE;
-        tile(selmon, d);
+        tile(d, selmon, RETILE);
         setborders(d); 
     }
 }
@@ -1363,8 +1357,7 @@ void maprequest(xcb_generic_event_t *e) {
 
     monitor *m = wintomon(c->win);
     if (cd == newdsk) {
-        desktops[m->curr_dtop].flag = TILENEW;
-        tile(selmon, &desktops[selmon->curr_dtop]); 
+        tile(&desktops[selmon->curr_dtop], selmon, TILENEW); 
         xcb_map_window(dis, c->win);  
     }
     else if (follow)
@@ -1413,8 +1406,7 @@ void mousemotion(const Arg *arg) {
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
     if (!d->current->isfloating) d->current->isfloating = True;
-    d->flag = RETILE;
-    tile(selmon, d); 
+    tile(d, selmon, RETILE); 
     focus(d->current, d);
 
     xcb_generic_event_t *e = NULL;
@@ -1777,7 +1769,7 @@ void pushtotiling() {
         return;
     }
 
-    if (d->mode == RIGHTT) { // tile current to the left and new to the right
+    if (d->mode == TRIGHT) { // tile current to the left and new to the right
             DEBUG("tilenew: right");
             n->xp = c->xp + (c->wp/2);
             n->yp = c->yp;
@@ -1785,7 +1777,7 @@ void pushtotiling() {
             n->hp = c->hp;
             c->wp /= 2; 
         }
-        else if (d->mode == BOTTOMT) { // tile current to the top and new to the bottom
+        else if (d->mode == TBOTTOM) { // tile current to the top and new to the bottom
             DEBUG("tilenew: bottom"); 
             n->xp = c->xp;
             n->yp = c->yp + (c->hp/2);
@@ -1793,7 +1785,7 @@ void pushtotiling() {
             n->hp = (c->yp + c->hp) - n->yp;
             c->hp /= 2;
         }
-        else if (d->mode == LEFTT){ // tile current to the right and new to the left
+        else if (d->mode == TLEFT){ // tile current to the right and new to the left
             DEBUG("tilenew: left");
             n->xp = c->xp;
             n->yp = c->yp;
@@ -1883,8 +1875,7 @@ void removeclient(client *c, desktop *d, const monitor *m) {
             for (n = d->dead; n; n = n->next);
             n = dead;
         }
-        d->flag = TILEREMOVE;
-        tile(m, d);
+        tile(d, m, TILEREMOVE);
     } 
     free(c); c = NULL; 
     setborders(d);
@@ -2167,7 +2158,7 @@ void resizeclienttop(const Arg *arg) {
     DEBUG("resizeclienttop: leaving");
 }
 
-void retile(const desktop *d, const monitor *m) {
+void retile(desktop *d, const monitor *m) {
     int gap = d->gap;
    
     DEBUG("retile: entering");
@@ -2436,8 +2427,7 @@ void switch_mode(const Arg *arg) {
         for (client *c = d->head; c; c = c->next) 
             c->isfloating = False;
     if (d->head) { 
-        d->flag = RETILE;
-        tile(selmon, d);
+        tile(d, selmon, RETILE);
         setborders(d);
     }
     
@@ -2445,20 +2435,10 @@ void switch_mode(const Arg *arg) {
 }
 
 /* tile all windows of current desktop - call the handler tiling function */
-void tile(const monitor *m, desktop *d) {
+void tile(desktop *d, const monitor *m, int rule) {
     DEBUG("tile: entering");
-    if (!d->head || d->mode == FLOAT) 
-        return; // nothing to arange
-    else {
-        if (d->flag == TILENEW)
-            tilenew(d, m);
-        else if (d->flag == TILEREMOVE)
-            tileremove(d, m);
-        else if (m != NULL)
-            retile(d, m);
-
-        d->flag = NONE;
-    }
+    if (!d->head || d->mode == FLOAT) return; // nothing to arange
+    else tcase[rule](d, m);
         
     DEBUG("tile: leaving");
 }
@@ -2503,7 +2483,7 @@ void tilenew(desktop *d, const monitor *m) {
         //TODO: we should go ahead and try to fill other dead clients
     }
     else {
-        if (d->mode == RIGHTT) { // tile current to the left and new to the right
+        if (d->mode == TRIGHT) { // tile current to the left and new to the right
             DEBUG("tilenew: right");
             n->xp = c->xp + (c->wp/2);
             n->yp = c->yp;
@@ -2511,7 +2491,7 @@ void tilenew(desktop *d, const monitor *m) {
             n->hp = c->hp;
             c->wp /= 2; 
         }
-        else if (d->mode == BOTTOMT) { // tile current to the top and new to the bottom
+        else if (d->mode == TBOTTOM) { // tile current to the top and new to the bottom
             DEBUG("tilenew: bottom"); 
             n->xp = c->xp;
             n->yp = c->yp + (c->hp/2);
@@ -2519,7 +2499,7 @@ void tilenew(desktop *d, const monitor *m) {
             n->hp = (c->yp + c->hp) - n->yp;
             c->hp /= 2;
         }
-        else if (d->mode == LEFTT){ // tile current to the right and new to the left
+        else if (d->mode == TLEFT){ // tile current to the right and new to the left
             DEBUG("tilenew: left");
             n->xp = c->xp;
             n->yp = c->yp;
@@ -2696,8 +2676,7 @@ void tileremove(desktop *d, const monitor *m) {
 void togglepanel() {
     desktop *d = &desktops[selmon->curr_dtop];
     d->showpanel = !d->showpanel;
-    d->flag = RETILE;
-    tile(selmon, d);
+    tile(d, selmon, RETILE);
 }
 
 /* windows that request to unmap should lose their
