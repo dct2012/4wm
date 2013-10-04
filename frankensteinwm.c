@@ -2579,7 +2579,7 @@ void tileremove(desktop *d, const monitor *m) {
         client *c = d->head;
         c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
 
-        if (m != NULL) {
+        if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
             adjustclientgaps(gap, c);
             xcb_move_resize(dis, c->win, 
                             (c->x = m->x + (m->w * c->xp) + c->gapx), 
@@ -2600,15 +2600,13 @@ void tileremove(desktop *d, const monitor *m) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->hp += dead->hp;
-                if (m != NULL) {
+                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
                     adjustclientgaps(gap, list[i]);
-                    if (d->mode != MONOCLE && d->mode != VIDEO) {
-                        xcb_move_resize(dis, list[i]->win, 
-                                        list[i]->x, 
-                                        list[i]->y, 
-                                        list[i]->w, 
-                                        (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                    }
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    list[i]->y, 
+                                    list[i]->w, 
+                                    (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
                 }
             }
             d->dead = d->dead->next;
@@ -2624,15 +2622,13 @@ void tileremove(desktop *d, const monitor *m) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->wp += dead->wp;
-                if (m != NULL) {
+                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
                     adjustclientgaps(gap, list[i]);
-                    if (d->mode != MONOCLE && d->mode != VIDEO) {
-                        xcb_move_resize(dis, list[i]->win, 
-                                        list[i]->x, 
-                                        list[i]->y, 
-                                        (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    list[i]->y, 
+                                    (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                         list[i]->h);
-                    }
                 }
             }
             d->dead = d->dead->next;
@@ -2650,15 +2646,13 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->yp = dead->yp;
                 list[i]->hp += dead->hp;
-                if (m != NULL) {
+                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
                     adjustclientgaps(gap, list[i]);
-                    if (d->mode != MONOCLE && d->mode != VIDEO) {
-                        xcb_move_resize(dis, list[i]->win, 
-                                        list[i]->x, 
-                                        (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
-                                        list[i]->w, 
-                                        (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                    }
+                    xcb_move_resize(dis, list[i]->win, 
+                                    list[i]->x, 
+                                    (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
+                                    list[i]->w, 
+                                    (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
                 }
             }
             d->dead = d->dead->next;
@@ -2676,15 +2670,13 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->xp = dead->xp;
                 list[i]->wp += dead->wp;
-                if (m != NULL) {
+                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
                     adjustclientgaps(gap, list[i]);
-                    if (d->mode != MONOCLE && d->mode != VIDEO) {
-                        xcb_move_resize(dis, list[i]->win, 
-                                        (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
-                                        list[i]->y, 
-                                        (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                    xcb_move_resize(dis, list[i]->win, 
+                                    (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
+                                    list[i]->y, 
+                                    (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                         list[i]->h);
-                    }
                 }
             }
             d->dead = d->dead->next;
