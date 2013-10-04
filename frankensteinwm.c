@@ -1280,7 +1280,6 @@ void killclient() {
     }
     if (got) deletewindow(d->current->win);
     else xcb_kill_client(dis, d->current->win);
-    removeclient(d->current, d, selmon);
     DEBUG("killclient: leaving");
 }
 
