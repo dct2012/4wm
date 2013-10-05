@@ -171,6 +171,10 @@ static void adjustclientgaps(const int gap, client *c);
 static void buttonpress(xcb_generic_event_t *e);
 static void cleanup(void);
 static void clientmessage(xcb_generic_event_t *e);
+static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingright(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
 static desktop *clienttodesktop(client *c);
 static void configurerequest(xcb_generic_event_t *e);
 static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop);
@@ -179,7 +183,6 @@ static void desktopinfo(void);
 static void destroynotify(xcb_generic_event_t *e);
 static void enternotify(xcb_generic_event_t *e);
 static void expose(xcb_generic_event_t *e);
-static bool findtouchingclients(desktop *d, client *c, client **list, int *num, int direction);
 static void focus(client *c, desktop *d);
 static void focusin(xcb_generic_event_t *e);
 static unsigned int getcolor(char* color);
@@ -235,6 +238,10 @@ static void* malloc_safe(size_t size)
     memset(ret, 0, size);
     return ret;
 }
+
+static bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
+    [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
+};
 
 static void (*tcase[TCASE])(desktop *d, const monitor *m) = {
     [TILENEW] = tilenew, [TILEREMOVE] = tileremove, [RETILE] = retile,
@@ -361,7 +368,6 @@ client* addwindow(xcb_window_t w, desktop *d) {
 }
 
 void adjustclientgaps(const int gap, client *c) {
-
         if (c->xp == 0) c->gapx = gap;
         else c->gapx = gap/2;
         if (c->yp == 0) c->gapy = gap;
@@ -579,6 +585,172 @@ void clientmessage(xcb_generic_event_t *e) {
         focus(c, d);
 
     DEBUG("clientmessage: leaving");
+}
+
+bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
+    DEBUG("clientstouchingbottom: entering");
+    double width;
+    (*num) = 0;
+    width = c->wp;
+    for (client *n = d->head; n; n = n->next) {
+        if ((c != n ) && !ISFFT(c) && (n->yp == (c->yp + c->hp))) { // directly below
+            if ((n->xp + n->wp) <= (c->xp + c->wp)) { // width equivalent or less than
+                if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
+                    DEBUG("clientstouchingbottom: found direct match");
+                    list[(*num)] = n;
+                    (*num)++;
+                    DEBUG("clientstouchingbottom: leaving, found direct match");
+                    return true;
+                }
+                else if (n->xp >= c->xp) { //part
+                    width -= n->wp;
+                    list[(*num)] = n;
+                    (*num)++;
+                    if (width == 0) {
+                        DEBUG("clientstouchingbottom: leaving true");
+                        return true;
+                    }
+                    if (width < 0) {
+                        DEBUG("clientstouchingbottom: leaving false");
+                        return false;
+                    }
+                }
+            }
+            
+            if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
+                // width exceeds, but we should go ahead and make sure list isnt NULL
+                list[(*num)] = n;
+                DEBUG("clientstouchingbottom: leaving false");
+                return false;
+            }
+        }
+    }
+    DEBUG("clientstouchingbottom: leaving error");
+    return false;
+}
+
+bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
+    DEBUG("clientstouchingleft: entering");
+    double height;
+    (*num) = 0;
+    height = c->hp;
+    for (client *n = d->head; n; n = n->next) {
+        if ((c != n ) && !ISFFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
+            if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
+                if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                    list[(*num)] = n;
+                    (*num)++;
+                    DEBUG("clientstouchingleft: leaving found direct match");
+                    return true;
+                }
+                else if (n->yp >= c->yp) { //part
+                    height -= n->hp;
+                    list[(*num)] = n;
+                    (*num)++;
+                    if (height == 0) {
+                        DEBUG("clientstouchingleft: leaving true");
+                        return true;
+                    }
+                    if (height < 0) {
+                        DEBUG("clientstouchingleft: leaving false");
+                        return false;
+                    }
+                }
+            }
+            
+            if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
+                // height exceeds, but we should go ahead and make sure list isnt NULL
+                list[(*num)] = n;
+                DEBUG("clientstouchingleft: leaving false");
+                return false;
+            }
+        }
+    }
+    DEBUG("clientstouchingleft: leaving error");
+    return false;
+}
+
+bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
+    DEBUG("clientstouchingright: entering");
+    double height;
+    (*num) = 0;
+    height = c->hp;
+    for (client *n = d->head; n; n = n->next) {
+        if ((c != n ) && !ISFFT(c) && (n->xp == (c->xp + c->wp))) { //directly to the right
+            if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
+                if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                    list[(*num)] = n;
+                    (*num)++;
+                    DEBUG("clientstouchingright: leaving, found direct match");
+                    return true;
+                }
+                else if (n->yp >= c->yp) { //part
+                    height -= n->hp;
+                    list[(*num)] = n;
+                    (*num)++;
+                    if (height == 0) {
+                        DEBUG("clientstouchingright: leaving true");
+                        return true;
+                    }
+                    if (height < 0) {
+                        DEBUG("clientstouchingright: leaving false");
+                        return false;
+                    }
+                }
+            }
+            // y is less than or equal, overall height 
+            if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
+                // height exceeds, but we should go ahead and make sure list isnt NULL
+                list[(*num)] = n;
+                DEBUG("clientstouchingright: leaving false");
+                return false;
+            }
+        }
+    }
+    DEBUG("clientstouchingright: leaving error");
+    return false;
+}
+
+bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
+    DEBUG("clientstouchingtop: entering");
+    double width;
+    (*num) = 0;
+    width = c->wp;
+    for (client *n = d->head; n; n = n->next) {
+        if ((c != n) && !ISFFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
+            if ((n->xp + n->wp) <= (c->xp + c->wp)) { //width equivalent or less than
+                if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
+                    list[(*num)] = n;
+                    (*num)++;
+                    DEBUG("clientstouchingtop: leaving found direct match");
+                    return true;
+                }
+                else if (n->xp >= c->xp) { //part
+                    width -= n->wp;
+                    list[(*num)] = n;
+                    (*num)++;
+                    if (width == 0) {
+                        DEBUG("clientstouchingtop: leaving true");
+                        return true;
+                    }
+                    if (width < 0) {
+                        DEBUG("clientstouchingtop: leaving false");
+                        return false;
+                    }
+                }
+            }
+            
+            if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
+                // width exceeds, but we should go ahead and make sure list isnt NULL
+                list[(*num)] = n;
+                DEBUG("clientstouchingtop: leaving false");
+                return false;
+            }
+        }
+    }
+
+    DEBUG("clientstouchingtop: leaving error");
+    return false;
 }
 
 desktop *clienttodesktop(client *c) {
@@ -807,165 +979,7 @@ void expose(xcb_generic_event_t *e) {
         //redraw windoos - xcb_flush?
         desktopinfo();
     }
-}
-
-bool findtouchingclients(desktop *d, client *c, client **list, int *num, int direction) {
-    double width, height;//num = numclients;
-    DEBUG("findtouchingclients: entering");
-
-    (*num) = 0;
-    switch (direction) { 
-        case 0: //above
-            DEBUG("findtouchingclients: looking above");
-            width = c->wp;
-            for (client *n = d->head; n; n = n->next) {
-                if ((c != n) && !ISFFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
-                    if ((n->xp + n->wp) <= (c->xp + c->wp)) { //width equivalent or less than
-                        if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
-                            list[(*num)] = n;
-                            (*num)++;
-                            DEBUG("findtouchingclients: leaving found direct match");
-                            return true;
-                        }
-                        else if (n->xp >= c->xp) { //part
-                            width -= n->wp;
-                            list[(*num)] = n;
-                            (*num)++;
-                            if (width == 0) {
-                                DEBUG("findtouchingclients: leaving true");
-                                return true;
-                            }
-                            if (width < 0) {
-                                DEBUG("findtouchingclients: leaving false");
-                                return false;
-                            }
-                        }
-                    }
-                    
-                    if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
-                        // width exceeds, but we should go ahead and make sure list isnt NULL
-                        list[(*num)] = n;
-                        DEBUG("findtouchingclients: leaving false");
-                        return false;
-                    }
-                }
-            }
-            break;
-
-        case 1: //left
-            DEBUG("findtouchingclients: looking left");
-            height = c->hp;
-            for (client *n = d->head; n; n = n->next) {
-                if ((c != n ) && !ISFFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
-                    if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                        if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
-                            list[(*num)] = n;
-                            (*num)++;
-                            DEBUG("findtouchingclients: leaving found direct match     ");
-                            return true;
-                        }
-                        else if (n->yp >= c->yp) { //part
-                            height -= n->hp;
-                            list[(*num)] = n;
-                            (*num)++;
-                            if (height == 0) {
-                                DEBUG("findtouchingclients: leaving true");
-                                return true;
-                            }
-                            if (height < 0) {
-                                DEBUG("findtouchingclients: leaving false");
-                                return false;
-                            }
-                        }
-                    }
-                    
-                    if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
-                        // height exceeds, but we should go ahead and make sure list isnt NULL
-                        list[(*num)] = n;
-                        DEBUG("findtouchingclients: leaving false");
-                        return false;
-                    }
-                }
-            }
-            break;
-        case 2: //below
-            DEBUG("findtouchingclients: checking below");
-            width = c->wp;
-            for (client *n = d->head; n; n = n->next) {
-                if ((c != n ) && !ISFFT(c) && (n->yp == (c->yp + c->hp))) { // directly below
-                    if ((n->xp + n->wp) <= (c->xp + c->wp)) { // width equivalent or less than
-                        if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
-                            DEBUG("findtouchingclients: found direct match");
-                            list[(*num)] = n;
-                            (*num)++;
-                            DEBUG("findtouchingclients: leaving, found direct match");
-                            return true;
-                        }
-                        else if (n->xp >= c->xp) { //part
-                            width -= n->wp;
-                            list[(*num)] = n;
-                            (*num)++;
-                            if (width == 0) {
-                                DEBUG("findtouchingclients: leaving true");
-                                return true;
-                            }
-                            if (width < 0) {
-                                DEBUG("findtouchingclients: leaving false");
-                                return false;
-                            }
-                        }
-                    }
-                    
-                    if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
-                        // width exceeds, but we should go ahead and make sure list isnt NULL
-                        list[(*num)] = n;
-                        DEBUG("findtouchingclients: leaving false");
-                        return false;
-                    }
-                }
-            }
-            break;
-        case 3: //right
-            height = c->hp;
-            for (client *n = d->head; n; n = n->next) {
-                if ((c != n ) && !ISFFT(c) && (n->xp == (c->xp + c->wp))) { //directly to the right
-                    if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                        if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
-                            list[(*num)] = n;
-                            (*num)++;
-                            DEBUG("findtouchingclients: leaving, found direct match");
-                            return true;
-                        }
-                        else if (n->yp >= c->yp) { //part
-                            height -= n->hp;
-                            list[(*num)] = n;
-                            (*num)++;
-                            if (height == 0) {
-                                DEBUG("findtouchingclients: leaving true");
-                                return true;
-                            }
-                            if (height < 0) {
-                                DEBUG("findtouchingclients: leaving false");
-                                return false;
-                            }
-                        }
-                    }
-                    // y is less than or equal, overall height 
-                    if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
-                        // height exceeds, but we should go ahead and make sure list isnt NULL
-                        list[(*num)] = n;
-                        DEBUG("findtouchingclients: leaving false");
-                        return false;
-                    }
-                }
-            }
-            break;
-            
-    }
-    
-    DEBUG("findtouchingclients: leaving error");
-    return false;
-}
+}    
 
 /* highlight borders and set active window and input focus
  * if given current is NULL then delete the active window property
@@ -1479,7 +1493,7 @@ void moveclientdown() {
         DEBUGP("moveclientdown: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 2);
+        findtouchingclients[TBOTTOM](d, c, list, &n);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1523,7 +1537,7 @@ void moveclientleft() {
         DEBUGP("moveclientleft: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 1);
+        findtouchingclients[TLEFT](d, c, list, &n);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1566,7 +1580,7 @@ void moveclientright() {
         DEBUGP("moveclientright: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 3);
+        findtouchingclients[TRIGHT](d, c, list, &n);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1609,7 +1623,7 @@ void moveclientup() {
         DEBUGP("moveclientup: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 0); // even if it not a direct match it should return with something touching
+        findtouchingclients[TTOP](d, c, list, &n); // even if it not a direct match it should return with something touching
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1646,7 +1660,7 @@ void movefocusdown() {
         DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 2);
+        findtouchingclients[TBOTTOM](d, c, list, &n);
         focus(list[0], d);
         free(list);
     }
@@ -1661,7 +1675,7 @@ void movefocusleft() {
         DEBUGP("movefocusleft: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 1);
+        findtouchingclients[TLEFT](d, c, list, &n);
         focus(list[0], d);
         free(list);
     }
@@ -1676,7 +1690,7 @@ void movefocusright() {
         DEBUGP("movefocusright: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 3);
+        findtouchingclients[TRIGHT](d, c, list, &n);
         focus(list[0], d);
         free(list);
     }
@@ -1691,7 +1705,7 @@ void movefocusup() {
         DEBUGP("movefocusup: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients(d, c, list, &n, 0);
+        findtouchingclients[TTOP](d, c, list, &n);
         focus(list[0], d);
         free(list);
     }
@@ -1877,7 +1891,7 @@ void resizeclientbottom(const Arg *arg) {
     }
     
     if((c->yp + c->hp) < 1) { //capable of having windows below?
-        if (findtouchingclients(d, c, list, &n, 2)) {
+        if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
             //client in list y increases and height decreases
             for (int i = 0; i < n; i++) {
                 list[i]->yp += arg->d;
@@ -1903,7 +1917,7 @@ void resizeclientbottom(const Arg *arg) {
         }
     }
  
-    if (findtouchingclients(d, c, list, &n, 0)) {
+    if (findtouchingclients[TTOP](d, c, list, &n)) {
         //current windows y increases and height decreases
         c->yp += arg->d;
         c->hp -= arg->d;
@@ -1947,7 +1961,7 @@ void resizeclientleft(const Arg *arg) {
     }
 
     if(c->xp > 0) { //capable of having windows to the left?
-        if (findtouchingclients(d, c, list, &n, 1)) {
+        if (findtouchingclients[TLEFT](d, c, list, &n)) {
             //client in list width decreases
             for (int i = 0; i < n; i++) {
                 list[i]->wp -= arg->d;
@@ -1971,7 +1985,7 @@ void resizeclientleft(const Arg *arg) {
         }
     }
  
-    if (findtouchingclients(d, c, list, &n, 3)) {
+    if (findtouchingclients[TRIGHT](d, c, list, &n)) {
         //current windows width decreases
         c->wp -= arg->d;
         xcb_move_resize(dis, c->win, 
@@ -2015,7 +2029,7 @@ void resizeclientright(const Arg *arg) {
     }
 
     if((c->xp + c->wp) < 1) { //capable of having windows to the right?
-        if (findtouchingclients(d, c, list, &n, 3)) { 
+        if (findtouchingclients[TRIGHT](d, c, list, &n)) { 
             //clients in list x increases and width decrease
             for (int i = 0; i < n; i++) {
                 list[i]->xp += arg->d;
@@ -2040,7 +2054,7 @@ void resizeclientright(const Arg *arg) {
         }
     }
 
-    if (findtouchingclients(d, c, list, &n, 1)) {
+    if (findtouchingclients[TLEFT](d, c, list, &n)) {
         //current windows x increases and width decreases
         c->xp += arg->d;
         c->wp -= arg->d;
@@ -2084,7 +2098,7 @@ void resizeclienttop(const Arg *arg) {
     }
     
     if(c->yp > 0) { //capable of having windows above?
-        if (findtouchingclients(d, c, list, &n, 0)) {
+        if (findtouchingclients[TTOP](d, c, list, &n)) {
             //client in list height decreases
             for (int i = 0; i < n; i++) {
                 list[i]->hp -= arg->d;
@@ -2108,7 +2122,7 @@ void resizeclienttop(const Arg *arg) {
         }
     } 
     
-    if (findtouchingclients(d, c, list, &n, 2)) {
+    if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
         //current windows height decreases
         c->hp -= arg->d;
         xcb_move_resize(dis, c->win, 
@@ -2579,7 +2593,7 @@ void tileremove(desktop *d, const monitor *m) {
     list = (client**)malloc_safe(n * sizeof(client*));
 
     if(dead->yp > 0) { //capable of having windows above?
-        if (findtouchingclients(d, dead, list, &n, 0)) {
+        if (findtouchingclients[TTOP](d, dead, list, &n)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->hp += dead->hp;
@@ -2601,7 +2615,7 @@ void tileremove(desktop *d, const monitor *m) {
     }
 
     if(dead->xp > 0) { //capable of having windows to the left?
-        if (findtouchingclients(d, dead, list, &n, 1)) {
+        if (findtouchingclients[TLEFT](d, dead, list, &n)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->wp += dead->wp;
@@ -2624,7 +2638,7 @@ void tileremove(desktop *d, const monitor *m) {
 
     if((dead->yp + dead->hp) < 1) { 
     //capable of having windows below?
-        if (findtouchingclients(d, dead, list, &n, 2)) {
+        if (findtouchingclients[TBOTTOM](d, dead, list, &n)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->yp = dead->yp;
@@ -2648,7 +2662,7 @@ void tileremove(desktop *d, const monitor *m) {
     
     if((dead->xp + dead->wp) < 1) { 
     //capable of having windows to the right?
-        if (findtouchingclients(d, dead, list, &n, 3)) {
+        if (findtouchingclients[TRIGHT](d, dead, list, &n)) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->xp = dead->xp;
