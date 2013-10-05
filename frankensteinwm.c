@@ -52,7 +52,8 @@ static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", 
 #define USAGE           "usage: monsterwm [-h] [-v]"
 
 enum { RESIZE, MOVE };
-enum { TLEFT, TRIGHT, TBOTTOM, TTOP, MONOCLE, VIDEO, FLOAT };
+enum { TILE, MONOCLE, VIDEO, FLOAT };
+enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
 enum { TILENEW, TILEREMOVE, RETILE, TCASE };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
 enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
@@ -113,6 +114,7 @@ static void rotate(const Arg *arg);
 static void rotate_filled(const Arg *arg);
 static void spawn(const Arg *arg);
 static void switch_mode(const Arg *arg);
+static void switch_direction(const Arg *arg);
 static void togglepanel();
 
 #include "config.h"
@@ -141,7 +143,7 @@ typedef struct client {
 /* properties of each desktop
  * mode         - the desktop's tiling layout mode
  * gap          - the desktops gap size
- * flag         - a tiling special flag
+ * direction    - the direction to tile
  * count        - the number of clients on that desktop
  * head         - the start of the client list
  * current      - the currently highlighted window
@@ -150,7 +152,7 @@ typedef struct client {
  * showpanel    - the visibility status of the panel
  */
 typedef struct {
-    int mode, gap, count;
+    int mode, gap, direction, count;
     client *head, *current, *prevfocus, *dead;
     bool showpanel;
 } desktop;
@@ -201,6 +203,10 @@ static int  setuprandr(void);
 static void sigchld();
 static void tile(desktop *d, const monitor *m, int rule);
 static void tilenew(desktop *d, const monitor *m);
+static void tilenewbottom(client *n, client *c);
+static void tilenewleft(client *n, client *c);
+static void tilenewright(client *n, client *c);
+static void tilenewtop(client *n, client *c);
 static void tileremove(desktop *d, const monitor *m);
 static void unmapnotify(xcb_generic_event_t *e);
 static client *wintoclient(xcb_window_t w);
@@ -232,6 +238,10 @@ static void* malloc_safe(size_t size)
 
 static void (*tcase[TCASE])(desktop *d, const monitor *m) = {
     [TILENEW] = tilenew, [TILEREMOVE] = tileremove, [RETILE] = retile,
+};
+
+static void (*tiledirection[TDIRECS])(client *n, client *c) = {
+    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
 };
 
 /* get screen of display */
@@ -729,7 +739,7 @@ void desktopinfo(void) {
         for (m = mons; m; m = m->next)
             if (i == m->curr_dtop && w == 0)
                 w++;
-        printf("%d:%d:%d:%d:%d%c", i, w, d->mode, i == selmon->curr_dtop, urgent, (i < DESKTOPS - 1) ? ' ':'|');
+        printf("%d:%d:%d:%d:%d%c", i, w, d->direction, i == selmon->curr_dtop, urgent, (i < DESKTOPS - 1) ? ' ':'|');
     }
     printf("%s\n", desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
     fflush(stdout);
@@ -1464,7 +1474,7 @@ void moveclientdown() {
     }
 
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < 1)) { //capable of having windows below?
+    if((d->mode == TILE) && ((c->yp + c->hp) < 1)) { //capable of having windows below?
         int n = d->count;
         DEBUGP("moveclientdown: d->count = %d\n", d->count);
         c = d->current;
@@ -1508,7 +1518,7 @@ void moveclientleft() {
     }
 
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->xp > 0)) { //capable of having windows to the left?
+    if((d->mode == TILE) && (c->xp > 0)) { //capable of having windows to the left?
         int n = d->count;
         DEBUGP("moveclientleft: d->count = %d\n", d->count);
         c = d->current;
@@ -1551,7 +1561,7 @@ void moveclientright() {
         return;
     }
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
+    if((d->mode == TILE) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("moveclientright: d->count = %d\n", d->count);
         c = d->current;
@@ -1594,7 +1604,7 @@ void moveclientup() {
         return;
     }
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows above?
+    if((d->mode == TILE) && (c->yp > 0)) { //capable of having windows above?
         int n = d->count;
         DEBUGP("moveclientup: d->count = %d\n", d->count);
         c = d->current;
@@ -1631,7 +1641,7 @@ void movefocusdown() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->yp + c->hp) < 1)) { //capable of having windows to the right?
+    if((d->mode == TILE) && ((c->yp + c->hp) < 1)) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
@@ -1646,7 +1656,7 @@ void movefocusleft() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->xp > 0)) { //capable of having windows to the right?
+    if((d->mode == TILE) && (c->xp > 0)) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusleft: d->count = %d\n", d->count);
         c = d->current;
@@ -1661,7 +1671,7 @@ void movefocusright() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
+    if((d->mode == TILE) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusright: d->count = %d\n", d->count);
         c = d->current;
@@ -1676,7 +1686,7 @@ void movefocusup() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode != MONOCLE) && (d->mode != VIDEO) && (c->yp > 0)) { //capable of having windows to the right?
+    if((d->mode == TILE) && (c->yp > 0)) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusup: d->count = %d\n", d->count);
         c = d->current;
@@ -1769,62 +1779,29 @@ void pushtotiling() {
         return;
     }
 
-    if (d->mode == TRIGHT) { // tile current to the left and new to the right
-            DEBUG("tilenew: right");
-            n->xp = c->xp + (c->wp/2);
-            n->yp = c->yp;
-            n->wp = (c->xp + c->wp) - n->xp;
-            n->hp = c->hp;
-            c->wp /= 2; 
-        }
-        else if (d->mode == TBOTTOM) { // tile current to the top and new to the bottom
-            DEBUG("tilenew: bottom"); 
-            n->xp = c->xp;
-            n->yp = c->yp + (c->hp/2);
-            n->wp = c->wp;
-            n->hp = (c->yp + c->hp) - n->yp;
-            c->hp /= 2;
-        }
-        else if (d->mode == TLEFT){ // tile current to the right and new to the left
-            DEBUG("tilenew: left");
-            n->xp = c->xp;
-            n->yp = c->yp;
-            n->wp = c->wp/2;
-            n->hp = c->hp;
-            c->xp = n->xp + n->wp;
-            c->wp = (n->xp + c->wp) - c->xp;
-        }
-        else { // TOPT // tile current to the bottom and new to the top
-            DEBUG("tilenew: top");
-            n->xp = c->xp;
-            n->yp = c->yp;
-            n->wp = c->wp;
-            n->hp = c->hp/2;
-            c->yp = n->yp + n->hp;
-            c->hp = (n->yp + c->hp) - c->yp;
-        } 
+    tiledirection[d->direction](n, c); 
         
-        d->count += 1;
+    d->count += 1;
 
-        adjustclientgaps(gap, c);
-        adjustclientgaps(gap, n);
-        
-        if (d->mode != MONOCLE && d->mode != VIDEO) {
-            xcb_move_resize(dis, c->win,
-                            (c->x = m->x + (m->w * c->xp) + c->gapx), 
-                            (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                            (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
-                            (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
+    adjustclientgaps(gap, c);
+    adjustclientgaps(gap, n);
+    
+    if (d->mode != MONOCLE && d->mode != VIDEO) {
+        xcb_move_resize(dis, c->win,
+                        (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                        (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                        (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                        (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
 
-            xcb_move_resize(dis, n->win, 
-                            (n->x = m->x + (m->w * n->xp) + n->gapx), 
-                            (n->y = m->y + (m->h * n->yp) + n->gapy), 
-                            (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                            (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
-            DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
-        }
-        else
+        xcb_move_resize(dis, n->win, 
+                        (n->x = m->x + (m->w * n->xp) + n->gapx), 
+                        (n->y = m->y + (m->h * n->yp) + n->gapy), 
+                        (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                        (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+        DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+    }
+    else
             monocle(m->x, m->y, m->w, m->h, d, m);
 
     DEBUG("pushtotiling: leaving");
@@ -2342,7 +2319,7 @@ int setup(int default_screen) {
 
     selmon = mons; 
     for (unsigned int i=0; i<DESKTOPS; i++)
-        desktops[i] = (desktop){ .mode = DEFAULT_MODE, .showpanel = SHOW_PANEL, .gap = GAP, .count = 0, };
+        desktops[i] = (desktop){ .mode = DEFAULT_MODE, .direction = DEFAULT_DIRECTION, .showpanel = SHOW_PANEL, .gap = GAP, .count = 0, };
 
     win_focus   = getcolor(FOCUS);
     win_unfocus = getcolor(UNFOCUS);
@@ -2418,12 +2395,30 @@ void spawn(const Arg *arg) {
     exit(EXIT_SUCCESS);
 }
 
+void switch_direction(const Arg *arg) {
+    desktop *d = &desktops[selmon->curr_dtop];
+    if (d->mode != TILE) {
+        d->mode = TILE;
+        if (d->mode != FLOAT)
+            for (client *c = d->head; c; c = c->next) 
+                c->isfloating = False;
+        if (d->head) { 
+            tile(d, selmon, RETILE);
+            setborders(d);
+        }
+    }
+    if (d->direction != arg->i)
+        d->direction = arg->i;
+
+    desktopinfo();
+}
+
 /* switch the tiling mode and reset all floating windows */
 void switch_mode(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     if (d->mode != arg->i) 
         d->mode = arg->i;
-    else if (d->mode != FLOAT)
+    if (d->mode != FLOAT)
         for (client *c = d->head; c; c = c->next) 
             c->isfloating = False;
     if (d->head) { 
@@ -2438,8 +2433,7 @@ void switch_mode(const Arg *arg) {
 void tile(desktop *d, const monitor *m, int rule) {
     DEBUG("tile: entering");
     if (!d->head || d->mode == FLOAT) return; // nothing to arange
-    else tcase[rule](d, m);
-        
+    else tcase[rule](d, m); 
     DEBUG("tile: leaving");
 }
 
@@ -2483,40 +2477,7 @@ void tilenew(desktop *d, const monitor *m) {
         //TODO: we should go ahead and try to fill other dead clients
     }
     else {
-        if (d->mode == TRIGHT) { // tile current to the left and new to the right
-            DEBUG("tilenew: right");
-            n->xp = c->xp + (c->wp/2);
-            n->yp = c->yp;
-            n->wp = (c->xp + c->wp) - n->xp;
-            n->hp = c->hp;
-            c->wp /= 2; 
-        }
-        else if (d->mode == TBOTTOM) { // tile current to the top and new to the bottom
-            DEBUG("tilenew: bottom"); 
-            n->xp = c->xp;
-            n->yp = c->yp + (c->hp/2);
-            n->wp = c->wp;
-            n->hp = (c->yp + c->hp) - n->yp;
-            c->hp /= 2;
-        }
-        else if (d->mode == TLEFT){ // tile current to the right and new to the left
-            DEBUG("tilenew: left");
-            n->xp = c->xp;
-            n->yp = c->yp;
-            n->wp = c->wp/2;
-            n->hp = c->hp;
-            c->xp = n->xp + n->wp;
-            c->wp = (n->xp + c->wp) - c->xp;
-        }
-        else { // TOPT // tile current to the bottom and new to the top
-            DEBUG("tilenew: top");
-            n->xp = c->xp;
-            n->yp = c->yp;
-            n->wp = c->wp;
-            n->hp = c->hp/2;
-            c->yp = n->yp + n->hp;
-            c->hp = (n->yp + c->hp) - c->yp;
-        } 
+        tiledirection[d->direction](n, c);
 
         if (m != NULL) {
             adjustclientgaps(gap, c);
@@ -2545,6 +2506,48 @@ void tilenew(desktop *d, const monitor *m) {
     DEBUG("tilenew: leaving");
 }
 
+void tilenewbottom(client *n, client *c) {
+    DEBUG("tilenewbottom: entering"); 
+    n->xp = c->xp;
+    n->yp = c->yp + (c->hp/2);
+    n->wp = c->wp;
+    n->hp = (c->yp + c->hp) - n->yp;
+    c->hp /= 2;
+    DEBUG("tilenewbottom: leaving");
+}
+
+void tilenewleft(client *n, client *c) {
+    DEBUG("tilenewleft: entering");
+    n->xp = c->xp;
+    n->yp = c->yp;
+    n->wp = c->wp/2;
+    n->hp = c->hp;
+    c->xp = n->xp + n->wp;
+    c->wp = (n->xp + c->wp) - c->xp;
+    DEBUG("tilenewleft: leaving");
+}
+
+void tilenewright(client *n, client *c) {
+    DEBUG("tilenewright: entering");
+    n->xp = c->xp + (c->wp/2);
+    n->yp = c->yp;
+    n->wp = (c->xp + c->wp) - n->xp;
+    n->hp = c->hp;
+    c->wp /= 2;
+    DEBUG("tilenewright: leaving");
+}
+
+void tilenewtop(client *n, client *c) {
+    DEBUG("tilenewtop: entering");
+    n->xp = c->xp;
+    n->yp = c->yp;
+    n->wp = c->wp;
+    n->hp = c->hp/2;
+    c->yp = n->yp + n->hp;
+    c->hp = (n->yp + c->hp) - c->yp;
+    DEBUG("tilenewtop: leaving");
+}
+
 void tileremove(desktop *d, const monitor *m) {
     int gap = d->gap, n = 0;
     client *dead = d->dead, **list;
@@ -2559,7 +2562,7 @@ void tileremove(desktop *d, const monitor *m) {
         client *c = d->head;
         c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
 
-        if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
+        if (m != NULL && (d->mode == TILE)) {
             adjustclientgaps(gap, c);
             xcb_move_resize(dis, c->win, 
                             (c->x = m->x + (m->w * c->xp) + c->gapx), 
@@ -2580,7 +2583,7 @@ void tileremove(desktop *d, const monitor *m) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->hp += dead->hp;
-                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
+                if (m != NULL && (d->mode == TILE)) {
                     adjustclientgaps(gap, list[i]);
                     xcb_move_resize(dis, list[i]->win, 
                                     list[i]->x, 
@@ -2602,7 +2605,7 @@ void tileremove(desktop *d, const monitor *m) {
             // clients in list should gain the emptyspace
             for (int i = 0; i < n; i++) {
                 list[i]->wp += dead->wp;
-                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
+                if (m != NULL && (d->mode == TILE)) {
                     adjustclientgaps(gap, list[i]);
                     xcb_move_resize(dis, list[i]->win, 
                                     list[i]->x, 
@@ -2626,7 +2629,7 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->yp = dead->yp;
                 list[i]->hp += dead->hp;
-                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
+                if (m != NULL && (d->mode == TILE)) {
                     adjustclientgaps(gap, list[i]);
                     xcb_move_resize(dis, list[i]->win, 
                                     list[i]->x, 
@@ -2650,7 +2653,7 @@ void tileremove(desktop *d, const monitor *m) {
             for (int i = 0; i < n; i++) {
                 list[i]->xp = dead->xp;
                 list[i]->wp += dead->wp;
-                if (m != NULL && (d->mode != MONOCLE) && (d->mode != VIDEO)) {
+                if (m != NULL && (d->mode == TILE)) {
                     adjustclientgaps(gap, list[i]);
                     xcb_move_resize(dis, list[i]->win, 
                                     (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
