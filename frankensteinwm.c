@@ -146,10 +146,7 @@ static void moveclientup(desktop *d, client *c, client **list, int *num);
 static void moveclientleft(desktop *d, client *c, client **list, int *num);
 static void moveclientdown(desktop *d, client *c, client **list, int *num);
 static void moveclientright(desktop *d, client *c, client **list, int *num);
-static void movefocusup();
-static void movefocusleft();
-static void movefocusdown();
-static void movefocusright();
+static void movefocus(const Arg *arg);
 static void mousemotion(const Arg *arg);
 static void pushtotiling();
 static void quit(const Arg *arg);
@@ -1599,7 +1596,7 @@ void moveclientup(desktop *d, client *c, client **list, int *num) {
     DEBUG("moveclientup: leaving");
 }
 
-void movefocusdown() {
+void movefocus(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
@@ -1608,52 +1605,7 @@ void movefocusdown() {
         DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TBOTTOM](d, c, list, &n);
-        focus(list[0], d);
-        free(list);
-    }
-}
-
-void movefocusleft() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, **list;
-
-    if(d->mode == TILE) { //capable of having windows to the right?
-        int n = d->count;
-        DEBUGP("movefocusleft: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TLEFT](d, c, list, &n);
-        focus(list[0], d);
-        free(list);
-    }
-}
-
-void movefocusright() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, **list;
-
-    if(d->mode == TILE) { //capable of having windows to the right?
-        int n = d->count;
-        DEBUGP("movefocusright: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TRIGHT](d, c, list, &n);
-        focus(list[0], d);
-        free(list);
-    }
-}
-
-void movefocusup() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, **list;
-
-    if(d->mode == TILE) { //capable of having windows to the right?
-        int n = d->count;
-        DEBUGP("movefocusup: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TTOP](d, c, list, &n);
+        findtouchingclients[arg->i](d, c, list, &n);
         focus(list[0], d);
         free(list);
     }
