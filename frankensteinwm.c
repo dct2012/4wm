@@ -57,66 +57,12 @@ enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
 enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
-//argument structure to be passed to function by config.h 
-typedef union {
-    const char** com; // a command to run
-    const int i;      // an integer to indicate different states
-    const double d;   // a double to do stuff with
-} Arg;
-
-// a key struct represents a combination of
-typedef struct {
-    unsigned int mod;           // a modifier mask
-    xcb_keysym_t keysym;        // and the key pressed
-    void (*func)(const Arg *);  // the function to be triggered because of the above combo
-    const Arg arg;              // the argument to the function
-} Key;
-
-// a button struct represents a combination of
-typedef struct {
-    unsigned int mask, button;  // a modifier mask and the mouse button pressed
-    void (*func)(const Arg *);  // the function to be triggered because of the above combo
-    const Arg arg;              // the argument to the function
-} Button;
-
 // define behavior of certain applications
 typedef struct {
     const char *class;              // the class or name of the instance
     const int desktop;              // what desktop it should be spawned at
     const bool follow, floating;    // whether to change desktop focus to the specified desktop
 } AppRule;
-
-/* Exposed function prototypes sorted alphabetically */
-
-static void change_desktop(const Arg *arg);
-static void client_to_desktop(const Arg *arg);
-static void decreasegap(const Arg *arg);
-static void focusurgent();
-static void increasegap(const Arg *arg);
-static void killclient();
-static void moveclientup();
-static void moveclientleft();
-static void moveclientdown();
-static void moveclientright();
-static void movefocusup();
-static void movefocusleft();
-static void movefocusdown();
-static void movefocusright();
-static void mousemotion(const Arg *arg);
-static void pushtotiling();
-static void quit(const Arg *arg);
-static void resizeclientbottom(const Arg *arg);
-static void resizeclientleft(const Arg *arg);
-static void resizeclientright(const Arg *arg);
-static void resizeclienttop(const Arg *arg);
-static void rotate(const Arg *arg);
-static void rotate_filled(const Arg *arg);
-static void spawn(const Arg *arg);
-static void switch_mode(const Arg *arg);
-static void switch_direction(const Arg *arg);
-static void togglepanel();
-
-#include "config.h"
 
 /* a client is a wrapper to a window that additionally
  * holds some properties for that window
@@ -156,6 +102,29 @@ typedef struct {
     bool showpanel;
 } desktop;
 
+//argument structure to be passed to function by config.h 
+typedef union {
+    const char** com; // a command to run
+    const int i;      // an integer to indicate different states
+    const double d;   // a double to do stuff with
+    void (*m)(desktop*, client*, client**, int*); // for the move client command
+} Arg;
+
+// a key struct represents a combination of
+typedef struct {
+    unsigned int mod;           // a modifier mask
+    xcb_keysym_t keysym;        // and the key pressed
+    void (*func)(const Arg *);  // the function to be triggered because of the above combo
+    const Arg arg;              // the argument to the function
+} Key;
+
+// a button struct represents a combination of
+typedef struct {
+    unsigned int mask, button;  // a modifier mask and the mouse button pressed
+    void (*func)(const Arg *);  // the function to be triggered because of the above combo
+    const Arg arg;              // the argument to the function
+} Button;
+
 typedef struct monitor {
     xcb_randr_output_t id;  // id
     int x, y, w, h;         // size in pixels
@@ -163,6 +132,39 @@ typedef struct monitor {
     int curr_dtop;          // which desktop the monitor is displaying
     bool haspanel;          // does this monitor display a panel
 } monitor;
+
+/* Exposed function prototypes sorted alphabetically */
+
+static void change_desktop(const Arg *arg);
+static void client_to_desktop(const Arg *arg);
+static void decreasegap(const Arg *arg);
+static void focusurgent();
+static void increasegap(const Arg *arg);
+static void killclient();
+static void moveclient(const Arg *arg);
+static void moveclientup(desktop *d, client *c, client **list, int *num);
+static void moveclientleft(desktop *d, client *c, client **list, int *num);
+static void moveclientdown(desktop *d, client *c, client **list, int *num);
+static void moveclientright(desktop *d, client *c, client **list, int *num);
+static void movefocusup();
+static void movefocusleft();
+static void movefocusdown();
+static void movefocusright();
+static void mousemotion(const Arg *arg);
+static void pushtotiling();
+static void quit(const Arg *arg);
+static void resizeclientbottom(const Arg *arg);
+static void resizeclientleft(const Arg *arg);
+static void resizeclientright(const Arg *arg);
+static void resizeclienttop(const Arg *arg);
+static void rotate(const Arg *arg);
+static void rotate_filled(const Arg *arg);
+static void spawn(const Arg *arg);
+static void switch_mode(const Arg *arg);
+static void switch_direction(const Arg *arg);
+static void togglepanel();
+
+#include "config.h"
 
 /* Hidden function prototypes sorted alphabetically */
 static client* addwindow(xcb_window_t w, desktop *d);
@@ -1456,23 +1458,33 @@ void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: leaving");
 }
 
-// switch the current client with the first client we find below it
-void moveclientdown() {
+void moveclient(const Arg *arg) {
+    DEBUG("moveclient: entering");
     desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *cold, **list;
-    DEBUG("moveclientdown: entering");
+    client *c = d->current, **list; 
 
     if (!c) {
-        DEBUG("moveclientdown: leaving, no d->current");
+        DEBUG("moveclient: leaving, no d->current");
         return;
     }
 
-    if((d->mode == TILE) && ((c->yp + c->hp) < 1)) { //capable of having windows below?
+    if(d->mode == TILE) { //capable of having windows below?
         int n = d->count;
-        DEBUGP("moveclientdown: d->count = %d\n", d->count);
+        DEBUGP("moveclient: d->count = %d\n", d->count);
         c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TBOTTOM](d, c, list, &n);
+        list = (client**)malloc_safe(n * sizeof(client*));
+        (arg->m)(d, c, list, &n);
+        free(list);
+    }
+    DEBUG("moveclient: leaving");
+}
+
+// switch the current client with the first client we find below it
+void moveclientdown(desktop *d, client *c, client **list, int *num) { 
+    DEBUG("moveclientdown: entering");
+    if((c->yp + c->hp) < 1) { //capable of having windows below?
+        client *cold;
+        findtouchingclients[TBOTTOM](d, c, list, num);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1493,29 +1505,16 @@ void moveclientdown() {
                             (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
             setborders(d);
         }
-        free(list);
     }
-
     DEBUG("moveclientdown: leaving");
 }
 
 // switch the current client with the first client we find to the left of it
-void moveclientleft() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *cold, **list;
+void moveclientleft(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientleft: entering");
-
-    if (!c) {
-        DEBUG("moveclientleft: leaving, no d->current");
-        return;
-    }
-
-    if((d->mode == TILE) && (c->xp > 0)) { //capable of having windows to the left?
-        int n = d->count;
-        DEBUGP("moveclientleft: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TLEFT](d, c, list, &n);
+    if(c->xp > 0) { //capable of having windows to the left?
+        client *cold; 
+        findtouchingclients[TLEFT](d, c, list, num);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1536,29 +1535,16 @@ void moveclientleft() {
                             (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
             setborders(d);
         }
-        free(list);
-    } 
-
+    }
     DEBUG("moveclientleft: leaving");
 }
 
 // switch the current client with the first client we find to the right of it
-void moveclientright() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *cold, **list;
+void moveclientright(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientright: entering");
-
-    if (!c) {
-        DEBUG("moveclientright: leaving, no d->current");
-        return;
-    }
-
-    if((d->mode == TILE) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
-        int n = d->count;
-        DEBUGP("moveclientright: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TRIGHT](d, c, list, &n);
+    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
+        client *cold;
+        findtouchingclients[TRIGHT](d, c, list, num);
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1579,29 +1565,16 @@ void moveclientright() {
                             (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
             setborders(d);
         }
-        free(list);
     }
-
     DEBUG("moveclientright: leaving");
 }
 
 // switch the current client with the first client we find above it
-void moveclientup() {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *cold, **list;
+void moveclientup(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientup: entering");
-
-    if (!c) {
-        DEBUG("moveclientup: leaving, no d->current");
-        return;
-    }
-
-    if((d->mode == TILE) && (c->yp > 0)) { //capable of having windows above?
-        int n = d->count;
-        DEBUGP("moveclientup: d->count = %d\n", d->count);
-        c = d->current;
-        list = (client**)malloc_safe(n * sizeof(client*)); 
-        findtouchingclients[TTOP](d, c, list, &n); // even if it not a direct match it should return with something touching
+    if(c->yp > 0) { //capable of having windows above?
+        client *cold; 
+        findtouchingclients[TTOP](d, c, list, num); // even if it not a direct match it should return with something touching
         // switch stuff
         if (list[0] != NULL) {
             cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
@@ -1623,9 +1596,7 @@ void moveclientup() {
                             (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
             setborders(d);
         }
-        free(list);
     }
-
     DEBUG("moveclientup: leaving");
 }
 
