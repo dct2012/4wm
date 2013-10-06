@@ -117,10 +117,10 @@ static Key keys[] = {
     {  MOD1,            XK_j,           resizeclientbottom, {.d = .01}}, 
     {  MOD1,            XK_k,           resizeclienttop,    {.d = .01}}, 
     // switch clients, with the first it find up/left/down/right
-    {  MOD1|SHIFT,      XK_k,           moveclientup,       {NULL}},
-    {  MOD1|SHIFT,      XK_h,           moveclientleft,     {NULL}},
-    {  MOD1|SHIFT,      XK_j,           moveclientdown,     {NULL}},
-    {  MOD1|SHIFT,      XK_l,           moveclientright,    {NULL}},
+    {  MOD1|SHIFT,      XK_k,           moveclient,         {.m = &moveclientup}},
+    {  MOD1|SHIFT,      XK_h,           moveclient,         {.m = &moveclientleft}},
+    {  MOD1|SHIFT,      XK_j,           moveclient,         {.m = &moveclientdown}},
+    {  MOD1|SHIFT,      XK_l,           moveclient,         {.m = &moveclientright}},
     // push client into tiling
     {  MOD1,            XK_t,           pushtotiling,       {NULL}},
     // Switch layouts/directions 
