@@ -107,10 +107,10 @@ static Key keys[] = {
     // rotate fowards through desktops with windows
     {  MOD1|SHIFT,      XK_equal,       rotate_filled,      {.i = +1}},
     // move focus
-    {  MOD1|CONTROL,    XK_k,           movefocusup,        {NULL}},
-    {  MOD1|CONTROL,    XK_h,           movefocusleft,      {NULL}},
-    {  MOD1|CONTROL,    XK_j,           movefocusdown,      {NULL}},
-    {  MOD1|CONTROL,    XK_l,           movefocusright,     {NULL}},
+    {  MOD1|CONTROL,    XK_k,           movefocus,          {.i = TTOP}},
+    {  MOD1|CONTROL,    XK_h,           movefocus,          {.i = TLEFT}},
+    {  MOD1|CONTROL,    XK_j,           movefocus,          {.i = TBOTTOM}},
+    {  MOD1|CONTROL,    XK_l,           movefocus,          {.i = TRIGHT}},
     // resize clients
     {  MOD1,            XK_h,           resizeclientleft,   {.d = .01}},
     {  MOD1,            XK_l,           resizeclientright,  {.d = .01}},
