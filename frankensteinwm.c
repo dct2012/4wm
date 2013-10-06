@@ -1749,7 +1749,7 @@ void pushtotiling() {
     adjustclientgaps(gap, c);
     adjustclientgaps(gap, n);
     
-    if (d->mode != MONOCLE && d->mode != VIDEO) {
+    if (d->mode == TILE) {
         xcb_move_resize(dis, c->win,
                         (c->x = m->x + (m->w * c->xp) + c->gapx), 
                         (c->y = m->y + (m->h * c->yp) + c->gapy), 
@@ -2124,11 +2124,11 @@ void retile(desktop *d, const monitor *m) {
                                     (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
             }
-        }
-        setborders(d);
+        } 
     }
     else
         monocle(m->x, m->y, m->w, m->h, d, m);
+    setborders(d);
 
     DEBUG("retile: leaving");
 }
