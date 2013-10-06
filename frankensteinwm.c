@@ -575,39 +575,41 @@ void clientmessage(xcb_generic_event_t *e) {
 
 bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingbottom: entering");
-    double width;
-    (*num) = 0;
-    width = c->wp;
-    for (client *n = d->head; n; n = n->next) {
-        if ((c != n ) && !ISFFT(c) && (n->yp == (c->yp + c->hp))) { // directly below
-            if ((n->xp + n->wp) <= (c->xp + c->wp)) { // width equivalent or less than
-                if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
-                    DEBUG("clientstouchingbottom: found direct match");
-                    list[(*num)] = n;
-                    (*num)++;
-                    DEBUG("clientstouchingbottom: leaving, found direct match");
-                    return true;
-                }
-                else if (n->xp >= c->xp) { //part
-                    width -= n->wp;
-                    list[(*num)] = n;
-                    (*num)++;
-                    if (width == 0) {
-                        DEBUG("clientstouchingbottom: leaving true");
+    if((c->yp + c->hp) < 1) { //capable of having windows below?
+        double width;
+        (*num) = 0;
+        width = c->wp;
+        for (client *n = d->head; n; n = n->next) {
+            if ((c != n ) && !ISFFT(c) && (n->yp == (c->yp + c->hp))) { // directly below
+                if ((n->xp + n->wp) <= (c->xp + c->wp)) { // width equivalent or less than
+                    if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
+                        DEBUG("clientstouchingbottom: found direct match");
+                        list[(*num)] = n;
+                        (*num)++;
+                        DEBUG("clientstouchingbottom: leaving, found direct match");
                         return true;
                     }
-                    if (width < 0) {
-                        DEBUG("clientstouchingbottom: leaving false");
-                        return false;
+                    else if (n->xp >= c->xp) { //part
+                        width -= n->wp;
+                        list[(*num)] = n;
+                        (*num)++;
+                        if (width == 0) {
+                            DEBUG("clientstouchingbottom: leaving true");
+                            return true;
+                        }
+                        if (width < 0) {
+                            DEBUG("clientstouchingbottom: leaving false");
+                            return false;
+                        }
                     }
                 }
-            }
-            
-            if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
-                // width exceeds, but we should go ahead and make sure list isnt NULL
-                list[(*num)] = n;
-                DEBUG("clientstouchingbottom: leaving false");
-                return false;
+                
+                if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
+                    // width exceeds, but we should go ahead and make sure list isnt NULL
+                    list[(*num)] = n;
+                    DEBUG("clientstouchingbottom: leaving false");
+                    return false;
+                }
             }
         }
     }
@@ -617,38 +619,40 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingleft: entering");
-    double height;
-    (*num) = 0;
-    height = c->hp;
-    for (client *n = d->head; n; n = n->next) {
-        if ((c != n ) && !ISFFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
-            if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
-                    list[(*num)] = n;
-                    (*num)++;
-                    DEBUG("clientstouchingleft: leaving found direct match");
-                    return true;
-                }
-                else if (n->yp >= c->yp) { //part
-                    height -= n->hp;
-                    list[(*num)] = n;
-                    (*num)++;
-                    if (height == 0) {
-                        DEBUG("clientstouchingleft: leaving true");
+    if(c->xp > 0) { //capable of having windows to the left?
+        double height;
+        (*num) = 0;
+        height = c->hp;
+        for (client *n = d->head; n; n = n->next) {
+            if ((c != n ) && !ISFFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
+                if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
+                    if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                        list[(*num)] = n;
+                        (*num)++;
+                        DEBUG("clientstouchingleft: leaving found direct match");
                         return true;
                     }
-                    if (height < 0) {
-                        DEBUG("clientstouchingleft: leaving false");
-                        return false;
+                    else if (n->yp >= c->yp) { //part
+                        height -= n->hp;
+                        list[(*num)] = n;
+                        (*num)++;
+                        if (height == 0) {
+                            DEBUG("clientstouchingleft: leaving true");
+                            return true;
+                        }
+                        if (height < 0) {
+                            DEBUG("clientstouchingleft: leaving false");
+                            return false;
+                        }
                     }
                 }
-            }
-            
-            if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
-                // height exceeds, but we should go ahead and make sure list isnt NULL
-                list[(*num)] = n;
-                DEBUG("clientstouchingleft: leaving false");
-                return false;
+                
+                if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
+                    // height exceeds, but we should go ahead and make sure list isnt NULL
+                    list[(*num)] = n;
+                    DEBUG("clientstouchingleft: leaving false");
+                    return false;
+                }
             }
         }
     }
@@ -658,38 +662,40 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingright: entering");
-    double height;
-    (*num) = 0;
-    height = c->hp;
-    for (client *n = d->head; n; n = n->next) {
-        if ((c != n ) && !ISFFT(c) && (n->xp == (c->xp + c->wp))) { //directly to the right
-            if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
-                    list[(*num)] = n;
-                    (*num)++;
-                    DEBUG("clientstouchingright: leaving, found direct match");
-                    return true;
-                }
-                else if (n->yp >= c->yp) { //part
-                    height -= n->hp;
-                    list[(*num)] = n;
-                    (*num)++;
-                    if (height == 0) {
-                        DEBUG("clientstouchingright: leaving true");
+    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
+        double height;
+        (*num) = 0;
+        height = c->hp;
+        for (client *n = d->head; n; n = n->next) {
+            if ((c != n ) && !ISFFT(c) && (n->xp == (c->xp + c->wp))) { //directly to the right
+                if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
+                    if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                        list[(*num)] = n;
+                        (*num)++;
+                        DEBUG("clientstouchingright: leaving, found direct match");
                         return true;
                     }
-                    if (height < 0) {
-                        DEBUG("clientstouchingright: leaving false");
-                        return false;
+                    else if (n->yp >= c->yp) { //part
+                        height -= n->hp;
+                        list[(*num)] = n;
+                        (*num)++;
+                        if (height == 0) {
+                            DEBUG("clientstouchingright: leaving true");
+                            return true;
+                        }
+                        if (height < 0) {
+                            DEBUG("clientstouchingright: leaving false");
+                            return false;
+                        }
                     }
                 }
-            }
-            // y is less than or equal, overall height 
-            if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
-                // height exceeds, but we should go ahead and make sure list isnt NULL
-                list[(*num)] = n;
-                DEBUG("clientstouchingright: leaving false");
-                return false;
+                // y is less than or equal, overall height 
+                if ((n->yp <= c->yp) && ((n->yp + n->hp) >= (c->yp + c->hp))) { 
+                    // height exceeds, but we should go ahead and make sure list isnt NULL
+                    list[(*num)] = n;
+                    DEBUG("clientstouchingright: leaving false");
+                    return false;
+                }
             }
         }
     }
@@ -699,42 +705,43 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingtop: entering");
-    double width;
-    (*num) = 0;
-    width = c->wp;
-    for (client *n = d->head; n; n = n->next) {
-        if ((c != n) && !ISFFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
-            if ((n->xp + n->wp) <= (c->xp + c->wp)) { //width equivalent or less than
-                if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
-                    list[(*num)] = n;
-                    (*num)++;
-                    DEBUG("clientstouchingtop: leaving found direct match");
-                    return true;
-                }
-                else if (n->xp >= c->xp) { //part
-                    width -= n->wp;
-                    list[(*num)] = n;
-                    (*num)++;
-                    if (width == 0) {
-                        DEBUG("clientstouchingtop: leaving true");
+    if(c->yp > 0) { //capable of having windows above?
+        double width;
+        (*num) = 0;
+        width = c->wp;
+        for (client *n = d->head; n; n = n->next) {
+            if ((c != n) && !ISFFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
+                if ((n->xp + n->wp) <= (c->xp + c->wp)) { //width equivalent or less than
+                    if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
+                        list[(*num)] = n;
+                        (*num)++;
+                        DEBUG("clientstouchingtop: leaving found direct match");
                         return true;
                     }
-                    if (width < 0) {
-                        DEBUG("clientstouchingtop: leaving false");
-                        return false;
+                    else if (n->xp >= c->xp) { //part
+                        width -= n->wp;
+                        list[(*num)] = n;
+                        (*num)++;
+                        if (width == 0) {
+                            DEBUG("clientstouchingtop: leaving true");
+                            return true;
+                        }
+                        if (width < 0) {
+                            DEBUG("clientstouchingtop: leaving false");
+                            return false;
+                        }
                     }
                 }
-            }
-            
-            if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
-                // width exceeds, but we should go ahead and make sure list isnt NULL
-                list[(*num)] = n;
-                DEBUG("clientstouchingtop: leaving false");
-                return false;
+                
+                if ((n->xp <= c->xp) && ((n->xp + n->wp) >= (c->xp + c->wp))) { 
+                    // width exceeds, but we should go ahead and make sure list isnt NULL
+                    list[(*num)] = n;
+                    DEBUG("clientstouchingtop: leaving false");
+                    return false;
+                }
             }
         }
     }
-
     DEBUG("clientstouchingtop: leaving error");
     return false;
 }
@@ -1482,29 +1489,27 @@ void moveclient(const Arg *arg) {
 // switch the current client with the first client we find below it
 void moveclientdown(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientdown: entering");
-    if((c->yp + c->hp) < 1) { //capable of having windows below?
-        client *cold;
-        findtouchingclients[TBOTTOM](d, c, list, num);
-        // switch stuff
-        if (list[0] != NULL) {
-            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            adjustclientgaps(d->gap, c);
-            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            adjustclientgaps(d->gap, list[0]);
-            // move stuff
-            xcb_move_resize(dis, list[0]->win, 
-                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-            setborders(d);
-        }
+    client *cold;
+    findtouchingclients[TBOTTOM](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+        setborders(d);
     }
     DEBUG("moveclientdown: leaving");
 }
@@ -1512,29 +1517,27 @@ void moveclientdown(desktop *d, client *c, client **list, int *num) {
 // switch the current client with the first client we find to the left of it
 void moveclientleft(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientleft: entering");
-    if(c->xp > 0) { //capable of having windows to the left?
-        client *cold; 
-        findtouchingclients[TLEFT](d, c, list, num);
-        // switch stuff
-        if (list[0] != NULL) {
-            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            adjustclientgaps(d->gap, c);
-            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            adjustclientgaps(d->gap, list[0]);
-            // move stuff
-            xcb_move_resize(dis, list[0]->win, 
-                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            setborders(d);
-        }
+    client *cold; 
+    findtouchingclients[TLEFT](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        setborders(d);
     }
     DEBUG("moveclientleft: leaving");
 }
@@ -1542,29 +1545,27 @@ void moveclientleft(desktop *d, client *c, client **list, int *num) {
 // switch the current client with the first client we find to the right of it
 void moveclientright(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientright: entering");
-    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
-        client *cold;
-        findtouchingclients[TRIGHT](d, c, list, num);
-        // switch stuff
-        if (list[0] != NULL) {
-            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            adjustclientgaps(d->gap, c);
-            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            adjustclientgaps(d->gap, list[0]);
-            // move stuff
-            xcb_move_resize(dis, list[0]->win, 
-                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            setborders(d);
-        }
+    client *cold;
+    findtouchingclients[TRIGHT](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        setborders(d);
     }
     DEBUG("moveclientright: leaving");
 }
@@ -1572,30 +1573,28 @@ void moveclientright(desktop *d, client *c, client **list, int *num) {
 // switch the current client with the first client we find above it
 void moveclientup(desktop *d, client *c, client **list, int *num) { 
     DEBUG("moveclientup: entering");
-    if(c->yp > 0) { //capable of having windows above?
-        client *cold; 
-        findtouchingclients[TTOP](d, c, list, num); // even if it not a direct match it should return with something touching
-        // switch stuff
-        if (list[0] != NULL) {
-            cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
-            adjustclientgaps(d->gap, list[0]);
-            c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
-            adjustclientgaps(d->gap, c);
-            list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
-            adjustclientgaps(d->gap, list[0]);
-            // move stuff
-            xcb_move_resize(dis, list[0]->win, 
-                            (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                            (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                            (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                            (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-            setborders(d);
-        }
+    client *cold; 
+    findtouchingclients[TTOP](d, c, list, num); // even if it not a direct match it should return with something touching
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        adjustclientgaps(d->gap, list[0]);
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+        setborders(d);
     }
     DEBUG("moveclientup: leaving");
 }
@@ -1604,7 +1603,7 @@ void movefocusdown() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode == TILE) && ((c->yp + c->hp) < 1)) { //capable of having windows to the right?
+    if(d->mode == TILE) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
@@ -1619,7 +1618,7 @@ void movefocusleft() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode == TILE) && (c->xp > 0)) { //capable of having windows to the right?
+    if(d->mode == TILE) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusleft: d->count = %d\n", d->count);
         c = d->current;
@@ -1634,7 +1633,7 @@ void movefocusright() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode == TILE) && ((c->xp + c->wp) < 1)) { //capable of having windows to the right?
+    if(d->mode == TILE) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusright: d->count = %d\n", d->count);
         c = d->current;
@@ -1649,7 +1648,7 @@ void movefocusup() {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if((d->mode == TILE) && (c->yp > 0)) { //capable of having windows to the right?
+    if(d->mode == TILE) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusup: d->count = %d\n", d->count);
         c = d->current;
@@ -1839,31 +1838,29 @@ void resizeclientbottom(const Arg *arg) {
         return;
     }
     
-    if((c->yp + c->hp) < 1) { //capable of having windows below?
-        if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
-            //client in list y increases and height decreases
-            for (int i = 0; i < n; i++) {
-                list[i]->yp += arg->d;
-                list[i]->hp -= arg->d;
-                xcb_move_resize(dis, list[i]->win,
-                                list[i]->x, 
-                                (list[i]->y = selmon->y + (selmon->h * list[i]->yp) + list[i]->gapy), 
-                                list[i]->w, 
-                                (list[i]->h = (selmon->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-            }
-            //current windows height increases
-            DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
-            c->hp += arg->d;
-            DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
-            xcb_move_resize(dis, c->win, 
-                            c->x, 
-                            c->y, 
-                            c->w, 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            free(list);
-            setborders(d);
-            return;
+    if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
+        //client in list y increases and height decreases
+        for (int i = 0; i < n; i++) {
+            list[i]->yp += arg->d;
+            list[i]->hp -= arg->d;
+            xcb_move_resize(dis, list[i]->win,
+                            list[i]->x, 
+                            (list[i]->y = selmon->y + (selmon->h * list[i]->yp) + list[i]->gapy), 
+                            list[i]->w, 
+                            (list[i]->h = (selmon->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
         }
+        //current windows height increases
+        DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
+        c->hp += arg->d;
+        DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
+        xcb_move_resize(dis, c->win, 
+                        c->x, 
+                        c->y, 
+                        c->w, 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        free(list);
+        setborders(d);
+        return;
     }
  
     if (findtouchingclients[TTOP](d, c, list, &n)) {
@@ -1909,29 +1906,27 @@ void resizeclientleft(const Arg *arg) {
         return;
     }
 
-    if(c->xp > 0) { //capable of having windows to the left?
-        if (findtouchingclients[TLEFT](d, c, list, &n)) {
-            //client in list width decreases
-            for (int i = 0; i < n; i++) {
-                list[i]->wp -= arg->d;
-                xcb_move_resize(dis, list[i]->win, 
-                                list[i]->x, 
-                                list[i]->y, 
-                                (list[i]->w  = (selmon->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                list[i]->h);
-            }
-            //the current windows x decreases and width increases
-            c->xp -= arg->d;
-            c->wp += arg->d;            
-            xcb_move_resize(dis, c->win, 
-                            (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                            c->y, 
-                            (c->w  = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            c->h); 
-            free(list);
-            setborders(d);
-            return;
+    if (findtouchingclients[TLEFT](d, c, list, &n)) {
+        //client in list width decreases
+        for (int i = 0; i < n; i++) {
+            list[i]->wp -= arg->d;
+            xcb_move_resize(dis, list[i]->win, 
+                            list[i]->x, 
+                            list[i]->y, 
+                            (list[i]->w  = (selmon->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                            list[i]->h);
         }
+        //the current windows x decreases and width increases
+        c->xp -= arg->d;
+        c->wp += arg->d;            
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        c->y, 
+                        (c->w  = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        c->h); 
+        free(list);
+        setborders(d);
+        return;
     }
  
     if (findtouchingclients[TRIGHT](d, c, list, &n)) {
@@ -1977,30 +1972,28 @@ void resizeclientright(const Arg *arg) {
         return;
     }
 
-    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
-        if (findtouchingclients[TRIGHT](d, c, list, &n)) { 
-            //clients in list x increases and width decrease
-            for (int i = 0; i < n; i++) {
-                list[i]->xp += arg->d;
-                list[i]->wp -= arg->d;
-                xcb_move_resize(dis, list[i]->win, 
-                                (list[i]->x = selmon->x + (selmon->w * list[i]->xp) + list[i]->gapx), 
-                                list[i]->y, 
-                                (list[i]->w  = (selmon->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                list[i]->h);
-            }
-
-            //the current windows width increases
-            c->wp += arg->d;
-            xcb_move_resize(dis, c->win, 
-                            c->x, 
-                            c->y, 
-                            (c->w  = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                            c->h); 
-            free(list);
-            setborders(d);
-            return;
+    if (findtouchingclients[TRIGHT](d, c, list, &n)) { 
+        //clients in list x increases and width decrease
+        for (int i = 0; i < n; i++) {
+            list[i]->xp += arg->d;
+            list[i]->wp -= arg->d;
+            xcb_move_resize(dis, list[i]->win, 
+                            (list[i]->x = selmon->x + (selmon->w * list[i]->xp) + list[i]->gapx), 
+                            list[i]->y, 
+                            (list[i]->w  = (selmon->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                            list[i]->h);
         }
+
+        //the current windows width increases
+        c->wp += arg->d;
+        xcb_move_resize(dis, c->win, 
+                        c->x, 
+                        c->y, 
+                        (c->w  = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        c->h); 
+        free(list);
+        setborders(d);
+        return;
     }
 
     if (findtouchingclients[TLEFT](d, c, list, &n)) {
@@ -2046,29 +2039,27 @@ void resizeclienttop(const Arg *arg) {
         return;
     }
     
-    if(c->yp > 0) { //capable of having windows above?
-        if (findtouchingclients[TTOP](d, c, list, &n)) {
-            //client in list height decreases
-            for (int i = 0; i < n; i++) {
-                list[i]->hp -= arg->d;
-                xcb_move_resize(dis, list[i]->win, 
-                                list[i]->x, 
-                                list[i]->y, 
-                                list[i]->w, 
-                                (list[i]->h = (selmon->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-            }
-            //current windows y decreases and height increases
-            c->yp -= arg->d;
-            c->hp += arg->d;
-            xcb_move_resize(dis, c->win, 
-                            c->x, 
-                            (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                            c->w, 
-                            (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-            free(list);
-            setborders(d);
-            return;
+    if (findtouchingclients[TTOP](d, c, list, &n)) {
+        //client in list height decreases
+        for (int i = 0; i < n; i++) {
+            list[i]->hp -= arg->d;
+            xcb_move_resize(dis, list[i]->win, 
+                            list[i]->x, 
+                            list[i]->y, 
+                            list[i]->w, 
+                            (list[i]->h = (selmon->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
         }
+        //current windows y decreases and height increases
+        c->yp -= arg->d;
+        c->hp += arg->d;
+        xcb_move_resize(dis, c->win, 
+                        c->x, 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        c->w, 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        free(list);
+        setborders(d);
+        return;
     } 
     
     if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
@@ -2525,96 +2516,86 @@ void tileremove(desktop *d, const monitor *m) {
 
     list = (client**)malloc_safe(n * sizeof(client*));
 
-    if(dead->yp > 0) { //capable of having windows above?
-        if (findtouchingclients[TTOP](d, dead, list, &n)) {
-            // clients in list should gain the emptyspace
-            for (int i = 0; i < n; i++) {
-                list[i]->hp += dead->hp;
-                if (m != NULL && (d->mode == TILE)) {
-                    adjustclientgaps(gap, list[i]);
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    list[i]->y, 
-                                    list[i]->w, 
-                                    (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                }
+    if (findtouchingclients[TTOP](d, dead, list, &n)) {
+        // clients in list should gain the emptyspace
+        for (int i = 0; i < n; i++) {
+            list[i]->hp += dead->hp;
+            if (m != NULL && (d->mode == TILE)) {
+                adjustclientgaps(gap, list[i]);
+                xcb_move_resize(dis, list[i]->win, 
+                                list[i]->x, 
+                                list[i]->y, 
+                                list[i]->w, 
+                                (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
             }
-            d->dead = d->dead->next;
-            free(dead); dead = NULL;
-            free(list);
-            DEBUG("tileremove: leaving");
-            return;
         }
+        d->dead = d->dead->next;
+        free(dead); dead = NULL;
+        free(list);
+        DEBUG("tileremove: leaving");
+        return;
     }
 
-    if(dead->xp > 0) { //capable of having windows to the left?
-        if (findtouchingclients[TLEFT](d, dead, list, &n)) {
-            // clients in list should gain the emptyspace
-            for (int i = 0; i < n; i++) {
-                list[i]->wp += dead->wp;
-                if (m != NULL && (d->mode == TILE)) {
-                    adjustclientgaps(gap, list[i]);
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    list[i]->y, 
-                                    (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                    list[i]->h);
-                }
+    if (findtouchingclients[TLEFT](d, dead, list, &n)) {
+        // clients in list should gain the emptyspace
+        for (int i = 0; i < n; i++) {
+            list[i]->wp += dead->wp;
+            if (m != NULL && (d->mode == TILE)) {
+                adjustclientgaps(gap, list[i]);
+                xcb_move_resize(dis, list[i]->win, 
+                                list[i]->x, 
+                                list[i]->y, 
+                                (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                list[i]->h);
             }
-            d->dead = d->dead->next;
-            free(dead); dead = NULL;
-            free(list);
-            DEBUG("tileremove: leaving");
-            return;
         }
+        d->dead = d->dead->next;
+        free(dead); dead = NULL;
+        free(list);
+        DEBUG("tileremove: leaving");
+        return;
     }
 
-    if((dead->yp + dead->hp) < 1) { 
-    //capable of having windows below?
-        if (findtouchingclients[TBOTTOM](d, dead, list, &n)) {
-            // clients in list should gain the emptyspace
-            for (int i = 0; i < n; i++) {
-                list[i]->yp = dead->yp;
-                list[i]->hp += dead->hp;
-                if (m != NULL && (d->mode == TILE)) {
-                    adjustclientgaps(gap, list[i]);
-                    xcb_move_resize(dis, list[i]->win, 
-                                    list[i]->x, 
-                                    (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
-                                    list[i]->w, 
-                                    (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                }
+    if (findtouchingclients[TBOTTOM](d, dead, list, &n)) {
+        // clients in list should gain the emptyspace
+        for (int i = 0; i < n; i++) {
+            list[i]->yp = dead->yp;
+            list[i]->hp += dead->hp;
+            if (m != NULL && (d->mode == TILE)) {
+                adjustclientgaps(gap, list[i]);
+                xcb_move_resize(dis, list[i]->win, 
+                                list[i]->x, 
+                                (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
+                                list[i]->w, 
+                                (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
             }
-            d->dead = d->dead->next;
-            free(dead); dead = NULL;
-            free(list);
-            DEBUG("tileremove: leaving");
-            return;
         }
+        d->dead = d->dead->next;
+        free(dead); dead = NULL;
+        free(list);
+        DEBUG("tileremove: leaving");
+        return;
     }
     
-    if((dead->xp + dead->wp) < 1) { 
-    //capable of having windows to the right?
-        if (findtouchingclients[TRIGHT](d, dead, list, &n)) {
-            // clients in list should gain the emptyspace
-            for (int i = 0; i < n; i++) {
-                list[i]->xp = dead->xp;
-                list[i]->wp += dead->wp;
-                if (m != NULL && (d->mode == TILE)) {
-                    adjustclientgaps(gap, list[i]);
-                    xcb_move_resize(dis, list[i]->win, 
-                                    (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
-                                    list[i]->y, 
-                                    (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
-                                    list[i]->h);
-                }
+    if (findtouchingclients[TRIGHT](d, dead, list, &n)) {
+        // clients in list should gain the emptyspace
+        for (int i = 0; i < n; i++) {
+            list[i]->xp = dead->xp;
+            list[i]->wp += dead->wp;
+            if (m != NULL && (d->mode == TILE)) {
+                adjustclientgaps(gap, list[i]);
+                xcb_move_resize(dis, list[i]->win, 
+                                (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
+                                list[i]->y, 
+                                (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                list[i]->h);
             }
-            d->dead = d->dead->next;
-            free(dead); dead = NULL;
-            free(list);
-            DEBUG("tileremove: leaving");
-            return;
         }
+        d->dead = d->dead->next;
+        free(dead); dead = NULL;
+        free(list);
+        DEBUG("tileremove: leaving");
+        return;
     }
 
     free(list);
