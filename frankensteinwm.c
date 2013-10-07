@@ -103,11 +103,12 @@ typedef struct {
 } desktop;
 
 //argument structure to be passed to function by config.h 
-typedef union {
+typedef struct {
     const char** com; // a command to run
     const int i;      // an integer to indicate different states
     const double d;   // a double to do stuff with
     void (*m)(desktop*, client*, client**, int*); // for the move client command
+    void (*r)(desktop*, client*, client**, int*, const double);
 } Arg;
 
 // a key struct represents a combination of
@@ -150,10 +151,11 @@ static void movefocus(const Arg *arg);
 static void mousemotion(const Arg *arg);
 static void pushtotiling();
 static void quit(const Arg *arg);
-static void resizeclientbottom(const Arg *arg);
-static void resizeclientleft(const Arg *arg);
-static void resizeclientright(const Arg *arg);
-static void resizeclienttop(const Arg *arg);
+static void resizeclient(const Arg *arg);
+static void resizeclientbottom(desktop *d, client *c, client **list, int *n, const double);
+static void resizeclientleft(desktop *d, client *c, client **list, int *n, const double);
+static void resizeclientright(desktop *d, client *c, client **list, int *n, const double);
+static void resizeclienttop(desktop *d, client *c, client **list, int *n, const double);
 static void rotate(const Arg *arg);
 static void rotate_filled(const Arg *arg);
 static void spawn(const Arg *arg);
@@ -1774,27 +1776,33 @@ void removeclient(client *c, desktop *d, const monitor *m) {
     DEBUG("removeclient: leaving");
 }
 
-void resizeclientbottom(const Arg *arg) {
+void resizeclient(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c, **list;
-    DEBUG("resizeclientbottom: entering"); 
+    DEBUG("resizeclient: entering"); 
 
     int n = d->count;
-    DEBUGP("resizeclientbottom: d->count = %d\n", d->count);
+    DEBUGP("resizeclient: d->count = %d\n", d->count);
 
     list = (client**)malloc_safe(n * sizeof(client*));
    
     c = d->current;
     if (!c){
-        DEBUG("resizeclientbottom: leaving, no d->current");
+        DEBUG("resizeclient: leaving, no d->current");
         return;
     }
-    
-    if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
+
+    (arg->r)(d, c, list, &n, arg->d);
+    DEBUG("resizeclient: leaving");
+} 
+
+void resizeclientbottom(desktop *d, client *c, client **list, int *n, const double size) {
+    DEBUG("resizeclientbottom: entering"); 
+    if (findtouchingclients[TBOTTOM](d, c, list, n)) {
         //client in list y increases and height decreases
-        for (int i = 0; i < n; i++) {
-            list[i]->yp += arg->d;
-            list[i]->hp -= arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->yp += size;
+            list[i]->hp -= size;
             xcb_move_resize(dis, list[i]->win,
                             list[i]->x, 
                             (list[i]->y = selmon->y + (selmon->h * list[i]->yp) + list[i]->gapy), 
@@ -1803,7 +1811,7 @@ void resizeclientbottom(const Arg *arg) {
         }
         //current windows height increases
         DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
-        c->hp += arg->d;
+        c->hp += size;
         DEBUGP("resizeclientbottom: c->hp = %f", c->hp);
         xcb_move_resize(dis, c->win, 
                         c->x, 
@@ -1815,10 +1823,10 @@ void resizeclientbottom(const Arg *arg) {
         return;
     }
  
-    if (findtouchingclients[TTOP](d, c, list, &n)) {
+    if (findtouchingclients[TTOP](d, c, list, n)) {
         //current windows y increases and height decreases
-        c->yp += arg->d;
-        c->hp -= arg->d;
+        c->yp += size;
+        c->hp -= size;
         xcb_move_resize(dis, c->win, 
                         c->x, 
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
@@ -1826,8 +1834,8 @@ void resizeclientbottom(const Arg *arg) {
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
         
         //client in list height increases
-        for (int i = 0; i < n; i++) {
-            list[i]->hp += arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->hp += size;
             xcb_move_resize(dis, list[i]->win, 
                             list[i]->x, 
                             list[i]->y, 
@@ -1838,30 +1846,15 @@ void resizeclientbottom(const Arg *arg) {
         setborders(d);
         return;
     }
-
     DEBUG("resizeclientbottom: leaving");
 }
 
-void resizeclientleft(const Arg *arg) {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c, **list;
+void resizeclientleft(desktop *d, client *c, client **list, int *n, const double size) {
     DEBUG("resizeclientleft: entering"); 
-
-    int n = d->count;
-    DEBUGP("resizeclientleft: d->count = %d\n", d->count);
-
-    list = (client**)malloc_safe(n * sizeof(client*));
-   
-    c = d->current;
-    if (!c){
-        DEBUG("resizeclientleft: leaving, no d->current");
-        return;
-    }
-
-    if (findtouchingclients[TLEFT](d, c, list, &n)) {
+    if (findtouchingclients[TLEFT](d, c, list, n)) {
         //client in list width decreases
-        for (int i = 0; i < n; i++) {
-            list[i]->wp -= arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->wp -= size;
             xcb_move_resize(dis, list[i]->win, 
                             list[i]->x, 
                             list[i]->y, 
@@ -1869,8 +1862,8 @@ void resizeclientleft(const Arg *arg) {
                             list[i]->h);
         }
         //the current windows x decreases and width increases
-        c->xp -= arg->d;
-        c->wp += arg->d;            
+        c->xp -= size;
+        c->wp += size;            
         xcb_move_resize(dis, c->win, 
                         (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
                         c->y, 
@@ -1881,9 +1874,9 @@ void resizeclientleft(const Arg *arg) {
         return;
     }
  
-    if (findtouchingclients[TRIGHT](d, c, list, &n)) {
+    if (findtouchingclients[TRIGHT](d, c, list, n)) {
         //current windows width decreases
-        c->wp -= arg->d;
+        c->wp -= size;
         xcb_move_resize(dis, c->win, 
                         c->x, 
                         c->y, 
@@ -1891,9 +1884,9 @@ void resizeclientleft(const Arg *arg) {
                         c->h);
                 
         //clients in list x decreases width increases
-        for (int i = 0; i < n; i++) {        
-            list[i]->xp -= arg->d;
-            list[i]->wp += arg->d; 
+        for (int i = 0; i < (*n); i++) {        
+            list[i]->xp -= size;
+            list[i]->wp += size; 
             xcb_move_resize(dis, list[i]->win, 
                             (list[i]->x = selmon->x + (selmon->w * list[i]->xp) + list[i]->gapx), 
                             list[i]->y, 
@@ -1904,31 +1897,17 @@ void resizeclientleft(const Arg *arg) {
         setborders(d);
         return;
     }
-
     DEBUG("resizeclientleft: leaving");
 }
 
-void resizeclientright(const Arg *arg) {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c, **list;
+void resizeclientright(desktop *d, client *c, client **list, int *n, const double size) {
     DEBUG("resizeclientright: entering");
-
-    int n = d->count;
-    DEBUGP("resizeclientright: d->count = %d\n", d->count);
-
-    list = (client**)malloc_safe(n * sizeof(client*));
-   
-    c = d->current;
-    if (!c){
-        DEBUG("resizeclientright: leaving, no d->current");
-        return;
-    }
-
-    if (findtouchingclients[TRIGHT](d, c, list, &n)) { 
+    DEBUGP("resizeclientright: size = %f\n", size);
+    if (findtouchingclients[TRIGHT](d, c, list, n)) { 
         //clients in list x increases and width decrease
-        for (int i = 0; i < n; i++) {
-            list[i]->xp += arg->d;
-            list[i]->wp -= arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->xp += size;
+            list[i]->wp -= size;
             xcb_move_resize(dis, list[i]->win, 
                             (list[i]->x = selmon->x + (selmon->w * list[i]->xp) + list[i]->gapx), 
                             list[i]->y, 
@@ -1937,7 +1916,7 @@ void resizeclientright(const Arg *arg) {
         }
 
         //the current windows width increases
-        c->wp += arg->d;
+        c->wp += size;
         xcb_move_resize(dis, c->win, 
                         c->x, 
                         c->y, 
@@ -1948,10 +1927,10 @@ void resizeclientright(const Arg *arg) {
         return;
     }
 
-    if (findtouchingclients[TLEFT](d, c, list, &n)) {
+    if (findtouchingclients[TLEFT](d, c, list, n)) {
         //current windows x increases and width decreases
-        c->xp += arg->d;
-        c->wp -= arg->d;
+        c->xp += size;
+        c->wp -= size;
         xcb_move_resize(dis, c->win, 
                         (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
                         c->y, 
@@ -1959,8 +1938,8 @@ void resizeclientright(const Arg *arg) {
                         c->h);
 
         //other windows width increases
-        for (int i = 0; i < n; i++) { 
-            list[i]->wp += arg->d;
+        for (int i = 0; i < (*n); i++) { 
+            list[i]->wp += size;
             xcb_move_resize(dis, list[i]->win, 
                             list[i]->x, 
                             list[i]->y, 
@@ -1971,30 +1950,15 @@ void resizeclientright(const Arg *arg) {
         setborders(d);
         return;
     }
-
     DEBUG("resizeclientright: leaving");
 }
 
-void resizeclienttop(const Arg *arg) {
-    desktop *d = &desktops[selmon->curr_dtop];
-    client *c, **list;
+void resizeclienttop(desktop *d, client *c, client **list, int *n, const double size) {
     DEBUG("resizeclienttop: entering"); 
-
-    int n = d->count;
-    DEBUGP("resizeclienttop: d->count = %d\n", d->count);
-
-    list = (client**)malloc_safe(n * sizeof(client*));
-   
-    c = d->current;
-    if (!c){
-        DEBUG("resizeclienttop: leaving, no d->current");
-        return;
-    }
-    
-    if (findtouchingclients[TTOP](d, c, list, &n)) {
+    if (findtouchingclients[TTOP](d, c, list, n)) {
         //client in list height decreases
-        for (int i = 0; i < n; i++) {
-            list[i]->hp -= arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->hp -= size;
             xcb_move_resize(dis, list[i]->win, 
                             list[i]->x, 
                             list[i]->y, 
@@ -2002,8 +1966,8 @@ void resizeclienttop(const Arg *arg) {
                             (list[i]->h = (selmon->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
         }
         //current windows y decreases and height increases
-        c->yp -= arg->d;
-        c->hp += arg->d;
+        c->yp -= size;
+        c->hp += size;
         xcb_move_resize(dis, c->win, 
                         c->x, 
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
@@ -2014,9 +1978,9 @@ void resizeclienttop(const Arg *arg) {
         return;
     } 
     
-    if (findtouchingclients[TBOTTOM](d, c, list, &n)) {
+    if (findtouchingclients[TBOTTOM](d, c, list, n)) {
         //current windows height decreases
-        c->hp -= arg->d;
+        c->hp -= size;
         xcb_move_resize(dis, c->win, 
                         c->x, 
                         c->y, 
@@ -2024,9 +1988,9 @@ void resizeclienttop(const Arg *arg) {
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
         
         //client in list y decreases and height increases
-        for (int i = 0; i < n; i++) {
-            list[i]->yp -= arg->d;
-            list[i]->hp += arg->d;
+        for (int i = 0; i < (*n); i++) {
+            list[i]->yp -= size;
+            list[i]->hp += size;
             xcb_move_resize(dis, list[i]->win, 
                             list[i]->x, 
                             (list[i]->y = selmon->y + (selmon->h * list[i]->yp) + list[i]->gapy), 
