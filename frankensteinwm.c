@@ -28,8 +28,6 @@
 #endif
 
 /* upstream compatility */
-#define True  true
-#define False false
 #define Mod1Mask     XCB_MOD_MASK_1
 #define Mod4Mask     XCB_MOD_MASK_4
 #define ShiftMask    XCB_MOD_MASK_SHIFT
@@ -1726,10 +1724,9 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         *p = c->next;
     if (c == d->prevfocus) 
         d->prevfocus = prev_client(d->current, d);
-    if (c == d->current || (d->head && !d->head->next)) {
+    if (c == d->current || (d->head && !d->head->next))
         if (d->prevfocus)
             d->prevfocus = prev_client(d->current = d->prevfocus, d);
-    }
     if (!ISFFT(c)) {
         d->count -= 1;
         dead = (client *)malloc_safe(sizeof(client));

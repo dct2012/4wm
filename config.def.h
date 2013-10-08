@@ -17,9 +17,9 @@
  * ----------------*/
 
 // show panel by default on exec
-#define SHOW_PANEL              True
-// False means panel is on bottom
-#define TOP_PANEL               True
+#define SHOW_PANEL              true
+// false means panel is on bottom
+#define TOP_PANEL               true
 // 0 for no space for panel, thus no panel
 #define PANEL_HEIGHT            16
 // Panel monitor number, 1 = first, 2 = second, etc
@@ -29,11 +29,11 @@
 // initial tiling direction: TBOTTOM, TLEFT, TRIGHT, TTOP
 #define DEFAULT_DIRECTION       TRIGHT
 // follow the window when moved to a different desktop
-#define FOLLOW_WINDOW           False
+#define FOLLOW_WINDOW           false
 // focus the window the mouse just entered
-#define FOLLOW_MOUSE            True
+#define FOLLOW_MOUSE            true
 // focus an unfocused window when clicked
-#define CLICK_TO_FOCUS          True
+#define CLICK_TO_FOCUS          true
 // mouse button to be used along with CLICK_TO_FOCUS
 #define FOCUS_BUTTON            Button1
 // outer window border width
@@ -70,8 +70,8 @@
  */
 static const AppRule rules[] = { \
     /*  class     desktop  follow  float */
-    { "MPlayer",     3,    False,   False },
-    //{ "Gimp",        0,    False,  True  },
+    { "MPlayer",     3,    false,   false },
+    //{ "Gimp",        0,    false,  true  },
 };
 
 // helper for spawning shell commands
