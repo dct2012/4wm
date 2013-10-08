@@ -4,21 +4,28 @@ frankensteinwm
 
 ----------------------
 **frankensteinwm** is a versatile, lightweight, dynamic tiling window manager with 
-two borders. Its mission is to be as small and versatile as possible and as well to be 
-quick. It has one tiling layout, where it splits windows in four different ways, and two 
-fullscreen layouts. Each virtual desktop has its own properties, unaffected by other 
-desktops' or monitors' settings. Each window can be resized in four directions and the
-gap between windows can be increased and decreased dynamically.
+two borders. Its mission is to be as small, versatile, and quick. It has three 
+layouts: a tiling layout and two fullscreen layouts. There are four direction in which 
+you can tile, four directions in which a window can swap with another, and four directions
+in which you can resize a window. Each desktop can have gaps between windows and the size
+can change. Each virtual desktop has its own properties, unaffected by other desktops' or
+monitors' settings.
+
+Layouts
+-----
+
+The three layouts are: tiling, monocle and video. Monocle is a fullscreen layout with no
+borders and obeys the desktops' gap and the monitors' panel. Video is a fullscreen layout 
+that has no borders and ignores both the desktops' gap and monitors' panel. The tiling 
+layout, along with the other two layouts, split the current window in half and place the 
+new window in the direction of it's mode. Tiling is the only layout that displays the 
+windows in their correct position.
 
 Modes
 -----
 
-The tiling layout has four modes: left, right, top, bottom. The layout splits the current
-window in half and adds the new window to the left, right, top, or bottom. All windows can
-be resized in four directions, switch places in four directions, and the focus can move in
-four directions. 
-The two fullscreen layouts are: monocle and video. Both with no borders. Monocle is aware
-of gaps and video ignores both gaps and panels.
+The four modes are: tbottom, tleft, tright, ttop. They are simply just directions in
+which to tile.
 
 Panel - Statusbar
 -----------------
