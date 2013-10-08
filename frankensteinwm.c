@@ -891,7 +891,7 @@ void desktopinfo(void) {
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
 
-    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = False) {
+    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
         for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
         for (m = mons; m; m = m->next)
             if (i == m->curr_dtop && w == 0)
@@ -1397,7 +1397,7 @@ void mousemotion(const Arg *arg) {
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME), NULL);
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
-    if (!d->current->isfloating) d->current->isfloating = True;
+    if (!d->current->isfloating) d->current->isfloating = true;
     retile(d, selmon); 
     focus(d->current, d);
 
@@ -1726,6 +1726,10 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         *p = c->next;
     if (c == d->prevfocus) 
         d->prevfocus = prev_client(d->current, d);
+    if (c == d->current || (d->head && !d->head->next)) {
+        if (d->prevfocus)
+            d->prevfocus = prev_client(d->current = d->prevfocus, d);
+    }
     if (!ISFFT(c)) {
         d->count -= 1;
         dead = (client *)malloc_safe(sizeof(client));
@@ -2235,7 +2239,7 @@ void switch_direction(const Arg *arg) {
         d->mode = TILE;
         if (d->mode != FLOAT)
             for (client *c = d->head; c; c = c->next) 
-                c->isfloating = False;
+                c->isfloating = false;
         retile(d, selmon);
     }
     if (d->direction != arg->i)
@@ -2251,7 +2255,7 @@ void switch_mode(const Arg *arg) {
         d->mode = arg->i;
     if (d->mode != FLOAT)
         for (client *c = d->head; c; c = c->next) 
-            c->isfloating = False;
+            c->isfloating = false;
     retile(d, selmon);
     
     desktopinfo();
