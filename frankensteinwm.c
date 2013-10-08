@@ -1726,13 +1726,6 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         *p = c->next;
     if (c == d->prevfocus) 
         d->prevfocus = prev_client(d->current, d);
-    if (c == d->current || (d->head && !d->head->next)) { 
-        if (d->prevfocus)
-            focus(d->prevfocus, d);
-        else
-            focus(d->head, d);
-            // if a child gets killed and kills its parent, prevfocus could be NULL
-    } 
     if (!ISFFT(c)) {
         d->count -= 1;
         dead = (client *)malloc_safe(sizeof(client));
