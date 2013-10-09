@@ -106,8 +106,8 @@ Thanks
 * [Cloudef][cloudef] for [monsterwm-xcb][]
 * [venam][vnm] for [2bwm][]
 * Michael Stapelberg for [i3][]
-* [moetunes][] for [dminiwm][], 
-* [pyknite][] for [catwm][], 
+* [moetunes][] for [dminiwm][]
+* [pyknite][] for [catwm][] 
 
 
   [skls]: http://suckless.org/
