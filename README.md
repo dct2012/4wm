@@ -54,7 +54,7 @@ Here is a list of minimal and lightweight panels:
  * [`mopag`](https://github.com/c00kiemon5ter/mopag) (pager)
 
 You can find examples of configurations for panels [here](https://gist.github.com/1905427).
-You can actually parse monsterwm's output with any language you want,
+You can actually parse frankensteinwm's output with any language you want,
 build anything you want, and display the information however you like.
 Do not be limited by those examples.
 

@@ -47,7 +47,7 @@ static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", 
 #define BUTTONMASK      XCB_EVENT_MASK_BUTTON_PRESS|XCB_EVENT_MASK_BUTTON_RELEASE
 #define INRECT(X,Y,RX,RY,RW,RH) ((X) >= (RX) && (X) < (RX) + (RW) && (Y) >= (RY) && (Y) < (RY) + (RH))
 #define ISFFT(c)        (c->isfullscrn || c->isfloating || c->istransient)
-#define USAGE           "usage: monsterwm [-h] [-v]"
+#define USAGE           "usage: frankensteinwm [-h] [-v]"
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, VIDEO, FLOAT };
@@ -1817,10 +1817,7 @@ void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n
             for (int i = 0; i < (*n); i++)
                 growbyy(list[i], m, size);
         }
-        return;
-    }
- 
-    if (findtouchingclients[TTOP](d, c, list, n)) {
+    } else if (findtouchingclients[TTOP](d, c, list, n)) {
         if (grow) {
             //current windows y increases and height decreases
             shrinkbyy(c, m, size);
@@ -1832,7 +1829,6 @@ void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n
                 shrinkbyh(list[i], m, size);
             growbyy(c, m, size);
         }
-        return;
     }
     DEBUG("resizeclientbottom: leaving");
 }
@@ -1851,10 +1847,7 @@ void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, 
             for (int i = 0; i < (*n); i++)
                 growbyw(list[i], m, size);
         }
-        return;
-    }
- 
-    if (findtouchingclients[TRIGHT](d, c, list, n)) {
+    } else if (findtouchingclients[TRIGHT](d, c, list, n)) {
         if (grow) {
             //current windows width decreases
             shrinkbyw(c, m, size);
@@ -1866,7 +1859,6 @@ void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, 
                 shrinkbyx(list[i], m, size);
             growbyw(c, m, size);
         }
-        return;
     }
     DEBUG("resizeclientleft: leaving");
 }
@@ -1885,10 +1877,7 @@ void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n,
             for (int i = 0; i < (*n); i++)
                 growbyx(list[i], m, size);
         }
-        return;
-    }
-
-    if (findtouchingclients[TLEFT](d, c, list, n)) {
+    } else if (findtouchingclients[TLEFT](d, c, list, n)) {
         if (grow) {
             //current windows x increases and width decreases
             shrinkbyx(c, m, size);
@@ -1900,7 +1889,6 @@ void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n,
                 shrinkbyw(list[i], m, size);
             growbyx(c, m, size);
         }
-        return;
     }
     DEBUG("resizeclientright: leaving");
 }
@@ -1919,10 +1907,7 @@ void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, c
             for (int i = 0; i < (*n); i++)
                 growbyh(list[i], m, size);
         }
-        return;
-    } 
-    
-    if (findtouchingclients[TBOTTOM](d, c, list, n)) {
+    } else if (findtouchingclients[TBOTTOM](d, c, list, n)) {
         if (grow) {
             //current windows height decreases
             shrinkbyh(c, m, size);
@@ -1934,7 +1919,6 @@ void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, c
             for (int i = 0; i < (*n); i++)
                 shrinkbyy(list[i], m, size);
         }
-        return;
     } 
     DEBUG("resizeclienttop: leaving");
 }
@@ -2534,7 +2518,7 @@ monitor *wintomon(xcb_window_t w) {
 int main(int argc, char *argv[]) {
     int default_screen;
     if (argc == 2 && argv[1][0] == '-') switch (argv[1][1]) {
-        case 'v': errx(EXIT_SUCCESS, "%s - by c00kiemon5ter >:3 omnomnomnom (extra cookies by Cloudef)", VERSION);
+        case 'v': errx(EXIT_SUCCESS, "%s - by Derek Taaffe", VERSION);
         case 'h': errx(EXIT_SUCCESS, "%s", USAGE);
         default: errx(EXIT_FAILURE, "%s", USAGE);
     } else if (argc != 1) errx(EXIT_FAILURE, "%s", USAGE);
