@@ -53,7 +53,7 @@ Here is a list of minimal and lightweight panels:
  * [`bipolarbar`](https://github.com/moetunes/bipolarbar)
  * [`mopag`](https://github.com/c00kiemon5ter/mopag) (pager)
 
-You can find an examples configurations of panels [here](https://gist.github.com/1905427).
+You can find examples of configurations for panels [here](https://gist.github.com/1905427).
 You can actually parse monsterwm's output with any language you want,
 build anything you want, and display the information however you like.
 Do not be limited by those examples.
@@ -101,12 +101,14 @@ Licensed under MIT/X Consortium License, see [LICENSE][law] file for more copyri
 Thanks
 ------
 
-[the suckless team][skls] for [dwm][], 
-[moetunes][] for [dminiwm][], 
-[pyknite][] for [catwm][], 
-[c00kiemonster][cookiemonster] for [monsterwm][], 
-[Cloudef][cloudef] for [monsterwm-xcb][], 
-[venam][vnm] for [2bwm][]
+* [the suckless team][skls] for [dwm][] 
+* [c00kiemonster][cookiemonster] for [monsterwm][]
+* [Cloudef][cloudef] for [monsterwm-xcb][]
+* [venam][vnm] for [2bwm][]
+* Michael Stapelberg for [i3][]
+* [moetunes][] for [dminiwm][], 
+* [pyknite][] for [catwm][], 
+
 
   [skls]: http://suckless.org/
   [dwm]:  http://dwm.suckless.org/
@@ -120,4 +122,4 @@ Thanks
   [cloudef]: https://github.com/Cloudef
   [2bwm]: https://github.com/venam/2bwm
   [vnm]: https://github.com/venam
-
+  [i3]: http://i3wm.org/
