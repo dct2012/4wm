@@ -111,11 +111,16 @@ static Key keys[] = {
     {  MOD1|CONTROL,    XK_h,           movefocus,          {.i = TLEFT}},
     {  MOD1|CONTROL,    XK_j,           movefocus,          {.i = TBOTTOM}},
     {  MOD1|CONTROL,    XK_l,           movefocus,          {.i = TRIGHT}},
-    // resize clients
-    {  MOD1,            XK_h,           resizeclient,       {.d = .01, .r = &resizeclientleft}},
-    {  MOD1,            XK_l,           resizeclient,       {.d = .01, .r = &resizeclientright}},
-    {  MOD1,            XK_j,           resizeclient,       {.d = .01, .r = &resizeclientbottom}},
-    {  MOD1,            XK_k,           resizeclient,       {.d = .01, .r = &resizeclienttop}},
+    // grow clients
+    {  MOD1,            XK_h,           resizeclient,       {.d = .01, .i = 1, .r = &resizeclientleft}},
+    {  MOD1,            XK_l,           resizeclient,       {.d = .01, .i = 1, .r = &resizeclientright}},
+    {  MOD1,            XK_j,           resizeclient,       {.d = .01, .i = 1, .r = &resizeclientbottom}},
+    {  MOD1,            XK_k,           resizeclient,       {.d = .01, .i = 1, .r = &resizeclienttop}},
+    // shrink clients
+    {  MOD1|CONTROL,    XK_d,           resizeclient,       {.d = .01, .i = 0, .r = &resizeclientleft}},
+    {  MOD1|CONTROL,    XK_a,           resizeclient,       {.d = .01, .i = 0, .r = &resizeclientright}},
+    {  MOD1|CONTROL,    XK_w,           resizeclient,       {.d = .01, .i = 0, .r = &resizeclientbottom}},
+    {  MOD1|CONTROL,    XK_s,           resizeclient,       {.d = .01, .i = 0, .r = &resizeclienttop}},
     // switch clients, with the first it find up/left/down/right
     {  MOD1|SHIFT,      XK_k,           moveclient,         {.m = &moveclientup}},
     {  MOD1|SHIFT,      XK_h,           moveclient,         {.m = &moveclientleft}},
