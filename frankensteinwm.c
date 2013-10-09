@@ -986,8 +986,7 @@ void focus(client *c, desktop *d) {
         xcb_delete_property(dis, screen->root, netatoms[NET_ACTIVE]);
         d->current = d->prevfocus = NULL;
         return;
-    } 
-    
+    }  
     if (c == d->prevfocus && d->current != c->next) { 
         d->prevfocus = prev_client(d->current = c, d);
     } else if (c != d->current) { 
@@ -1626,9 +1625,9 @@ void movefocus(const Arg *arg) {
 /* get the previous client from the given
  * if no such client, return NULL */
 client* prev_client(client *c, desktop *d) {
-    if (!c || !d->head->next) 
+    if (!c || !d->head->next)
         return NULL;
-    client *p; 
+    client *p;
     for (p = d->head; p->next && p->next != c; p = p->next);
     return p;
 }
@@ -1756,9 +1755,11 @@ void removeclient(client *c, desktop *d, const monitor *m) {
         *p = c->next;
     if (c == d->prevfocus) 
         d->prevfocus = prev_client(d->current, d);
-    if (c == d->current || (d->head && !d->head->next))
-        if (d->prevfocus)
-            d->prevfocus = prev_client(d->current = d->prevfocus, d);
+    if (c == d->current) {
+        d->current = d->prevfocus ? d->prevfocus:d->head;
+        d->prevfocus = prev_client(d->current, d);
+    }
+
     if (!ISFFT(c)) {
         d->count -= 1;
         dead = (client *)malloc_safe(sizeof(client));
