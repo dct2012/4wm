@@ -1633,7 +1633,7 @@ void movefocus(const Arg *arg) {
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients[arg->i](d, c, list, &n);
-        focus(list[0], d);
+        if (list[0] != NULL) focus(list[0], d);
         free(list);
     }
 }
