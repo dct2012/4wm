@@ -76,7 +76,7 @@ typedef struct {
 typedef struct client {
     struct client *next;                                // the client after this one, or NULL if the current is the last client
     int x, y, w, h;                                     // actual window size
-    double xp, yp, wp, hp;                               // percent of monitor, before adjustment
+    float xp, yp, wp, hp;                               // percent of monitor, before adjustment
     int gapx, gapy, gapw, gaph;                         // gap sizes
     bool isurgent, istransient, isfullscrn, isfloating; //
     xcb_window_t win;                                   // the window this client is representing
@@ -112,9 +112,9 @@ typedef struct monitor {
 typedef struct {
     const char** com; // a command to run
     const int i;      // an integer to indicate different states
-    const double d;   // a double to do stuff with
+    const float d;   // a float to do stuff with
     void (*m)(desktop*, client*, client**, int*); // for the move client command
-    void (*r)(desktop*, client*, monitor*, client**, int*, const double, const int);
+    void (*r)(desktop*, client*, monitor*, client**, int*, const float, const int);
 } Arg;
 
 // a key struct represents a combination of
@@ -150,10 +150,10 @@ static void mousemotion(const Arg *arg);
 static void pushtotiling();
 static void quit(const Arg *arg);
 static void resizeclient(const Arg *arg);
-static void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n, const double grow, const int size);
-static void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, const double grow, const int size);
-static void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n, const double grow, const int size);
-static void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, const double grow, const int size);
+static void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow);
+static void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow);
+static void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow);
+static void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow);
 static void rotate(const Arg *arg);
 static void rotate_filled(const Arg *arg);
 static void spawn(const Arg *arg);
@@ -188,10 +188,10 @@ static bool getrootptr(int *x, int *y);
 static void gettitle(client *c);
 static void grabbuttons(client *c);
 static void grabkeys(void);
-static void growbyh(client *c, monitor *m, const double size);
-static void growbyw(client *c, monitor *m, const double size);
-static void growbyx(client *c, monitor *m, const double size);
-static void growbyy(client *c, monitor *m, const double size);
+static void growbyh(client *c, monitor *m, const float size);
+static void growbyw(client *c, monitor *m, const float size);
+static void growbyx(client *c, monitor *m, const float size);
+static void growbyy(client *c, monitor *m, const float size);
 static void keypress(xcb_generic_event_t *e);
 static void mappingnotify(xcb_generic_event_t *e);
 static void maprequest(xcb_generic_event_t *e);
@@ -205,10 +205,10 @@ static void run(void);
 static void setborders(desktop *d);
 static int setup(int default_screen);
 static int  setuprandr(void);
-static void shrinkbyh(client *c, monitor *m, const double size);
-static void shrinkbyw(client *c, monitor *m, const double size);
-static void shrinkbyx(client *c, monitor *m, const double size);
-static void shrinkbyy(client *c, monitor *m, const double size);
+static void shrinkbyh(client *c, monitor *m, const float size);
+static void shrinkbyw(client *c, monitor *m, const float size);
+static void shrinkbyx(client *c, monitor *m, const float size);
+static void shrinkbyy(client *c, monitor *m, const float size);
 static void sigchld();
 static void tilenew(desktop *d, const monitor *m);
 static void tilenewbottom(client *n, client *c);
@@ -580,7 +580,7 @@ void clientmessage(xcb_generic_event_t *e) {
 bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingbottom: entering");
     if((c->yp + c->hp) < 1) { //capable of having windows below?
-        double width;
+        float width;
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
@@ -624,7 +624,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
 bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingleft: entering");
     if(c->xp > 0) { //capable of having windows to the left?
-        double height;
+        float height;
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
@@ -667,7 +667,7 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
 bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingright: entering");
     if((c->xp + c->wp) < 1) { //capable of having windows to the right?
-        double height;
+        float height;
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
@@ -710,7 +710,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
 bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingtop: entering");
     if(c->yp > 0) { //capable of having windows above?
-        double width;
+        float width;
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
@@ -1234,24 +1234,24 @@ void grabkeys(void) {
     }
 }
 
-void growbyh(client *c, monitor *m, const double size) {
+void growbyh(client *c, monitor *m, const float size) {
     c->hp += size;
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
-void growbyw(client *c, monitor *m, const double size) {
+void growbyw(client *c, monitor *m, const float size) {
     c->wp += size;
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
-void growbyx(client *c, monitor *m, const double size) {
+void growbyx(client *c, monitor *m, const float size) {
     c->xp -= size;
     c->wp += size;            
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
-void growbyy(client *c, monitor *m, const double size) {
+void growbyy(client *c, monitor *m, const float size) {
     c->yp -= size;
     c->hp += size;
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
@@ -1803,7 +1803,7 @@ void resizeclient(const Arg *arg) {
     DEBUG("resizeclient: leaving");
 } 
 
-void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n, const double size, const int grow) {
+void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow) {
     DEBUG("resizeclientbottom: entering"); 
     if (findtouchingclients[TBOTTOM](d, c, list, n)) {
         if (grow) {
@@ -1833,7 +1833,7 @@ void resizeclientbottom(desktop *d, client *c, monitor *m, client **list, int *n
     DEBUG("resizeclientbottom: leaving");
 }
 
-void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, const double size, const int grow) {
+void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow) {
     DEBUG("resizeclientleft: entering"); 
     if (findtouchingclients[TLEFT](d, c, list, n)) {
         if (grow) {
@@ -1863,7 +1863,7 @@ void resizeclientleft(desktop *d, client *c, monitor *m, client **list, int *n, 
     DEBUG("resizeclientleft: leaving");
 }
 
-void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n, const double size, const int grow) {
+void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow) {
     DEBUG("resizeclientright: entering");
     if (findtouchingclients[TRIGHT](d, c, list, n)) { 
         if (grow) {
@@ -1893,7 +1893,7 @@ void resizeclientright(desktop *d, client *c, monitor *m, client **list, int *n,
     DEBUG("resizeclientright: leaving");
 }
 
-void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, const double size, const int grow) {
+void resizeclienttop(desktop *d, client *c, monitor *m, client **list, int *n, const float size, const int grow) {
     DEBUG("resizeclienttop: entering"); 
     if (findtouchingclients[TTOP](d, c, list, n)) {
         if (grow) {
@@ -2160,24 +2160,24 @@ int setuprandr(void)                // Set up RANDR extension. Get the extension
     return base;
 }
 
-void shrinkbyh(client *c, monitor *m, const double size) {
+void shrinkbyh(client *c, monitor *m, const float size) {
     c->hp -= size;
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
-void shrinkbyw(client *c, monitor *m, const double size) {
+void shrinkbyw(client *c, monitor *m, const float size) {
     c->wp -= size;
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
-void shrinkbyx(client *c, monitor *m, const double size) {
+void shrinkbyx(client *c, monitor *m, const float size) {
     c->xp += size;
     c->wp -= size;            
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
-void shrinkbyy(client *c, monitor *m, const double size) {
+void shrinkbyy(client *c, monitor *m, const float size) {
     c->yp += size;
     c->hp -= size;
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
