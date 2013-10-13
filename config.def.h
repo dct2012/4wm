@@ -140,6 +140,8 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_q,           quit,               {.i = 0}},
     // quit with exit value 1
     {  MOD1|CONTROL,    XK_q,           quit,               {.i = 1}},
+    // launch menu (not complete)
+    //{  MOD1|CONTROL,    XK_m,           launchmenu,         {NULL}},
     // launch xterm
     {  MOD1|SHIFT,      XK_Return,      spawn,              {.com = termcmd}},
     // launch web browser

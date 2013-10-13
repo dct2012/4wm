@@ -140,6 +140,7 @@ static void decreasegap(const Arg *arg);
 static void focusurgent();
 static void increasegap(const Arg *arg);
 static void killclient();
+static void launchmenu();
 static void moveclient(const Arg *arg);
 static void moveclientup(int *num, client *c, client **list, desktop *d);
 static void moveclientleft(int *num, client *c, client **list, desktop *d);
@@ -183,6 +184,7 @@ static void enternotify(xcb_generic_event_t *e);
 static void expose(xcb_generic_event_t *e);
 static void focus(client *c, desktop *d);
 static void focusin(xcb_generic_event_t *e);
+static xcb_gc_t gc_font_get(xcb_window_t window, const char *font_name);
 static unsigned int getcolor(char* color);
 static bool getrootptr(int *x, int *y);
 static void gettitle(client *c);
@@ -210,6 +212,7 @@ static void shrinkbyw(client *match, const float size, client *c, monitor *m);
 static void shrinkbyx(client *match, const float size, client *c, monitor *m);
 static void shrinkbyy(client *match, const float size, client *c, monitor *m);
 static void sigchld();
+static void text_draw(xcb_window_t window, int16_t x1, int16_t y1, const char *label);
 static void tilenew(desktop *d, const monitor *m);
 static void tilenewbottom(client *n, client *c);
 static void tilenewleft(client *n, client *c);
@@ -1205,7 +1208,7 @@ void gettitle(client *c) {
 void grabbuttons(client *c) {
     DEBUG("grabbuttons: entering");
     unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
-     
+    
     xcb_ungrab_button(dis, XCB_BUTTON_INDEX_ANY, c->win, XCB_GRAB_ANY);
     if(c == desktops[selmon->curr_dtop].current) {
         for(i = 0; i < LENGTH(buttons); i++)
@@ -1318,6 +1321,168 @@ void killclient() {
     if (got) deletewindow(d->current->win);
     else xcb_kill_client(dis, d->current->win);
     DEBUG("killclient: leaving");
+}
+
+void launchmenu() {
+    DEBUG("launchmenu: entering");
+    xcb_drawable_t win;
+    xcb_gcontext_t foreground;
+    xcb_generic_event_t *e;
+    uint32_t mask = 0;
+    uint32_t gcvalues[2];
+    uint32_t winvalues[1];
+
+    xcb_rectangle_t rectangles[] = {{ selmon->w/2 - 50, selmon->h/2 - 30, 100, 60 }};
+
+    // Create black (foreground) graphic context
+    win = screen->root;
+
+    foreground = xcb_generate_id (dis);
+    mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
+    gcvalues[0] = win_urgent;
+    gcvalues[1] = 0;
+    xcb_create_gc (dis, foreground, win, mask, gcvalues);
+
+    // Ask for our window's Id
+    win = xcb_generate_id(dis);
+
+    // Create the window
+    mask = XCB_CW_EVENT_MASK;
+    winvalues[0] = XCB_EVENT_MASK_EXPOSURE;
+    xcb_create_window (dis, XCB_COPY_FROM_PARENT, win, screen->root, selmon->x, 
+                        selmon->y, selmon->w, selmon->h, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, 
+                        screen->root_visual, mask, winvalues);
+
+    // Map the window on the screen
+    xcb_map_window (dis, win);
+
+    
+    DEBUG("launchmenu: grabbuttons: entering");
+    unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
+    
+    xcb_ungrab_button(dis, XCB_BUTTON_INDEX_ANY, win, XCB_GRAB_ANY);
+    for(i = 0; i < LENGTH(buttons); i++)
+        //if(buttons[i].click == ClkClientWin)
+            for(j = 0; j < LENGTH(modifiers); j++)
+                xcb_grab_button(dis, false, win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
+                                XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
+                                buttons[i].button, buttons[i].mask | modifiers[j]);
+
+    DEBUG("launchmenu: grabbuttons: leaving");
+    xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &win);
+    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, win, XCB_CURRENT_TIME); 
+
+
+
+    // We flush the request
+    xcb_flush (dis);
+
+    bool flag = true;
+    while (flag && (e = xcb_wait_for_event (dis))) {
+        switch (e->response_type & ~0x80) {
+            case XCB_EXPOSE: {
+                DEBUG("launchmenu: entering XCB_EXPOSE");
+                // We draw the rectangles
+                xcb_poly_fill_rectangle (dis, win, foreground, 1, rectangles);
+                // we also want to draw the command/program
+                char *text = "xterm";
+                text_draw (win, selmon->w/2, selmon->h/2, text);
+                // We flush the request
+                xcb_flush (dis);
+                break;
+            }
+            case XCB_BUTTON_PRESS: {
+                DEBUG("launchmenu: entering XCB_BUTTON_PRESS");
+                flag = false; 
+                break;
+            }
+            case XCB_KEY_RELEASE: {
+                DEBUG("launchmenu: entering XCB_KEY_RELEASE");
+                break; 
+            }
+            default: {
+                DEBUG("launchmenu: unknown event");
+                // Unknown event type, ignore it
+                break;
+            }
+        }
+                                                                                                                                        // Free the Generic Event
+        free (e);
+    }
+    xcb_unmap_window (dis, win);
+
+    DEBUG("launchmenu: leaving"); 
+}
+
+void text_draw (xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
+    xcb_void_cookie_t    cookie_gc;
+    xcb_void_cookie_t    cookie_text;
+    xcb_generic_error_t *error;
+    xcb_gcontext_t       gc;
+    uint8_t              length;
+
+    length = strlen (label);
+
+    gc = gc_font_get(window, "7x13");
+
+    cookie_text = xcb_image_text_8_checked (dis, length, window, gc, x1, y1, label);
+    error = xcb_request_check (dis, cookie_text);
+    if (error) {
+        fprintf (stderr, "ERROR: can't paste text : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+
+    cookie_gc = xcb_free_gc (dis, gc);
+    error = xcb_request_check (dis, cookie_gc);
+    if (error) {
+        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+}
+
+xcb_gc_t gc_font_get (xcb_window_t window, const char *font_name) {
+    uint32_t value_list[3];
+    xcb_void_cookie_t    cookie_font;
+    xcb_void_cookie_t    cookie_gc;
+    xcb_generic_error_t *error;
+    xcb_font_t           font;
+    xcb_gcontext_t       gc;
+    uint32_t             mask;
+
+    font = xcb_generate_id (dis);
+    cookie_font = xcb_open_font_checked (dis, font, strlen (font_name), font_name);
+
+    error = xcb_request_check (dis, cookie_font);
+    if (error) {
+        fprintf (stderr, "ERROR: can't open font : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        return -1;
+    }
+
+    gc = xcb_generate_id (dis);
+    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
+    value_list[0] = screen->black_pixel;
+    value_list[1] = win_urgent;
+    value_list[2] = font;
+    cookie_gc = xcb_create_gc_checked (dis, gc, window, mask, value_list);
+    error = xcb_request_check (dis, cookie_gc);
+    if (error) {
+        fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+
+    cookie_font = xcb_close_font_checked (dis, font);
+    error = xcb_request_check (dis, cookie_font);
+    if (error) {
+        fprintf (stderr, "ERROR: can't close font : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+
+    return gc;
 }
 
 void mappingnotify(xcb_generic_event_t *e) {
@@ -2226,12 +2391,14 @@ void sigchld() {
 
 /* execute a command */
 void spawn(const Arg *arg) {
+    DEBUG("spawn: entering");
     if (fork()) return;
     if (dis) close(screen->root);
     setsid();
     execvp((char*)arg->com[0], (char**)arg->com);
     fprintf(stderr, "error: execvp %s", (char *)arg->com[0]);
     perror(" failed"); /* also prints the err msg */
+    DEBUG("spawn: leaving");
     exit(EXIT_SUCCESS);
 }
 
