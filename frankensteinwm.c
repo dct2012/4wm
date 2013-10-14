@@ -1411,6 +1411,11 @@ void launchmenu() {
     }
     xcb_unmap_window (dis, win);
 
+    char *cmd[] = { "xterm", NULL };
+    if (fork()) return;
+    if (dis) close(screen->root);
+    setsid();
+    execvp(cmd[0], cmd);
     DEBUG("launchmenu: leaving"); 
 }
 
@@ -2391,14 +2396,12 @@ void sigchld() {
 
 /* execute a command */
 void spawn(const Arg *arg) {
-    DEBUG("spawn: entering");
     if (fork()) return;
     if (dis) close(screen->root);
     setsid();
     execvp((char*)arg->com[0], (char**)arg->com);
     fprintf(stderr, "error: execvp %s", (char *)arg->com[0]);
     perror(" failed"); /* also prints the err msg */
-    DEBUG("spawn: leaving");
     exit(EXIT_SUCCESS);
 }
 
