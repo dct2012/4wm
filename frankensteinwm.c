@@ -1240,41 +1240,25 @@ void grabkeys(void) {
 }
 
 void growbyh(client *match, const float size, client *c, monitor *m) {
-    if (match)
-        c->hp = match->yp - c->yp;
-    else
-        c->hp += size;
+    c->hp = match ? (match->yp - c->yp):(c->hp + size);
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
 void growbyw(client *match, const float size, client *c, monitor *m) {
-    if (match)
-        c->wp = match->xp - c->xp;
-    else
-        c->wp += size;
+    c->wp = match ? (match->xp - c->xp):(c->wp + size);
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
 void growbyx(client *match, const float size, client *c, monitor *m) {
-    if (match) {
-        c->wp = (c->xp + c->wp) - (match->xp + match->wp);
-        c->xp = match->xp + match->wp;
-    } else {
-        c->xp -= size;
-        c->wp += size;            
-    }
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
+    c->xp = match ? (match->xp + match->wp):(c->xp - size);
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
 void growbyy(client *match, const float size, client *c, monitor *m) {
-    if (match) {
-        c->hp = (c->yp + c->hp) - (match->yp + match->hp);
-        c->yp = match->yp + match->hp;
-    } else {
-        c->yp -= size;
-        c->hp += size;
-    }
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
+    c->yp = match ? (match->yp + match->hp):(c->yp - size);
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
                     c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
@@ -2349,41 +2333,25 @@ int setuprandr(void)                // Set up RANDR extension. Get the extension
 }
 
 void shrinkbyh(client *match, const float size, client *c, monitor *m) {
-    if (match) 
-        c->hp = match->yp - c->yp;
-    else 
-        c->hp -= size;
+    c->hp = match ? (match->yp - c->yp):(c->hp - size);
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
 void shrinkbyw(client *match, const float size, client *c, monitor *m) {
-    if (match) 
-        c->wp = match->xp - c->xp;
-    else 
-        c->wp -= size;
+    c->wp = match ? (match->xp - c->xp):(c->wp - size);
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
 void shrinkbyx(client *match, const float size, client *c, monitor *m) {
-    if (match) {
-        c->wp = (c->xp + c->wp) - (match->xp + match->wp);
-        c->xp = match->xp + match->wp;
-    } else {
-        c->xp += size;
-        c->wp -= size;            
-    }
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
+    c->xp = match ? (match->xp + match->wp):(c->xp + size);
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
 }
 
 void shrinkbyy(client *match, const float size, client *c, monitor *m) {
-    if (match) {
-        c->hp = (c->yp + c->hp) - (match->yp + match->hp);
-        c->yp = match->yp + match->hp;
-    } else {
-        c->yp += size;
-        c->hp -= size;
-    }
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
+    c->yp = match ? (match->yp + match->hp):(c->yp + size);
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
                     c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
