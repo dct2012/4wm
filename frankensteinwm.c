@@ -115,6 +115,7 @@ typedef struct {
     const float d;   // a float to do stuff with
     void (*m)(int*, client*, client**, desktop*); // for the move client command
     void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**);
+    const Menu *mn;
 } Arg;
 
 // a key struct represents a combination of
@@ -140,7 +141,7 @@ static void decreasegap(const Arg *arg);
 static void focusurgent();
 static void increasegap(const Arg *arg);
 static void killclient();
-static void launchmenu();
+static void launchmenu(const Arg *arg);
 static void moveclient(const Arg *arg);
 static void moveclientup(int *num, client *c, client **list, desktop *d);
 static void moveclientleft(int *num, client *c, client **list, desktop *d);
@@ -148,6 +149,7 @@ static void moveclientdown(int *num, client *c, client **list, desktop *d);
 static void moveclientright(int *num, client *c, client **list, desktop *d);
 static void movefocus(const Arg *arg);
 static void mousemotion(const Arg *arg);
+static Menu *new_menu(char **list);
 static void pushtotiling();
 static void quit(const Arg *arg);
 static void resizeclient(const Arg *arg);
@@ -1307,7 +1309,7 @@ void killclient() {
     DEBUG("killclient: leaving");
 }
 
-void launchmenu() {
+void launchmenu(const Arg *arg) {
     DEBUG("launchmenu: entering");
     xcb_drawable_t win;
     xcb_gcontext_t foreground;
@@ -2476,7 +2478,7 @@ void tilenewbottom(client *n, client *c) {
     n->yp = c->yp + (c->hp/2);
     n->wp = c->wp;
     n->hp = (c->yp + c->hp) - n->yp;
-    c->hp /= 2;
+    c->hp = n->yp - c->yp;
     DEBUG("tilenewbottom: leaving");
 }
 
@@ -2497,7 +2499,7 @@ void tilenewright(client *n, client *c) {
     n->yp = c->yp;
     n->wp = (c->xp + c->wp) - n->xp;
     n->hp = c->hp;
-    c->wp /= 2;
+    c->wp = n->xp - c->xp;
     DEBUG("tilenewright: leaving");
 }
 
