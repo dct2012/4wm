@@ -115,7 +115,6 @@ typedef struct {
     const float d;   // a float to do stuff with
     void (*m)(int*, client*, client**, desktop*); // for the move client command
     void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**);
-    const Menu *mn;
 } Arg;
 
 // a key struct represents a combination of
@@ -149,7 +148,6 @@ static void moveclientdown(int *num, client *c, client **list, desktop *d);
 static void moveclientright(int *num, client *c, client **list, desktop *d);
 static void movefocus(const Arg *arg);
 static void mousemotion(const Arg *arg);
-static Menu *new_menu(char **list);
 static void pushtotiling();
 static void quit(const Arg *arg);
 static void resizeclient(const Arg *arg);
