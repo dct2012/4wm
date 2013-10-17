@@ -110,11 +110,12 @@ typedef struct monitor {
 
 //argument structure to be passed to function by config.h 
 typedef struct {
-    const char** com; // a command to run
-    const int i;      // an integer to indicate different states
-    const float d;   // a float to do stuff with
-    void (*m)(int*, client*, client**, desktop*); // for the move client command
-    void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**);
+    const char** com;                                                               // a command to run
+    const int i;                                                                    // an integer to indicate different states
+    const float d;                                                                  // a float to do stuff with
+    void (*m)(int*, client*, client**, desktop*);                                   // for the move client command
+    void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**); // for the resize client command
+    char **list;                                                                    // list for menus
 } Arg;
 
 // a key struct represents a combination of
@@ -131,6 +132,18 @@ typedef struct {
     void (*func)(const Arg *);  // the function to be triggered because of the above combo
     const Arg arg;              // the argument to the function
 } Button;
+
+typedef struct Menu {
+    char **list;        // list to hold the original list of commands
+    struct Menu *next;  // next menu incase of multiple
+    struct Menu_Entry *head;
+} Menu;
+
+typedef struct Menu_Entry {
+    char *cmd[2];                   // cmd to be executed
+    struct Menu_Entry *next;
+    xcb_rectangle_t *rectangles;   // tiles to draw
+} Menu_Entry;
 
 /* Exposed function prototypes sorted alphabetically */
 
@@ -232,6 +245,7 @@ static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
 static monitor *mons = NULL, *selmon = NULL;
+static Menu *menus = NULL;
 
 /* events array
  * on receival of a new event, call the appropriate function to handle it
@@ -478,6 +492,9 @@ void cleanup(void) {
         for (unsigned int i = 0; i != query->children_len; ++i) deletewindow(c[i]);
         free(query);
     }
+    
+    free(mons);
+    free(menus);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
     xcb_flush(dis);
     DEBUG("cleanup: leaving");
@@ -839,6 +856,42 @@ void configurerequest(xcb_generic_event_t *e) {
     }
     xcb_flush(dis);
     DEBUG("configurerequest: leaving");
+}
+
+Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
+    DEBUG("createmenuentry: entering");
+    Menu_Entry *m = (Menu_Entry*)malloc_safe(sizeof(Menu_Entry));
+
+    m->cmd[0] = cmd;
+    m->cmd[1] = NULL;
+    m->rectangles = (xcb_rectangle_t*)malloc_safe(sizeof(xcb_rectangle_t));
+    m->rectangles->x = x;
+    m->rectangles->y = y;
+    m->rectangles->width = w;
+    m->rectangles->height = h;
+    // we might also want to save coordinates for the string to print
+    DEBUG("createmenuentry: leaving");
+    return m;
+}
+
+Menu* createmenu(char **list) {
+    DEBUG("createmenu: entering");
+    Menu *m = (Menu*)malloc_safe(sizeof(Menu));
+    Menu_Entry *mentry;
+    int i;
+
+    m->list = list;
+    for (i = 0, mentry = m->head; list[i]; i++, mentry = mentry->next) {
+        if (!m->head)
+            m->head = createmenuentry(selmon->w/2 - 50, selmon->h/2 - 30, 100, 60, list[i]);
+        else {
+            for (mentry = m->head; mentry; mentry = mentry->next);
+            mentry = createmenuentry(selmon->w/2 - 50, selmon->h/2 - 30, 100, 60, list[i]);
+        }
+    }
+    m->next = NULL;
+    DEBUG("createmenu: leaving");
+    return m;
 }
 
 monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
@@ -1315,8 +1368,16 @@ void launchmenu(const Arg *arg) {
     uint32_t mask = 0;
     uint32_t gcvalues[2];
     uint32_t winvalues[1];
+    bool flag = true;
+    Menu *m = NULL;
 
-    xcb_rectangle_t rectangles[] = {{ selmon->w/2 - 50, selmon->h/2 - 30, 100, 60 }};
+    if (!menus) {
+        m = menus;
+        m = createmenu(arg->list);
+    } else {
+        for (m = menus; m; m = m->next);
+        m =createmenu(arg->list);
+    }
 
     // Create black (foreground) graphic context
     win = screen->root;
@@ -1339,38 +1400,21 @@ void launchmenu(const Arg *arg) {
 
     // Map the window on the screen
     xcb_map_window (dis, win);
-
-    
-    DEBUG("launchmenu: grabbuttons: entering");
-    unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
-    
-    xcb_ungrab_button(dis, XCB_BUTTON_INDEX_ANY, win, XCB_GRAB_ANY);
-    for(i = 0; i < LENGTH(buttons); i++)
-        //if(buttons[i].click == ClkClientWin)
-            for(j = 0; j < LENGTH(modifiers); j++)
-                xcb_grab_button(dis, false, win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
-                                XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
-                                buttons[i].button, buttons[i].mask | modifiers[j]);
-
-    DEBUG("launchmenu: grabbuttons: leaving");
+     
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &win);
-    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, win, XCB_CURRENT_TIME); 
-
-
-
+    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, win, XCB_CURRENT_TIME);
+    
     // We flush the request
     xcb_flush (dis);
 
-    bool flag = true;
     while (flag && (e = xcb_wait_for_event (dis))) {
         switch (e->response_type & ~0x80) {
             case XCB_EXPOSE: {
                 DEBUG("launchmenu: entering XCB_EXPOSE");
                 // We draw the rectangles
-                xcb_poly_fill_rectangle (dis, win, foreground, 1, rectangles);
+                xcb_poly_fill_rectangle (dis, win, foreground, 1, m->head->rectangles);
                 // we also want to draw the command/program
-                char *text = "xterm";
-                text_draw (win, selmon->w/2, selmon->h/2, text);
+                text_draw (win, selmon->w/2, selmon->h/2, m->head->cmd[0]);
                 // We flush the request
                 xcb_flush (dis);
                 break;
@@ -1395,11 +1439,10 @@ void launchmenu(const Arg *arg) {
     }
     xcb_unmap_window (dis, win);
 
-    char *cmd[] = { "xterm", NULL };
     if (fork()) return;
     if (dis) close(screen->root);
     setsid();
-    execvp(cmd[0], cmd);
+    execvp(m->head->cmd[0], m->head->cmd);
     DEBUG("launchmenu: leaving"); 
 }
 
