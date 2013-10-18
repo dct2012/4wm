@@ -889,50 +889,68 @@ Menu* createmenu(char **list) {
             m->head = itr = sentry = mentry;
         } else {
             //for (mentry = m->head; mentry; mentry = mentry->next);
-            if (!sentry->r && !sentry->t) { 
-                x = sentry->x + 100;
-                y = sentry->y;
-                mentry = createmenuentry(x, y, 100, 60, list[i]);
-                sentry->r = itr->next = mentry;
-                itr = itr->next;
-            } else if (sentry->r && !sentry->t) {
+            if (sentry->l && sentry->t && !sentry->b) {
                 x = sentry->x;
-                y = sentry->y - 60;
+                y = sentry->y + 60;
+                DEBUGP("createmenu: x %d y %d \n", x, y);
                 mentry = createmenuentry(x, y, 100, 60, list[i]);
-                sentry->t = itr->next = mentry;
+                sentry->b = itr->next = mentry;
+                mentry->t = sentry;
                 itr = itr->next;
-                if (sentry->l->t)
-                    sentry = sentry->l->t;
+                if (sentry->r) {
+                    if (!sentry->r->r) sentry = sentry->r;
+                    else if (sentry->r->b) {
+                        sentry->r->b->l = mentry;
+                        mentry->r = sentry->r->b;
+                        sentry = sentry->r->b;
+                    }
+                } 
             } else if (sentry->t && !sentry->l) {
                 x = sentry->x - 100;
                 y = sentry->y;
+                DEBUGP("createmenu: x %d y %d \n", x, y);
                 mentry = createmenuentry(x, y, 100, 60, list[i]);
                 sentry->l = itr->next = mentry;
+                mentry->r = sentry;
                 itr = itr->next;
-            } else if (sentry->l && !sentry->b) {
-                x = sentry->x;
-                y = sentry->y + 60;
-                mentry = createmenuentry(x, y, 100, 60, list[i]);
-                sentry->b = itr->next = mentry;
-                itr = itr->next;
-            } else { //all sides must be taken
-                if (!sentry->r->r) {
-                    while (sentry->r || sentry->t) {
-                        if (sentry->r) sentry = sentry->r;
-                        else if (sentry->t) sentry = sentry->t;
-                    }
-                } else if (sentry->b->r->r)
+                if (sentry->b && sentry->b->l) {
+                    sentry->b->l->t = mentry;
+                    mentry->b = sentry->b->l;
                     sentry = sentry->b->l;
-                else if (sentry->r->t->t)
-                    sentry = sentry->r->b;
-                continue; // reloop
-            }
+                }
+            } else if (sentry->r && !sentry->t) {
+                x = sentry->x;
+                y = sentry->y - 60;
+                DEBUGP("createmenu: x %d y %d \n", x, y);
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->t = itr->next = mentry;
+                mentry->b = sentry;
+                itr = itr->next;
+                if (sentry->l && sentry->l->t) {
+                    sentry->l->t->r = mentry;
+                    mentry->l = sentry->l->t;
+                    sentry = sentry->l->t;
+                }
+            } else if (!sentry->r) { 
+                x = sentry->x + 100;
+                y = sentry->y;
+                DEBUGP("createmenu: x %d y %d \n", x, y);
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->r = itr->next = mentry;
+                mentry->l = sentry;
+                itr = itr->next;
+                if (sentry->t && sentry->t->r) {
+                    sentry->t->r->b = mentry;
+                    mentry->t = sentry->t->r;
+                    while (sentry->r) {
+                        sentry = sentry->r;
+                        if (sentry->t) sentry = sentry->t;
+                    }
+                }
+            } 
         }
     }
     m->next = NULL;
-    //if (!m->head) DEBUG("createmenu: !m->head");
-    //if (!m->head->r) DEBUG("createmenu: !m->head->r");
-    //if (!m->head->next) DEBUG("createmenu: !m->head->next");
     DEBUG("createmenu: leaving");
     return m;
 }
