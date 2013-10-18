@@ -141,7 +141,8 @@ typedef struct Menu {
 
 typedef struct Menu_Entry {
     char *cmd[2];                   // cmd to be executed
-    struct Menu_Entry *next;
+    int x, y;
+    struct Menu_Entry *next, *b, *l, *r, *t;
     xcb_rectangle_t *rectangles;   // tiles to draw
 } Menu_Entry;
 
@@ -865,10 +866,11 @@ Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     m->cmd[0] = cmd;
     m->cmd[1] = NULL;
     m->rectangles = (xcb_rectangle_t*)malloc_safe(sizeof(xcb_rectangle_t));
-    m->rectangles->x = x;
-    m->rectangles->y = y;
+    m->x = m->rectangles->x = x;
+    m->y = m->rectangles->y = y;
     m->rectangles->width = w;
     m->rectangles->height = h;
+    m->next = m->b = m->l = m->r = m->t = NULL;
     // we might also want to save coordinates for the string to print
     DEBUG("createmenuentry: leaving");
     return m;
@@ -877,19 +879,60 @@ Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
 Menu* createmenu(char **list) {
     DEBUG("createmenu: entering");
     Menu *m = (Menu*)malloc_safe(sizeof(Menu));
-    Menu_Entry *mentry;
-    int i;
+    Menu_Entry *mentry, *sentry = NULL, *itr = NULL;
+    int i, x, y;
 
     m->list = list;
-    for (i = 0, mentry = m->head; list[i]; i++, mentry = mentry->next) {
-        if (!m->head)
-            m->head = createmenuentry(selmon->w/2 - 50, selmon->h/2 - 30, 100, 60, list[i]);
-        else {
-            for (mentry = m->head; mentry; mentry = mentry->next);
+    for (i = 0; list[i]; i++) {
+        if (!m->head) {
             mentry = createmenuentry(selmon->w/2 - 50, selmon->h/2 - 30, 100, 60, list[i]);
+            m->head = itr = sentry = mentry;
+        } else {
+            //for (mentry = m->head; mentry; mentry = mentry->next);
+            if (!sentry->r && !sentry->t) { 
+                x = sentry->x + 100;
+                y = sentry->y;
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->r = itr->next = mentry;
+                itr = itr->next;
+            } else if (sentry->r && !sentry->t) {
+                x = sentry->x;
+                y = sentry->y - 60;
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->t = itr->next = mentry;
+                itr = itr->next;
+                if (sentry->l->t)
+                    sentry = sentry->l->t;
+            } else if (sentry->t && !sentry->l) {
+                x = sentry->x - 100;
+                y = sentry->y;
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->l = itr->next = mentry;
+                itr = itr->next;
+            } else if (sentry->l && !sentry->b) {
+                x = sentry->x;
+                y = sentry->y + 60;
+                mentry = createmenuentry(x, y, 100, 60, list[i]);
+                sentry->b = itr->next = mentry;
+                itr = itr->next;
+            } else { //all sides must be taken
+                if (!sentry->r->r) {
+                    while (sentry->r || sentry->t) {
+                        if (sentry->r) sentry = sentry->r;
+                        else if (sentry->t) sentry = sentry->t;
+                    }
+                } else if (sentry->b->r->r)
+                    sentry = sentry->b->l;
+                else if (sentry->r->t->t)
+                    sentry = sentry->r->b;
+                continue; // reloop
+            }
         }
     }
     m->next = NULL;
+    //if (!m->head) DEBUG("createmenu: !m->head");
+    //if (!m->head->r) DEBUG("createmenu: !m->head->r");
+    //if (!m->head->next) DEBUG("createmenu: !m->head->next");
     DEBUG("createmenu: leaving");
     return m;
 }
@@ -1376,7 +1419,7 @@ void launchmenu(const Arg *arg) {
         m = createmenu(arg->list);
     } else {
         for (m = menus; m; m = m->next);
-        m =createmenu(arg->list);
+        m = createmenu(arg->list);
     }
 
     // Create black (foreground) graphic context
@@ -1411,16 +1454,31 @@ void launchmenu(const Arg *arg) {
         switch (e->response_type & ~0x80) {
             case XCB_EXPOSE: {
                 DEBUG("launchmenu: entering XCB_EXPOSE");
-                // We draw the rectangles
-                xcb_poly_fill_rectangle (dis, win, foreground, 1, m->head->rectangles);
-                // we also want to draw the command/program
-                text_draw (win, selmon->w/2, selmon->h/2, m->head->cmd[0]);
+                // loop through menu_entries
+                for (Menu_Entry *mentry = m->head; mentry; mentry = mentry->next) {
+                    DEBUG("launchmenu: drawing iteration");
+                    // We draw the rectangles
+                    xcb_poly_fill_rectangle (dis, win, foreground, 1, mentry->rectangles);
+                    // we also want to draw the command/program
+                    text_draw (win, mentry->x + 10, mentry->y + 10, mentry->cmd[0]);
+                }
                 // We flush the request
                 xcb_flush (dis);
                 break;
             }
             case XCB_BUTTON_PRESS: {
                 DEBUG("launchmenu: entering XCB_BUTTON_PRESS");
+                //we should find which box the button was pressed in
+                
+                
+                xcb_unmap_window (dis, win);
+
+                if (fork()) return;
+                if (dis) close(screen->root);
+                setsid();
+                execvp(m->head->cmd[0], m->head->cmd);
+                DEBUG("launchmenu: leaving"); 
+                
                 flag = false; 
                 break;
             }
@@ -1436,14 +1494,7 @@ void launchmenu(const Arg *arg) {
         }
                                                                                                                                         // Free the Generic Event
         free (e);
-    }
-    xcb_unmap_window (dis, win);
-
-    if (fork()) return;
-    if (dis) close(screen->root);
-    setsid();
-    execvp(m->head->cmd[0], m->head->cmd);
-    DEBUG("launchmenu: leaving"); 
+    } 
 }
 
 void text_draw (xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
