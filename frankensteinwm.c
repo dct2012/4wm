@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <X11/keysym.h>
+#include <X11/Xresource.h>
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_atom.h>
@@ -28,13 +29,6 @@
 #endif
 
 /* upstream compatility */
-#define Mod1Mask     XCB_MOD_MASK_1
-#define Mod4Mask     XCB_MOD_MASK_4
-#define ShiftMask    XCB_MOD_MASK_SHIFT
-#define ControlMask  XCB_MOD_MASK_CONTROL
-#define Button1      XCB_BUTTON_INDEX_1
-#define Button2      XCB_BUTTON_INDEX_2
-#define Button3      XCB_BUTTON_INDEX_3
 #define XCB_MOVE_RESIZE XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
 #define XCB_MOVE        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
 #define XCB_RESIZE      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
@@ -146,6 +140,11 @@ typedef struct Menu_Entry {
     xcb_rectangle_t *rectangles;   // tiles to draw
 } Menu_Entry;
 
+typedef struct Xresources {
+    unsigned int color[12];
+    xcb_gcontext_t gc_color[12];
+} Xresources;
+
 /* Exposed function prototypes sorted alphabetically */
 
 static void change_desktop(const Arg *arg);
@@ -198,7 +197,7 @@ static void enternotify(xcb_generic_event_t *e);
 static void expose(xcb_generic_event_t *e);
 static void focus(client *c, desktop *d);
 static void focusin(xcb_generic_event_t *e);
-static xcb_gc_t gc_font_get(xcb_window_t window, const char *font_name);
+static xcb_gc_t gc_font_get(unsigned int color, xcb_window_t window, const char *font_name);
 static unsigned int getcolor(char* color);
 static bool getrootptr(int *x, int *y);
 static void gettitle(client *c);
@@ -226,7 +225,7 @@ static void shrinkbyw(client *match, const float size, client *c, monitor *m);
 static void shrinkbyx(client *match, const float size, client *c, monitor *m);
 static void shrinkbyy(client *match, const float size, client *c, monitor *m);
 static void sigchld();
-static void text_draw(xcb_window_t window, int16_t x1, int16_t y1, const char *label);
+static void text_draw(unsigned int color, xcb_window_t window, int16_t x1, int16_t y1, const char *label);
 static void tilenew(desktop *d, const monitor *m);
 static void tilenewbottom(client *n, client *c);
 static void tilenewleft(client *n, client *c);
@@ -247,6 +246,7 @@ static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
 static monitor *mons = NULL, *selmon = NULL;
 static Menu *menus = NULL;
+static Xresources xres;
 
 /* events array
  * on receival of a new event, call the appropriate function to handle it
@@ -1424,14 +1424,16 @@ void killclient() {
 void launchmenu(const Arg *arg) {
     DEBUG("launchmenu: entering");
     xcb_drawable_t win;
-    xcb_gcontext_t foreground;
+    //xcb_gcontext_t foreground;
     xcb_generic_event_t *e;
     uint32_t mask = 0;
     uint32_t gcvalues[2];
     uint32_t winvalues[1];
     bool flag = true;
     Menu *m = NULL;
-
+    
+    // initialize the menu
+    // TODO: move to setup()
     if (!menus) {
         m = menus;
         m = createmenu(arg->list);
@@ -1439,15 +1441,107 @@ void launchmenu(const Arg *arg) {
         for (m = menus; m; m = m->next);
         m = createmenu(arg->list);
     }
-
+    
     // Create black (foreground) graphic context
     win = screen->root;
 
-    foreground = xcb_generate_id (dis);
+    // initialize Xresources
+    // TODO: move to setup
+    //       win can be replaced by screen->root
+    //       try to make it smaller
+    //       find home directory for dbase
+    XrmInitialize();
+    XrmDatabase dbase = XrmGetFileDatabase("/home/dct/.Xdefaults");
+        // now we want all the colors
+    XrmValue value;
+    char *str_type[20];
+    char buffer[20];
     mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    gcvalues[0] = win_urgent;
-    gcvalues[1] = 0;
-    xcb_create_gc (dis, foreground, win, mask, gcvalues);
+    gcvalues[1] = 0; 
+    if (XrmGetResource(dbase, "*color1", "*Color1", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[0] = getcolor(buffer);
+        xres.gc_color[0] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[0];
+        xcb_create_gc (dis, xres.gc_color[0], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color2", "*Color2", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[1] = getcolor(buffer);
+        xres.gc_color[1] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[1];
+        xcb_create_gc (dis, xres.gc_color[1], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color3", "*Color3", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[2] = getcolor(buffer);
+        xres.gc_color[2] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[2];
+        xcb_create_gc (dis, xres.gc_color[2], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color4", "*Color4", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[3] = getcolor(buffer);
+        xres.gc_color[3] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[3];
+        xcb_create_gc (dis, xres.gc_color[3], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color5", "*Color5", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[4] = getcolor(buffer);
+        xres.gc_color[4] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[4];
+        xcb_create_gc (dis, xres.gc_color[4], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color6", "*Color6", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[5] = getcolor(buffer);
+        xres.gc_color[5] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[5];
+        xcb_create_gc (dis, xres.gc_color[5], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color9", "*Color9", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[6] = getcolor(buffer);
+        xres.gc_color[6] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[6];
+        xcb_create_gc (dis, xres.gc_color[6], win, mask, gcvalues); 
+    }
+    if (XrmGetResource(dbase, "*color10", "*Color10", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[7] = getcolor(buffer);
+        xres.gc_color[7] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[7];
+        xcb_create_gc (dis, xres.gc_color[7], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color11", "*Color11", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[8] = getcolor(buffer);
+        xres.gc_color[8] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[8];
+        xcb_create_gc (dis, xres.gc_color[8], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color12", "*Color12", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[9] = getcolor(buffer);
+        xres.gc_color[9] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[9];
+        xcb_create_gc (dis, xres.gc_color[9], win, mask, gcvalues); 
+    }
+    if (XrmGetResource(dbase, "*color13", "*Color13", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[10] = getcolor(buffer);
+        xres.gc_color[10] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[10];
+        xcb_create_gc (dis, xres.gc_color[10], win, mask, gcvalues);
+    }
+    if (XrmGetResource(dbase, "*color14", "*Color14", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[11] = getcolor(buffer);
+        xres.gc_color[11] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[11];
+        xcb_create_gc (dis, xres.gc_color[11], win, mask, gcvalues);
+    } 
 
     // Ask for our window's Id
     win = xcb_generate_id(dis);
@@ -1473,22 +1567,25 @@ void launchmenu(const Arg *arg) {
             case XCB_EXPOSE: {
                 DEBUG("launchmenu: entering XCB_EXPOSE");
                 // loop through menu_entries
+                int i = 0;
                 for (Menu_Entry *mentry = m->head; mentry; mentry = mentry->next) {
                     DEBUG("launchmenu: drawing iteration");
                     // We draw the rectangles
-                    xcb_poly_fill_rectangle (dis, win, foreground, 1, mentry->rectangles);
+                    xcb_poly_fill_rectangle (dis, win, xres.gc_color[i], 1, mentry->rectangles);
                     // we also want to draw the command/program
-                    text_draw (win, mentry->x + 10, mentry->y + 10, mentry->cmd[0]);
+                    text_draw (xres.color[i], win, mentry->x + 10, mentry->y + 30, mentry->cmd[0]);
+                    if (i == 11) i = 0;
+                    else i++;
                 }
                 // We flush the request
                 xcb_flush (dis);
                 break;
             }
             case XCB_BUTTON_PRESS: {
+                // TODO: get this to work properly
                 DEBUG("launchmenu: entering XCB_BUTTON_PRESS");
                 //we should find which box the button was pressed in
-                
-                
+                 
                 xcb_unmap_window (dis, win);
 
                 if (fork()) return;
@@ -1515,7 +1612,7 @@ void launchmenu(const Arg *arg) {
     } 
 }
 
-void text_draw (xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
+void text_draw (unsigned int color, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
     xcb_void_cookie_t    cookie_gc;
     xcb_void_cookie_t    cookie_text;
     xcb_generic_error_t *error;
@@ -1524,7 +1621,7 @@ void text_draw (xcb_window_t window, int16_t x1, int16_t y1, const char *label) 
 
     length = strlen (label);
 
-    gc = gc_font_get(window, "7x13");
+    gc = gc_font_get(color, window, "7x13");
 
     cookie_text = xcb_image_text_8_checked (dis, length, window, gc, x1, y1, label);
     error = xcb_request_check (dis, cookie_text);
@@ -1543,7 +1640,7 @@ void text_draw (xcb_window_t window, int16_t x1, int16_t y1, const char *label) 
     }
 }
 
-xcb_gc_t gc_font_get (xcb_window_t window, const char *font_name) {
+xcb_gc_t gc_font_get (unsigned int color, xcb_window_t window, const char *font_name) {
     uint32_t value_list[3];
     xcb_void_cookie_t    cookie_font;
     xcb_void_cookie_t    cookie_gc;
@@ -1565,7 +1662,7 @@ xcb_gc_t gc_font_get (xcb_window_t window, const char *font_name) {
     gc = xcb_generate_id (dis);
     mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
     value_list[0] = screen->black_pixel;
-    value_list[1] = win_urgent;
+    value_list[1] = color;
     value_list[2] = font;
     cookie_gc = xcb_create_gc_checked (dis, gc, window, mask, value_list);
     error = xcb_request_check (dis, cookie_gc);
