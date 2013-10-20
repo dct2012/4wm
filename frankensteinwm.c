@@ -883,13 +883,13 @@ Menu* createmenu(char **list) {
     Menu_Entry *mentry, *sentry = NULL, *itr = NULL;
     int i, x, y;
 
+    m->list = (char**)malloc_safe(sizeof(list));
     m->list = list;
     for (i = 0; list[i]; i++) {
         if (!m->head) {
             mentry = createmenuentry(selmon->w/2 - 50, selmon->h/2 - 30, 100, 60, list[i]);
             m->head = itr = sentry = mentry;
         } else {
-            //for (mentry = m->head; mentry; mentry = mentry->next);
             if (sentry->l && sentry->t && !sentry->b) {
                 x = sentry->x;
                 y = sentry->y + 60;
@@ -1407,7 +1407,6 @@ void initializexresources() {
     char *class[] = { "*Color1", "*Color2",  "*Color3", "*Color4", "*Color5", "*Color6", 
                     "*Color9", "*Color10", "*Color11", "*Color12", "*Color13", "*Color14", NULL };
 
-
     // initialize font
     // TODO: get font, XrmGetResouce
     font = xcb_generate_id (dis);
@@ -1504,17 +1503,38 @@ void launchmenu(const Arg *arg) {
     xcb_generic_event_t *e;
     uint32_t mask = 0;
     uint32_t winvalues[1];
-    bool flag = true;
+    bool waitforevents = true, found = false; 
     Menu *m = NULL;
-    
-    // initialize the menu
-    // TODO: move to setup()
-    if (!menus) {
-        m = menus;
-        m = createmenu(arg->list);
-    } else {
-        for (m = menus; m; m = m->next);
-        m = createmenu(arg->list);
+    Menu_Entry *me = NULL;
+    int i, x, y;
+
+    //find which menu
+    for (m = menus; m; m = m->next)
+        if (strcmp(m->list[0], arg->list[0]) == 0) {
+            DEBUG("launchmenu: found menu");
+            break;
+        }
+
+    // menu may be drawn to a new monitor, may need to readjust
+    for (me = m->head; me; me = me->next) {
+        if (me == m->head){
+            me->rectangles->x = me->x = selmon->w/2 - 50;
+            me->rectangles->y = me->y = selmon->h/2 - 30;
+        } else {
+            if (me->l) {
+                me->rectangles->x = me->x = me->l->x + 100;
+                me->rectangles->y = me->y = me->l->y;
+            } else if (me->b) {
+                me->rectangles->x = me->x = me->b->x;
+                me->rectangles->y = me->y = me->b->y - 60;
+            } else if (me->r) {
+                me->rectangles->x = me->x = me->r->x - 100;
+                me->rectangles->y = me->y = me->r->y;
+            } else if (me->t) {
+                me->rectangles->x = me->x = me->t->x;
+                me->rectangles->y = me->y = me->t->y + 60;
+            }
+        }
     }
     
     // Create black (foreground) graphic context
@@ -1539,12 +1559,12 @@ void launchmenu(const Arg *arg) {
     // We flush the request
     xcb_flush (dis);
 
-    while (flag && (e = xcb_wait_for_event (dis))) {
+    while (waitforevents && (e = xcb_wait_for_event (dis))) {
         switch (e->response_type & ~0x80) {
             case XCB_EXPOSE: {
                 DEBUG("launchmenu: entering XCB_EXPOSE");
                 // loop through menu_entries
-                int i = 0;
+                i = 0;
                 for (Menu_Entry *mentry = m->head; mentry; mentry = mentry->next) {
                     DEBUG("launchmenu: drawing iteration");
                     // We draw the rectangles
@@ -1559,19 +1579,41 @@ void launchmenu(const Arg *arg) {
                 break;
             }
             case XCB_BUTTON_PRESS: {
-                // TODO: get this to work properly
                 DEBUG("launchmenu: entering XCB_BUTTON_PRESS");
-                //we should find which box the button was pressed in
-                 
+                waitforevents = false;
                 xcb_unmap_window (dis, win);
+                if (getrootptr(&x, &y)) {
+                    for (Menu_Entry *mentry = m->head; mentry; ) {
+                        if (INRECT(x, y, mentry->x, mentry->y, 100, 60)) { 
+                            found = true;
+                            if (fork()) return;
+                            if (dis) close(screen->root);
+                            setsid();
+                            execvp(mentry->cmd[0], mentry->cmd);
+                            break; // exit loop
+                        }
+                        
+                        if (x < mentry->x) {
+                            if (!mentry->l) break;
+                            else mentry = mentry->l;
+                        } else if (x > mentry->x + 100) { 
+                            if (!mentry->r) break;
+                            else mentry = mentry->r;
+                        }
+                        
+                        if (y < mentry->y) {
+                            if (!mentry->t) break;
+                            else mentry = mentry->t;
+                        } else if (y > mentry->y + 60) {
+                            if (!mentry->b) break;
+                            else mentry = mentry->b;
+                        }
+                    }
+                }
+    
+                if (!found)
+                    focus(desktops[selmon->curr_dtop].current, &desktops[selmon->curr_dtop]);
 
-                if (fork()) return;
-                if (dis) close(screen->root);
-                setsid();
-                execvp(m->head->cmd[0], m->head->cmd);
-                DEBUG("launchmenu: leaving"); 
-                
-                flag = false; 
                 break;
             }
             case XCB_KEY_RELEASE: {
@@ -1584,9 +1626,10 @@ void launchmenu(const Arg *arg) {
                 break;
             }
         }
-                                                                                                                                        // Free the Generic Event
+        // Free the Generic Event
         free (e);
-    } 
+    }
+    DEBUG("launchmenu: leaving");
 }
 
 void mappingnotify(xcb_generic_event_t *e) {
@@ -2394,6 +2437,20 @@ int setup(int default_screen) {
     win_unfocus = getcolor(UNFOCUS);
     win_outer = getcolor(OTRBRDRCOL);
     win_urgent = getcolor(URGNBRDRCOL);
+
+    // initialize the menu 
+    Menu *m = NULL;
+    Menu *itr = NULL;
+    char **menulist[] = MENUS;
+    for (int i = 0; menulist[i]; i++) {
+        m = createmenu(menulist[i]);
+        if (!menus)
+            menus = m;
+        else {
+            for (itr = menus; itr->next; itr = itr->next); 
+            itr->next = m;
+        }
+    }
 
     initializexresources();
 
