@@ -80,9 +80,11 @@ Work on steam
       killing these pulseaudio processes allow the game to resume. alternatively you can
       launch steam or the game with SDL_AUDIODRIVER=alsa
 
-Add a menu like xmonad's gridselect.
+Work on menu.
 
 Add a way to pipe desktopinfo to a panel like xmonad.
+
+Start breaking things into seperate files.
 
 Bugs
 ----
