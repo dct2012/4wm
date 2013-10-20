@@ -143,6 +143,7 @@ typedef struct Menu_Entry {
 typedef struct Xresources {
     unsigned int color[12];
     xcb_gcontext_t gc_color[12];
+    xcb_gcontext_t font_gc[12];
 } Xresources;
 
 /* Exposed function prototypes sorted alphabetically */
@@ -197,7 +198,6 @@ static void enternotify(xcb_generic_event_t *e);
 static void expose(xcb_generic_event_t *e);
 static void focus(client *c, desktop *d);
 static void focusin(xcb_generic_event_t *e);
-static xcb_gc_t gc_font_get(unsigned int color, xcb_window_t window, const char *font_name);
 static unsigned int getcolor(char* color);
 static bool getrootptr(int *x, int *y);
 static void gettitle(client *c);
@@ -207,6 +207,7 @@ static void growbyh(client *match, const float size, client *c, monitor *m);
 static void growbyw(client *match, const float size, client *c, monitor *m);
 static void growbyx(client *match, const float size, client *c, monitor *m);
 static void growbyy(client *match, const float size, client *c, monitor *m);
+static void initializexresources();
 static void keypress(xcb_generic_event_t *e);
 static void mappingnotify(xcb_generic_event_t *e);
 static void maprequest(xcb_generic_event_t *e);
@@ -1388,6 +1389,276 @@ void increasegap(const Arg *arg) {
     }
 }
 
+void initializexresources() {
+    //we should also go ahead and intitialize all the font gc's
+    uint32_t            value_list[3];
+    uint32_t            gcvalues[2];
+    xcb_void_cookie_t   cookie_font;
+    xcb_void_cookie_t   cookie_gc;
+    xcb_generic_error_t *error;
+    xcb_font_t          font;
+    uint32_t            mask, font_mask;
+    xcb_drawable_t      win = screen->root;
+    XrmValue value;
+    char *str_type[20];
+    char buffer[20];
+
+    // initialize font
+    font = xcb_generate_id (dis);
+    cookie_font = xcb_open_font_checked (dis, font, strlen ("7x13"), "7x13");
+    error = xcb_request_check (dis, cookie_font);
+    if (error) {
+        fprintf (stderr, "ERROR: can't open font : %d\n", error->error_code);
+        xcb_disconnect (dis);
+    }
+
+    // initialize some values used to get the font gc's
+    font_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
+    value_list[0] = screen->black_pixel;
+    value_list[2] = font;
+    // initialize some values for foreground gc's
+    mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
+    gcvalues[1] = 0;
+
+    // initialize Xresources
+    // TODO: move to setup
+    //       win can be replaced by screen->root
+    //       try to make it smaller
+    //       find home directory for dbase
+    XrmInitialize();
+    XrmDatabase dbase = XrmGetFileDatabase("/home/dct/.Xdefaults");
+    
+    // now get all the colors from xresources and make the gc's
+    if (XrmGetResource(dbase, "*color1", "*Color1", str_type, &value)) {
+        // getting color
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[0] = getcolor(buffer);
+        
+        // getting rectangle foreground colors
+        xres.gc_color[0] = xcb_generate_id(dis);
+        gcvalues[0] = xres.color[0];
+        xcb_create_gc (dis, xres.gc_color[0], win, mask, gcvalues);
+        
+        // getting font gc
+        xres.font_gc[0] = xcb_generate_id(dis);
+        value_list[1] = xres.color[0];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[0], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color2", "*Color2", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[1] = getcolor(buffer);
+        
+        xres.gc_color[1] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[1];
+        xcb_create_gc (dis, xres.gc_color[1], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[1] = xcb_generate_id(dis);
+        value_list[1] = xres.color[1];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[1], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color3", "*Color3", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[2] = getcolor(buffer);
+        xres.gc_color[2] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[2];
+        xcb_create_gc (dis, xres.gc_color[2], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[2] = xcb_generate_id(dis);
+        value_list[1] = xres.color[2];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[2], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        }
+    }
+    if (XrmGetResource(dbase, "*color4", "*Color4", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[3] = getcolor(buffer);
+        xres.gc_color[3] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[3];
+        xcb_create_gc (dis, xres.gc_color[3], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[3] = xcb_generate_id(dis);
+        value_list[1] = xres.color[3];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[3], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        }
+    }
+    if (XrmGetResource(dbase, "*color5", "*Color5", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[4] = getcolor(buffer);
+        xres.gc_color[4] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[4];
+        xcb_create_gc (dis, xres.gc_color[4], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[4] = xcb_generate_id(dis);
+        value_list[1] = xres.color[4];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[4], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        }
+    }
+    if (XrmGetResource(dbase, "*color6", "*Color6", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[5] = getcolor(buffer);
+        xres.gc_color[5] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[5];
+        xcb_create_gc (dis, xres.gc_color[5], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[5] = xcb_generate_id(dis);
+        value_list[1] = xres.color[5];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[5], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        }
+    }
+    if (XrmGetResource(dbase, "*color9", "*Color9", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[6] = getcolor(buffer);
+        xres.gc_color[6] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[6];
+        xcb_create_gc (dis, xres.gc_color[6], win, mask, gcvalues); 
+    
+        // getting font gc
+        xres.font_gc[6] = xcb_generate_id(dis);
+        value_list[1] = xres.color[6];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[6], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        }
+    }
+    if (XrmGetResource(dbase, "*color10", "*Color10", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[7] = getcolor(buffer);
+        xres.gc_color[7] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[7];
+        xcb_create_gc (dis, xres.gc_color[7], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[7] = xcb_generate_id(dis);
+        value_list[1] = xres.color[7];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[7], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color11", "*Color11", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[8] = getcolor(buffer);
+        xres.gc_color[8] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[8];
+        xcb_create_gc (dis, xres.gc_color[8], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[8] = xcb_generate_id(dis);
+        value_list[1] = xres.color[8];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[8], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color12", "*Color12", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[9] = getcolor(buffer);
+        xres.gc_color[9] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[9];
+        xcb_create_gc (dis, xres.gc_color[9], win, mask, gcvalues); 
+    
+        // getting font gc
+        xres.font_gc[9] = xcb_generate_id(dis);
+        value_list[1] = xres.color[9];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[9], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color13", "*Color13", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[10] = getcolor(buffer);
+        xres.gc_color[10] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[10];
+        xcb_create_gc (dis, xres.gc_color[10], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[10] = xcb_generate_id(dis);
+        value_list[1] = xres.color[10];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[10], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    }
+    if (XrmGetResource(dbase, "*color14", "*Color14", str_type, &value)) {
+        strncpy(buffer, value.addr, (int) value.size);
+        xres.color[11] = getcolor(buffer);
+        xres.gc_color[11] = xcb_generate_id (dis);
+        gcvalues[0] = xres.color[11];
+        xcb_create_gc (dis, xres.gc_color[11], win, mask, gcvalues);
+    
+        // getting font gc
+        xres.font_gc[11] = xcb_generate_id(dis);
+        value_list[1] = xres.color[11];
+        cookie_gc = xcb_create_gc_checked (dis, xres.font_gc[11], win, font_mask, value_list);
+        error = xcb_request_check (dis, cookie_gc);
+        if (error) {
+            fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
+            xcb_disconnect (dis);
+            exit (-1);
+        } 
+    } 
+
+    cookie_font = xcb_close_font_checked (dis, font);
+    error = xcb_request_check (dis, cookie_font);
+    if (error) {
+        fprintf (stderr, "ERROR: can't close font : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+}
+
 /* on the press of a key check to see if there's a binded function to call */
 void keypress(xcb_generic_event_t *e) {
     DEBUG("keypress: entering");
@@ -1424,10 +1695,8 @@ void killclient() {
 void launchmenu(const Arg *arg) {
     DEBUG("launchmenu: entering");
     xcb_drawable_t win;
-    //xcb_gcontext_t foreground;
     xcb_generic_event_t *e;
     uint32_t mask = 0;
-    uint32_t gcvalues[2];
     uint32_t winvalues[1];
     bool flag = true;
     Menu *m = NULL;
@@ -1443,105 +1712,7 @@ void launchmenu(const Arg *arg) {
     }
     
     // Create black (foreground) graphic context
-    win = screen->root;
-
-    // initialize Xresources
-    // TODO: move to setup
-    //       win can be replaced by screen->root
-    //       try to make it smaller
-    //       find home directory for dbase
-    XrmInitialize();
-    XrmDatabase dbase = XrmGetFileDatabase("/home/dct/.Xdefaults");
-        // now we want all the colors
-    XrmValue value;
-    char *str_type[20];
-    char buffer[20];
-    mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    gcvalues[1] = 0; 
-    if (XrmGetResource(dbase, "*color1", "*Color1", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[0] = getcolor(buffer);
-        xres.gc_color[0] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[0];
-        xcb_create_gc (dis, xres.gc_color[0], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color2", "*Color2", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[1] = getcolor(buffer);
-        xres.gc_color[1] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[1];
-        xcb_create_gc (dis, xres.gc_color[1], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color3", "*Color3", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[2] = getcolor(buffer);
-        xres.gc_color[2] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[2];
-        xcb_create_gc (dis, xres.gc_color[2], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color4", "*Color4", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[3] = getcolor(buffer);
-        xres.gc_color[3] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[3];
-        xcb_create_gc (dis, xres.gc_color[3], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color5", "*Color5", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[4] = getcolor(buffer);
-        xres.gc_color[4] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[4];
-        xcb_create_gc (dis, xres.gc_color[4], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color6", "*Color6", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[5] = getcolor(buffer);
-        xres.gc_color[5] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[5];
-        xcb_create_gc (dis, xres.gc_color[5], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color9", "*Color9", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[6] = getcolor(buffer);
-        xres.gc_color[6] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[6];
-        xcb_create_gc (dis, xres.gc_color[6], win, mask, gcvalues); 
-    }
-    if (XrmGetResource(dbase, "*color10", "*Color10", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[7] = getcolor(buffer);
-        xres.gc_color[7] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[7];
-        xcb_create_gc (dis, xres.gc_color[7], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color11", "*Color11", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[8] = getcolor(buffer);
-        xres.gc_color[8] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[8];
-        xcb_create_gc (dis, xres.gc_color[8], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color12", "*Color12", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[9] = getcolor(buffer);
-        xres.gc_color[9] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[9];
-        xcb_create_gc (dis, xres.gc_color[9], win, mask, gcvalues); 
-    }
-    if (XrmGetResource(dbase, "*color13", "*Color13", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[10] = getcolor(buffer);
-        xres.gc_color[10] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[10];
-        xcb_create_gc (dis, xres.gc_color[10], win, mask, gcvalues);
-    }
-    if (XrmGetResource(dbase, "*color14", "*Color14", str_type, &value)) {
-        strncpy(buffer, value.addr, (int) value.size);
-        xres.color[11] = getcolor(buffer);
-        xres.gc_color[11] = xcb_generate_id (dis);
-        gcvalues[0] = xres.color[11];
-        xcb_create_gc (dis, xres.gc_color[11], win, mask, gcvalues);
-    } 
+    win = screen->root; 
 
     // Ask for our window's Id
     win = xcb_generate_id(dis);
@@ -1571,9 +1742,9 @@ void launchmenu(const Arg *arg) {
                 for (Menu_Entry *mentry = m->head; mentry; mentry = mentry->next) {
                     DEBUG("launchmenu: drawing iteration");
                     // We draw the rectangles
-                    xcb_poly_fill_rectangle (dis, win, xres.gc_color[i], 1, mentry->rectangles);
+                    xcb_poly_fill_rectangle(dis, win, xres.gc_color[i], 1, mentry->rectangles);
                     // we also want to draw the command/program
-                    text_draw (xres.color[i], win, mentry->x + 10, mentry->y + 30, mentry->cmd[0]);
+                    text_draw(xres.font_gc[i], win, mentry->x + 10, mentry->y + 30, mentry->cmd[0]);
                     if (i == 11) i = 0;
                     else i++;
                 }
@@ -1610,77 +1781,6 @@ void launchmenu(const Arg *arg) {
                                                                                                                                         // Free the Generic Event
         free (e);
     } 
-}
-
-void text_draw (unsigned int color, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
-    xcb_void_cookie_t    cookie_gc;
-    xcb_void_cookie_t    cookie_text;
-    xcb_generic_error_t *error;
-    xcb_gcontext_t       gc;
-    uint8_t              length;
-
-    length = strlen (label);
-
-    gc = gc_font_get(color, window, "7x13");
-
-    cookie_text = xcb_image_text_8_checked (dis, length, window, gc, x1, y1, label);
-    error = xcb_request_check (dis, cookie_text);
-    if (error) {
-        fprintf (stderr, "ERROR: can't paste text : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-
-    cookie_gc = xcb_free_gc (dis, gc);
-    error = xcb_request_check (dis, cookie_gc);
-    if (error) {
-        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-}
-
-xcb_gc_t gc_font_get (unsigned int color, xcb_window_t window, const char *font_name) {
-    uint32_t value_list[3];
-    xcb_void_cookie_t    cookie_font;
-    xcb_void_cookie_t    cookie_gc;
-    xcb_generic_error_t *error;
-    xcb_font_t           font;
-    xcb_gcontext_t       gc;
-    uint32_t             mask;
-
-    font = xcb_generate_id (dis);
-    cookie_font = xcb_open_font_checked (dis, font, strlen (font_name), font_name);
-
-    error = xcb_request_check (dis, cookie_font);
-    if (error) {
-        fprintf (stderr, "ERROR: can't open font : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        return -1;
-    }
-
-    gc = xcb_generate_id (dis);
-    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
-    value_list[0] = screen->black_pixel;
-    value_list[1] = color;
-    value_list[2] = font;
-    cookie_gc = xcb_create_gc_checked (dis, gc, window, mask, value_list);
-    error = xcb_request_check (dis, cookie_gc);
-    if (error) {
-        fprintf (stderr, "ERROR: can't create gc : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-
-    cookie_font = xcb_close_font_checked (dis, font);
-    error = xcb_request_check (dis, cookie_font);
-    if (error) {
-        fprintf (stderr, "ERROR: can't close font : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-
-    return gc;
 }
 
 void mappingnotify(xcb_generic_event_t *e) {
@@ -2489,6 +2589,8 @@ int setup(int default_screen) {
     win_outer = getcolor(OTRBRDRCOL);
     win_urgent = getcolor(URGNBRDRCOL);
 
+    initializexresources();
+
     /* setup keyboard */
     if (setup_keyboard() == -1)
         err(EXIT_FAILURE, "error: failed to setup keyboard\n");
@@ -2608,6 +2710,34 @@ void switch_mode(const Arg *arg) {
     retile(d, selmon);
     
     desktopinfo();
+}
+
+void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
+    //xcb_void_cookie_t    cookie_gc;
+    xcb_void_cookie_t    cookie_text;
+    xcb_generic_error_t *error;
+    uint8_t              length;
+
+    length = strlen(label);
+
+    cookie_text = xcb_image_text_8_checked(dis, length, window, gc, x1, y1, label);
+    error = xcb_request_check(dis, cookie_text);
+    if (error) {
+        fprintf(stderr, "ERROR: can't paste text : %d\n", error->error_code);
+        xcb_disconnect(dis);
+        exit(-1);
+    }
+
+    // TODO: make sure all these gc's are being cleaned up
+    /*
+    cookie_gc = xcb_free_gc(dis, gc);
+    error = xcb_request_check (dis, cookie_gc);
+    if (error) {
+        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+    */
 }
 
 void tilenew(desktop *d, const monitor *m) {
