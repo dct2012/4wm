@@ -883,7 +883,6 @@ Menu* createmenu(char **list) {
     Menu_Entry *mentry, *sentry = NULL, *itr = NULL;
     int i, x, y;
 
-    m->list = (char**)malloc_safe(sizeof(list));
     m->list = list;
     for (i = 0; list[i]; i++) {
         if (!m->head) {
