@@ -80,8 +80,10 @@ static const AppRule rules[] = { \
 // custom commands, must always end with ', NULL };'
 static const char *termcmd[] = { "xterm",     NULL };
 static const char *webbrowsercmd[] = { "chromium", NULL };
-static const char *filemanagercmd[] = { "dolphin", NULL };
 
+static char *menu1[] = { "xterm", "chromium", "firefox", "libreoffice", "mupen64plus", NULL };
+
+#define MENUS { menu1, NULL }
 
 #define DESKTOPCHANGE(K,N) \
     {  MOD1,             K,              change_desktop, {.i = N}}, \
@@ -141,7 +143,7 @@ static Key keys[] = {
     // quit with exit value 1
     {  MOD1|CONTROL,    XK_q,           quit,               {.i = 1}},
     // launch menu (not complete)
-    //{  MOD1|CONTROL,    XK_m,           launchmenu,         {NULL}},
+    {  MOD1|CONTROL,    XK_m,           launchmenu,         {.list = menu1}},
     // launch xterm
     {  MOD1|SHIFT,      XK_Return,      spawn,              {.com = termcmd}},
     // launch web browser
