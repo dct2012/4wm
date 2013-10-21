@@ -142,7 +142,7 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_q,           quit,               {.i = 0}},
     // quit with exit value 1
     {  MOD1|CONTROL,    XK_q,           quit,               {.i = 1}},
-    // launch menu (not complete)
+    // launch menu
     {  MOD1|CONTROL,    XK_m,           launchmenu,         {.list = menu1}},
     // launch xterm
     {  MOD1|SHIFT,      XK_Return,      spawn,              {.com = termcmd}},
