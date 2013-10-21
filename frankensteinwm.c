@@ -1504,7 +1504,7 @@ void launchmenu(const Arg *arg) {
     uint32_t winvalues[1];
     bool waitforevents = true, found = false; 
     Menu *m = NULL;
-    Menu_Entry *me = NULL;
+    //Menu_Entry *me = NULL;
     int i, x, y;
 
     //find which menu
@@ -1513,28 +1513,6 @@ void launchmenu(const Arg *arg) {
             DEBUG("launchmenu: found menu");
             break;
         }
-
-    // menu may be drawn to a new monitor, may need to readjust
-    for (me = m->head; me; me = me->next) {
-        if (me == m->head){
-            me->rectangles->x = me->x = selmon->w/2 - 50;
-            me->rectangles->y = me->y = selmon->h/2 - 30;
-        } else {
-            if (me->l) {
-                me->rectangles->x = me->x = me->l->x + 100;
-                me->rectangles->y = me->y = me->l->y;
-            } else if (me->b) {
-                me->rectangles->x = me->x = me->b->x;
-                me->rectangles->y = me->y = me->b->y - 60;
-            } else if (me->r) {
-                me->rectangles->x = me->x = me->r->x - 100;
-                me->rectangles->y = me->y = me->r->y;
-            } else if (me->t) {
-                me->rectangles->x = me->x = me->t->x;
-                me->rectangles->y = me->y = me->t->y + 60;
-            }
-        }
-    }
     
     // Create black (foreground) graphic context
     win = screen->root; 
@@ -1582,7 +1560,11 @@ void launchmenu(const Arg *arg) {
                 waitforevents = false;
                 xcb_unmap_window (dis, win);
                 if (getrootptr(&x, &y)) {
+                x -= selmon->x;
+                y -= selmon->y;
+                DEBUGP("launchmenu: x %d y %d\n", x, y);
                     for (Menu_Entry *mentry = m->head; mentry; ) {
+                        DEBUGP("launchmenu: mentry->x %d mentry->y %d\n", mentry->x, mentry->y);
                         if (INRECT(x, y, mentry->x, mentry->y, 100, 60)) { 
                             found = true;
                             if (fork()) return;
