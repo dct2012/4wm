@@ -1504,7 +1504,6 @@ void launchmenu(const Arg *arg) {
     uint32_t winvalues[1];
     bool waitforevents = true, found = false; 
     Menu *m = NULL;
-    //Menu_Entry *me = NULL;
     int i, x, y;
 
     //find which menu
