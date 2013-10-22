@@ -9,6 +9,8 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include <X11/keysym.h>
 #include <X11/Xresource.h>
 #include <xcb/randr.h>
@@ -1405,6 +1407,9 @@ void initializexresources() {
                     "*color9", "*color10", "*color11", "*color12", "*color13", "*color14", NULL };
     char *class[] = { "*Color1", "*Color2",  "*Color3", "*Color4", "*Color5", "*Color6", 
                     "*Color9", "*Color10", "*Color11", "*Color12", "*Color13", "*Color14", NULL };
+    struct passwd *pw = getpwuid(getuid());
+    char *xdefaults = pw->pw_dir;
+    strcat(xdefaults, "/.Xdefaults");
 
     // initialize font
     // TODO: get font, XrmGetResouce
@@ -1425,9 +1430,8 @@ void initializexresources() {
     gcvalues[1] = 0;
 
     // initialize Xresources
-    // TODO: find home directory for dbase
     XrmInitialize();
-    XrmDatabase dbase = XrmGetFileDatabase("/home/dct/.Xdefaults");
+    XrmDatabase dbase = XrmGetFileDatabase(xdefaults);
 
     for(int i = 0; i < 12; i++) {
         // now get all the colors from xresources and make the gc's
