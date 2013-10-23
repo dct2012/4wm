@@ -58,6 +58,12 @@ You can actually parse frankensteinwm's output with any language you want,
 build anything you want, and display the information however you like.
 Do not be limited by those examples.
 
+Menu - launcher
+---------------
+
+Frankensteinwm provides a menu or a launcher similar to xmonad's grid select. It will use
+the colors from your Xdefaults for the tiles.
+
 Installation
 ------------
 
