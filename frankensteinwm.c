@@ -130,16 +130,16 @@ typedef struct {
 } Button;
 
 typedef struct Menu {
-    char **list;        // list to hold the original list of commands
-    struct Menu *next;  // next menu incase of multiple
+    char **list;                // list to hold the original list of commands
+    struct Menu *next;          // next menu incase of multiple
     struct Menu_Entry *head;
 } Menu;
 
 typedef struct Menu_Entry {
-    char *cmd[2];                   // cmd to be executed
-    int x, y;
-    struct Menu_Entry *next, *b, *l, *r, *t;
-    xcb_rectangle_t *rectangles;   // tiles to draw
+    char *cmd[2];                               // cmd to be executed
+    int x, y;                                   // w and h will be default or defined
+    struct Menu_Entry *next, *b, *l, *r, *t;    // next and neighboring entries
+    xcb_rectangle_t *rectangles;                // tiles to draw
 } Menu_Entry;
 
 typedef struct Xresources {
@@ -865,9 +865,9 @@ void configurerequest(xcb_generic_event_t *e) {
 Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     DEBUG("createmenuentry: entering");
     Menu_Entry *m = (Menu_Entry*)malloc_safe(sizeof(Menu_Entry));
-
+    
     m->cmd[0] = cmd;
-    m->cmd[1] = NULL;
+    m->cmd[1] = NULL; 
     m->rectangles = (xcb_rectangle_t*)malloc_safe(sizeof(xcb_rectangle_t));
     m->x = m->rectangles->x = x;
     m->y = m->rectangles->y = y;
