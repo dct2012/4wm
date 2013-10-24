@@ -19,6 +19,21 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
+#define XCB_MOVE        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
+#define XCB_RESIZE      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+
+/* wrapper to move window */
+static inline void xcb_move(xcb_connection_t *con, xcb_window_t win, int x, int y) {
+    unsigned int pos[2] = { x, y };
+    xcb_configure_window(con, win, XCB_MOVE, pos);
+}
+
+/* wrapper to resize window */
+static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, int h) {
+    unsigned int pos[2] = { w, h };
+    xcb_configure_window(con, win, XCB_RESIZE, pos);
+}
+
 /* focus another desktop
  *
  * to avoid flickering
@@ -151,6 +166,48 @@ void decreasegap(const Arg *arg) {
     }
 }
 
+/* find and focus the client which received
+ * the urgent hint in the current desktop */
+void focusurgent() {
+    DEBUG("focusurgent: entering");
+    client *c = NULL;
+    int d = -1;
+    for (c=desktops[selmon->curr_dtop].head; c && !c->isurgent; c=c->next);
+    while (!c && d < DESKTOPS-1) 
+        for (c = desktops[++d].head; c && !c->isurgent; c = c->next);
+    //current_desktop = current_desktop;
+    if (c) { 
+        change_desktop(&(Arg){.i = --d}); 
+        focus(c, &desktops[selmon->curr_dtop]);
+    }
+
+    DEBUG("focusurgent: leaving");
+}
+
+void growbyh(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? (match->yp - c->yp):(c->hp + size);
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+void growbyw(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? (match->xp - c->xp):(c->wp + size);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+void growbyx(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
+    c->xp = match ? (match->xp + match->wp):(c->xp - size);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
+                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+void growbyy(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
+    c->yp = match ? (match->yp + match->hp):(c->yp - size);
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
 // increase gap between windows
 void increasegap(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
@@ -160,6 +217,26 @@ void increasegap(const Arg *arg) {
             adjustclientgaps(d->gap, c);
         retile(d, selmon); 
     }
+}
+
+/* explicitly kill a client - close the highlighted window
+ * send a delete message and remove the client */
+void killclient() {
+    DEBUG("killclient: entering");
+    desktop *d = &desktops[selmon->curr_dtop];
+    if (!d->current) return;
+    xcb_icccm_get_wm_protocols_reply_t reply; unsigned int n = 0; bool got = false;
+    if (xcb_icccm_get_wm_protocols_reply(dis,
+        xcb_icccm_get_wm_protocols(dis, d->current->win, wmatoms[WM_PROTOCOLS]),
+        &reply, NULL)) { /* TODO: Handle error? */
+        for(; n != reply.atoms_len; ++n) 
+            if ((got = reply.atoms[n] == wmatoms[WM_DELETE_WINDOW])) 
+                break;
+        xcb_icccm_get_wm_protocols_reply_wipe(&reply);
+    }
+    if (got) deletewindow(d->current->win);
+    else xcb_kill_client(dis, d->current->win);
+    DEBUG("killclient: leaving");
 }
 
 void launchmenu(const Arg *arg) {
@@ -366,6 +443,119 @@ void moveclient(const Arg *arg) {
     DEBUG("moveclient: leaving");
 }
 
+// switch the current client with the first client we find below it
+void moveclientdown(int *num, client *c, client **list, desktop *d) { 
+    DEBUG("moveclientdown: entering");
+    client *cold;
+    findtouchingclients[TBOTTOM](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+        setborders(d);
+    }
+    DEBUG("moveclientdown: leaving");
+}
+
+// switch the current client with the first client we find to the left of it
+void moveclientleft(int *num, client *c, client **list, desktop *d) { 
+    DEBUG("moveclientleft: entering");
+    client *cold; 
+    findtouchingclients[TLEFT](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        setborders(d);
+    }
+    DEBUG("moveclientleft: leaving");
+}
+
+// switch the current client with the first client we find to the right of it
+void moveclientright(int *num, client *c, client **list, desktop *d) { 
+    DEBUG("moveclientright: entering");
+    client *cold;
+    findtouchingclients[TRIGHT](d, c, list, num);
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        setborders(d);
+    }
+    DEBUG("moveclientright: leaving");
+}
+
+// switch the current client with the first client we find above it
+void moveclientup(int *num, client *c, client **list, desktop *d) { 
+    DEBUG("moveclientup: entering");
+    client *cold; 
+    findtouchingclients[TTOP](d, c, list, num); // even if it not a direct match it should return with something touching
+    // switch stuff
+    if (list[0] != NULL) {
+        cold->xp = c->xp; cold->yp = c->yp; cold->wp = c->wp; cold->hp = c->hp;
+        adjustclientgaps(d->gap, list[0]);
+        c->xp = list[0]->xp; c->yp = list[0]->yp; c->wp = list[0]->wp; c->hp = list[0]->hp;
+        adjustclientgaps(d->gap, c);
+        list[0]->xp = cold->xp; list[0]->yp = cold->yp; list[0]->wp = cold->wp; list[0]->hp = cold->hp;
+        adjustclientgaps(d->gap, list[0]);
+        // move stuff
+        xcb_move_resize(dis, list[0]->win, 
+                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+        xcb_move_resize(dis, c->win, 
+                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
+                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+        setborders(d);
+    }
+    DEBUG("moveclientup: leaving");
+}
+
 void movefocus(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
@@ -379,6 +569,67 @@ void movefocus(const Arg *arg) {
         if (list[0] != NULL) focus(list[0], d);
         free(list);
     }
+}
+
+void pushtotiling() {
+    DEBUG("pushtotiling: entering");
+    desktop *d = &desktops[selmon->curr_dtop];
+    int gap = d->gap;
+    client *c = NULL, *n = d->current; // the client to push
+    monitor *m = selmon;
+    
+    n->isfloating = false;
+    n->istransient = false;
+    n->isfullscrn = false;
+
+    if (d->prevfocus)
+        c = d->prevfocus;
+    else if (d->head && (d->head != n))
+        c = d->head;
+    else { // it must be the only client on this desktop
+        n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
+        adjustclientgaps(gap, n);
+        d->count += 1;
+        xcb_move_resize(dis, n->win, 
+                            (n->x = m->x + n->gapx), 
+                            (n->y = m->y + n->gapy), 
+                            (n->w = m->w - 2*n->gapw), 
+                            (n->h = m->h - 2*n->gaph));
+        DEBUG("pushtotiling: leaving, tiled only client on desktop");
+        return;
+    }
+
+    if(!c) {
+        DEBUG("pushtotiling: leaving, error, !c");
+        return;
+    }
+
+    tiledirection[d->direction](n, c); 
+        
+    d->count += 1;
+
+    adjustclientgaps(gap, c);
+    adjustclientgaps(gap, n);
+    
+    if (d->mode == TILE) {
+        xcb_move_resize(dis, c->win,
+                        (c->x = m->x + (m->w * c->xp) + c->gapx), 
+                        (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                        (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                        (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
+
+        xcb_move_resize(dis, n->win, 
+                        (n->x = m->x + (m->w * n->xp) + n->gapx), 
+                        (n->y = m->y + (m->h * n->yp) + n->gapy), 
+                        (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                        (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+        DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+    }
+    else
+            monocle(m->x, m->y, m->w, m->h, d, m);
+
+    DEBUG("pushtotiling: leaving");
 }
 
 /* to quit just stop receiving events
@@ -411,6 +662,126 @@ void resizeclient(const Arg *arg) {
     DEBUG("resizeclient: leaving");
 } 
 
+void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+    DEBUG("resizeclientbottom: entering"); 
+    if (findtouchingclients[TBOTTOM](d, c, list, n)) {
+        if (grow) {
+            //client in list y increases and height decreases
+            for (int i = 0; i < (*n); i++)
+                shrinkbyy(NULL, size, list[i], m);
+            //current windows height increases
+            growbyh(list[0], size, c, m);
+        } else {
+            shrinkbyh(NULL, size, c, m);
+            for (int i = 0; i < (*n); i++)
+                growbyy(c, size, list[i], m);
+        }
+    } else if (findtouchingclients[TTOP](d, c, list, n)) {
+        if (grow) {
+            //current windows y increases and height decreases
+            shrinkbyy(NULL, size, c, m);
+            //client in list height increases
+            for (int i = 0; i < (*n); i++)
+                growbyh(c, size, list[i], m);
+        } else {
+            for (int i = 0; i < (*n); i++)
+                shrinkbyh(NULL, size, list[i], m);
+            growbyy(list[0], size, c, m);
+        }
+    }
+    DEBUG("resizeclientbottom: leaving");
+}
+
+void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+    DEBUG("resizeclientleft: entering"); 
+    if (findtouchingclients[TLEFT](d, c, list, n)) {
+        if (grow) {
+            //client in list width decreases
+            for (int i = 0; i < (*n); i++)
+                shrinkbyw(NULL, size, list[i], m);
+            //the current windows x decreases and width increases
+            growbyx(list[0], size, c, m);
+        } else {
+            shrinkbyx(NULL, size, c, m);
+            for (int i = 0; i < (*n); i++)
+                growbyw(c, size, list[i], m);
+        }
+    } else if (findtouchingclients[TRIGHT](d, c, list, n)) {
+        if (grow) {
+            //current windows width decreases
+            shrinkbyw(NULL, size, c, m);
+            //clients in list x decreases width increases
+            for (int i = 0; i < (*n); i++)
+                growbyx(c, size, list[i], m);
+        } else { 
+            for (int i = 0; i < (*n); i++)
+                shrinkbyx(NULL, size, list[i], m);
+            growbyw(list[0], size, c, m);
+        }
+    }
+    DEBUG("resizeclientleft: leaving");
+}
+
+void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+    DEBUG("resizeclientright: entering");
+    if (findtouchingclients[TRIGHT](d, c, list, n)) { 
+        if (grow) {
+            //clients in list x increases and width decrease
+            for (int i = 0; i < (*n); i++)
+                shrinkbyx(NULL, size, list[i], m);
+            //the current windows width increases
+            growbyw(list[0], size, c, m);
+        } else {
+            shrinkbyw(NULL, size, c, m);
+            for (int i = 0; i < (*n); i++)
+                growbyx(c, size, list[i], m);
+        }
+    } else if (findtouchingclients[TLEFT](d, c, list, n)) {
+        if (grow) {
+            //current windows x increases and width decreases
+            shrinkbyx(NULL, size, c, m);
+            //other windows width increases
+            for (int i = 0; i < (*n); i++)
+                growbyw(c, size, list[i], m);
+        } else {
+            for (int i = 0; i < (*n); i++)
+                shrinkbyw(NULL, size, list[i], m);
+            growbyx(list[0], size, c, m);
+        }
+    }
+    DEBUG("resizeclientright: leaving");
+}
+
+void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+    DEBUG("resizeclienttop: entering"); 
+    if (findtouchingclients[TTOP](d, c, list, n)) {
+        if (grow) {
+            //client in list height decreases
+            for (int i = 0; i < (*n); i++)
+                shrinkbyh(NULL, size, list[i], m);
+            //current windows y decreases and height increases
+            growbyy(list[0], size, c, m);
+        } else {
+            shrinkbyy(NULL, size, c, m);
+            for (int i = 0; i < (*n); i++)
+                growbyh(c, size, list[i], m);
+        }
+    } else if (findtouchingclients[TBOTTOM](d, c, list, n)) {
+        if (grow) {
+            //current windows height decreases
+            shrinkbyh(NULL, size, c, m);
+            //client in list y decreases and height increases
+            for (int i = 0; i < (*n); i++)
+               growbyy(c, size, list[i], m);
+        }else { 
+            for (int i = 0; i < (*n); i++)
+                shrinkbyy(NULL, size, list[i], m);
+            growbyh(list[0], size, c, m);
+        }
+    } 
+    DEBUG("resizeclienttop: leaving");
+}
+
 /* jump and focus the next or previous desktop */
 void rotate(const Arg *arg) {
     change_desktop(&(Arg){.i = (DESKTOPS + selmon->curr_dtop + arg->i) % DESKTOPS});
@@ -421,6 +792,30 @@ void rotate_filled(const Arg *arg) {
     int n = arg->i;
     while (n < DESKTOPS && !desktops[(DESKTOPS + selmon->curr_dtop + n) % DESKTOPS].head) (n += arg->i);
     change_desktop(&(Arg){.i = (DESKTOPS + selmon->curr_dtop + n) % DESKTOPS});
+}
+
+void shrinkbyh(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? (match->yp - c->yp):(c->hp - size);
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+void shrinkbyw(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? (match->xp - c->xp):(c->wp - size);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+void shrinkbyx(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
+    c->xp = match ? (match->xp + match->wp):(c->xp + size);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
+                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+void shrinkbyy(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
+    c->yp = match ? (match->yp + match->hp):(c->yp + size);
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
 /* execute a command */
@@ -460,6 +855,41 @@ void switch_mode(const Arg *arg) {
     retile(d, selmon);
     
     desktopinfo();
+}
+
+void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
+    //xcb_void_cookie_t    cookie_gc;
+    xcb_void_cookie_t    cookie_text;
+    xcb_generic_error_t *error;
+    uint8_t              length;
+
+    length = strlen(label);
+
+    cookie_text = xcb_image_text_8_checked(dis, length, window, gc, x1, y1, label);
+    error = xcb_request_check(dis, cookie_text);
+    if (error) {
+        fprintf(stderr, "ERROR: can't paste text : %d\n", error->error_code);
+        xcb_disconnect(dis);
+        exit(-1);
+    }
+
+    // TODO: make sure all these gc's are being cleaned up
+    /*
+    cookie_gc = xcb_free_gc(dis, gc);
+    error = xcb_request_check (dis, cookie_gc);
+    if (error) {
+        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+    */
+}
+
+/* toggle visibility state of the panel */
+void togglepanel() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    d->showpanel = !d->showpanel;
+    retile(d, selmon);
 }
 
 /* vim: set ts=4 sw=4 :*/

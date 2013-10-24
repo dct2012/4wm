@@ -19,10 +19,47 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-/* events array
- * on receival of a new event, call the appropriate function to handle it
+#define CLEANMASK(mask) (mask & ~(numlockmask | XCB_MOD_MASK_LOCK))
+
+/* wrapper to get xcb keysymbol from keycode */
+static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
+    xcb_key_symbols_t *keysyms;
+    xcb_keysym_t       keysym;
+
+    if (!(keysyms = xcb_key_symbols_alloc(dis))) return 0;
+    keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
+    xcb_key_symbols_free(keysyms);
+
+    return keysym;
+}
+
+/* wrapper to window get attributes using xcb */
+static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_reply_t **reply, unsigned int count) {
+    xcb_get_window_attributes_cookie_t cookies[count];
+    for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_get_window_attributes(dis, windows[i]);
+    for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); /* TODO: Handle error */
+}
+
+/* create a new client and add the new window
+ * window should notify of property change events
  */
-static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
+client* addwindow(xcb_window_t w, desktop *d) {
+    DEBUG("addwindow: entering");
+    client *c, *t = prev_client(d->head, d);
+ 
+    if (!(c = (client *)malloc_safe(sizeof(client)))) err(EXIT_FAILURE, "cannot allocate client");
+
+    if (!d->head) d->head = c;
+    else if (t) t->next = c; 
+    else d->head->next = c;
+
+    DEBUGP("addwindow: d->count = %d\n", d->count);
+
+    unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
+    xcb_change_window_attributes_checked(dis, (c->win = w), XCB_CW_EVENT_MASK, values);
+    DEBUG("addwindow: leaving");
+    return c;
+}
 
 /* on the press of a button check to see if there's a binded function to call 
  * TODO: if we make the mouse able to switch monitors we could eliminate a call
@@ -81,6 +118,22 @@ void clientmessage(xcb_generic_event_t *e) {
         focus(c, d);
 
     DEBUG("clientmessage: leaving");
+}
+
+desktop *clienttodesktop(client *c) {
+    DEBUG("clienttodesktop: entering");
+    client *n = NULL; desktop *d = NULL;
+    int i;
+ 
+    for (i = 0; i < DESKTOPS; i++)
+        for (d = &desktops[i], n = d->head; n; n = n->next)
+            if(n == c) {
+                DEBUGP("clienttodesktop: leaving, returning found desktop #%d\n", i);
+                return d;
+            }
+    
+    DEBUG("clienttodesktop: leaving, returning NULL desktop");
+    return NULL;
 }
 
 /* a configure request means that the window requested changes in its geometry
@@ -361,7 +414,47 @@ void propertynotify(xcb_generic_event_t *e) {
     DEBUG("propertynotify: leaving");
 }
 
+/* remove the specified client
+ *
+ * note, the removing client can be on any desktop,
+ * we must return back to the current focused desktop.
+ * if c was the previously focused, prevfocus must be updated
+ * else if c was the current one, current must be updated. */
+void removeclient(client *c, desktop *d, const monitor *m) {
+    DEBUG("removeclient: entering"); 
+    client **p = NULL, *dead, *n;
+    for (p = &d->head; *p && (*p != c); p = &(*p)->next);
+    if (!p) 
+        return; 
+    else 
+        *p = c->next;
+    if (c == d->prevfocus) 
+        d->prevfocus = prev_client(d->current, d);
+    if (c == d->current) {
+        d->current = d->prevfocus ? d->prevfocus:d->head;
+        d->prevfocus = prev_client(d->current, d);
+    }
 
+    if (!ISFFT(c)) {
+        d->count -= 1;
+        dead = (client *)malloc_safe(sizeof(client));
+        *dead = *c;
+        dead->next = NULL;
+        if (!d->dead) {
+            DEBUG("removeclient: d->dead == NULL");
+            d->dead = dead;
+        }
+        else {
+            for (n = d->dead; n; n = n->next);
+            n = dead;
+        }
+        tileremove(d, m);
+    } 
+    free(c); c = NULL; 
+    setborders(d);
+    desktopinfo();
+    DEBUG("removeclient: leaving");
+}
 
 /* windows that request to unmap should lose their
  * client, so no invisible windows exist on screen
@@ -374,6 +467,23 @@ void unmapnotify(xcb_generic_event_t *e) {
     if (c && ev->event != screen->root) removeclient(c, &desktops[selmon->curr_dtop], m);
     desktopinfo();
     DEBUG("unmapnotify: leaving");
+}
+
+/* find which client the given window belongs to */
+client *wintoclient(xcb_window_t w) {
+    DEBUG("wintoclient: entering");
+    client *c = NULL;
+    int i;
+ 
+    for (i = 0; i < DESKTOPS; i++)
+        for (c = desktops[i].head; c; c = c->next)
+            if(c->win == w) {
+                DEBUG("wintoclient: leaving, returning found client");
+                return c;
+            }
+    
+    DEBUG("wintoclient: leaving, returning NULL client");
+    return NULL;
 }
 
 /* vim: set ts=4 sw=4 :*/

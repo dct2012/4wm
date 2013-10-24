@@ -19,10 +19,6 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-static void (*tiledirection[TDIRECS])(client *n, client *c) = {
-    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
-};
-
 /* each window should cover all the available screen space */
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: entering");
