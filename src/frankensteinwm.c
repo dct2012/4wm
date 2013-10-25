@@ -1,23 +1,6 @@
 /* see license for copyright and license */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <err.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <X11/keysym.h>
-#include <X11/Xresource.h>
-#include <xcb/randr.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_atom.h>
-#include <xcb/xcb_icccm.h>
-#include <xcb/xcb_keysyms.h>
+#include "frankensteinwm.h" 
 
 static char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
 static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };

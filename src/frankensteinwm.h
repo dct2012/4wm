@@ -1,8 +1,5 @@
 /* see license for copyright and license */
 
-#ifndef FRANKENSTEINWM_FRANKENSTEINWM_H
-#define FRANKENSTEINWM_FRANKENSTEINWM_H
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
@@ -35,18 +32,11 @@
 
 /* upstream compatility */
 #define XCB_MOVE_RESIZE XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-#define XCB_MOVE        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
-#define XCB_RESIZE      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-
-static char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x))
-#define CLEANMASK(mask) (mask & ~(numlockmask | XCB_MOD_MASK_LOCK))
 #define BUTTONMASK      XCB_EVENT_MASK_BUTTON_PRESS|XCB_EVENT_MASK_BUTTON_RELEASE
 #define INRECT(X,Y,RX,RY,RW,RH) ((X) >= (RX) && (X) < (RX) + (RW) && (Y) >= (RY) && (Y) < (RY) + (RH))
 #define ISFFT(c)        (c->isfullscrn || c->isfloating || c->istransient)
-#define USAGE           "usage: frankensteinwm [-h] [-v]"
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, VIDEO, FLOAT };
@@ -151,20 +141,96 @@ typedef struct Xresources {
     xcb_gcontext_t font_gc[12];
 } Xresources;
 
+/* Exposed function prototypes sorted alphabetically */
+
+static void change_desktop(const Arg *arg);
+static void client_to_desktop(const Arg *arg);
+static void decreasegap(const Arg *arg);
+static void focusurgent();
+static void increasegap(const Arg *arg);
+static void killclient();
+static void launchmenu(const Arg *arg);
+static void moveclient(const Arg *arg);
+static void moveclientup(int *num, client *c, client **list, desktop *d);
+static void moveclientleft(int *num, client *c, client **list, desktop *d);
+static void moveclientdown(int *num, client *c, client **list, desktop *d);
+static void moveclientright(int *num, client *c, client **list, desktop *d);
+static void movefocus(const Arg *arg);
+static void mousemotion(const Arg *arg);
+static void pushtotiling();
+static void quit(const Arg *arg);
+static void resizeclient(const Arg *arg);
+static void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+static void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+static void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+static void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+static void rotate(const Arg *arg);
+static void rotate_filled(const Arg *arg);
+static void spawn(const Arg *arg);
+static void switch_mode(const Arg *arg);
+static void switch_direction(const Arg *arg);
+static void togglepanel();
+
 #include "config.h"
 
-/* function prototypes sorted alphabetically */
-void cleanup(void);
-monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop);
-unsigned int getcolor(char* color);
-void getrandr(void);
-void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp);
+/* Hidden function prototypes sorted alphabetically */
+static client* addwindow(xcb_window_t w, desktop *d);
+static void adjustclientgaps(const int gap, client *c);
+static void buttonpress(xcb_generic_event_t *e);
+static void cleanup(void);
+static void clientmessage(xcb_generic_event_t *e);
+static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingright(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
+static desktop *clienttodesktop(client *c);
+static void configurerequest(xcb_generic_event_t *e);
+static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop);
+static void deletewindow(xcb_window_t w);
+static void desktopinfo(void);
+static void destroynotify(xcb_generic_event_t *e);
+static void enternotify(xcb_generic_event_t *e);
+static void expose(xcb_generic_event_t *e);
+static void focus(client *c, desktop *d);
+static void focusin(xcb_generic_event_t *e);
+static unsigned int getcolor(char* color);
+static bool getrootptr(int *x, int *y);
+static void gettitle(client *c);
+static void grabbuttons(client *c);
+static void grabkeys(void);
+static void growbyh(client *match, const float size, client *c, monitor *m);
+static void growbyw(client *match, const float size, client *c, monitor *m);
+static void growbyx(client *match, const float size, client *c, monitor *m);
+static void growbyy(client *match, const float size, client *c, monitor *m);
 static void initializexresources();
+static void keypress(xcb_generic_event_t *e);
+static void mappingnotify(xcb_generic_event_t *e);
+static void maprequest(xcb_generic_event_t *e);
+static void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m);
+static client* prev_client(client *c, desktop *d);
+static void propertynotify(xcb_generic_event_t *e);
+static monitor* ptrtomon(int x, int y);
+static void removeclient(client *c, desktop *d, const monitor *m);
+static void retile(desktop *d, const monitor *m);
 static void run(void);
 static void setborders(desktop *d);
 static int setup(int default_screen);
-static int setuprandr(void);
+static int  setuprandr(void);
+static void shrinkbyh(client *match, const float size, client *c, monitor *m);
+static void shrinkbyw(client *match, const float size, client *c, monitor *m);
+static void shrinkbyx(client *match, const float size, client *c, monitor *m);
+static void shrinkbyy(client *match, const float size, client *c, monitor *m);
 static void sigchld();
+static void text_draw(unsigned int color, xcb_window_t window, int16_t x1, int16_t y1, const char *label);
+static void tilenew(desktop *d, const monitor *m);
+static void tilenewbottom(client *n, client *c);
+static void tilenewleft(client *n, client *c);
+static void tilenewright(client *n, client *c);
+static void tilenewtop(client *n, client *c);
+static void tileremove(desktop *d, const monitor *m);
+static void unmapnotify(xcb_generic_event_t *e);
+static client *wintoclient(xcb_window_t w);
+static monitor *wintomon(xcb_window_t w);
 
 /* variables */
 static bool running = true;
@@ -200,48 +266,16 @@ static void (*tiledirection[TDIRECS])(client *n, client *c) = {
     [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
 };
 
-/* get screen of display */
-static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
-    xcb_screen_iterator_t iter;
-    iter = xcb_setup_roots_iterator(xcb_get_setup(con));
-    for (; iter.rem; --screen, xcb_screen_next(&iter)) if (screen == 0) return iter.data;
-    return NULL;
-}
-
 /* wrapper to move and resize window */
 static inline void xcb_move_resize(xcb_connection_t *con, xcb_window_t win, int x, int y, int w, int h) {
     unsigned int pos[4] = { x, y, w, h };
     xcb_configure_window(con, win, XCB_MOVE_RESIZE, pos);
 }
 
-/* wrapper to move window */
-static inline void xcb_move(xcb_connection_t *con, xcb_window_t win, int x, int y) {
-    unsigned int pos[2] = { x, y };
-    xcb_configure_window(con, win, XCB_MOVE, pos);
-}
-
-/* wrapper to resize window */
-static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, int h) {
-    unsigned int pos[2] = { w, h };
-    xcb_configure_window(con, win, XCB_RESIZE, pos);
-}
-
 /* wrapper to raise window */
 static inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
     unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
     xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
-}
-
-/* wrapper to get xcb keysymbol from keycode */
-static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
-    xcb_key_symbols_t *keysyms;
-    xcb_keysym_t       keysym;
-
-    if (!(keysyms = xcb_key_symbols_alloc(dis))) return 0;
-    keysym = xcb_key_symbols_get_keysym(keysyms, keycode, 0);
-    xcb_key_symbols_free(keysyms);
-
-    return keysym;
 }
 
 /* wrapper to get xcb keycodes from keysymbol */
@@ -255,47 +289,5 @@ static xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
 
     return keycode;
 }
-
-/* retieve RGB color from hex (think of html) */
-static unsigned int xcb_get_colorpixel(char *hex) {
-    char strgroups[3][3]  = {{hex[1], hex[2], '\0'}, {hex[3], hex[4], '\0'}, {hex[5], hex[6], '\0'}};
-    unsigned int rgb16[3] = {(strtol(strgroups[0], NULL, 16)), (strtol(strgroups[1], NULL, 16)), (strtol(strgroups[2], NULL, 16))};
-    return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
-}
-
-/* wrapper to get atoms using xcb */
-static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
-    xcb_intern_atom_cookie_t cookies[count];
-    xcb_intern_atom_reply_t  *reply;
-
-    for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_intern_atom(dis, 0, strlen(names[i]), names[i]);
-    for (unsigned int i = 0; i < count; i++) {
-        reply = xcb_intern_atom_reply(dis, cookies[i], NULL); /* TODO: Handle error */
-        if (reply) {
-            DEBUGP("%s : %d\n", names[i], reply->atom);
-            atoms[i] = reply->atom; free(reply);
-        } else puts("WARN: frankensteinwm failed to register %s atom.\nThings might not work right.");
-    }
-}
-
-/* wrapper to window get attributes using xcb */
-static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_reply_t **reply, unsigned int count) {
-    xcb_get_window_attributes_cookie_t cookies[count];
-    for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_get_window_attributes(dis, windows[i]);
-    for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); /* TODO: Handle error */
-}
-
-/* check if other wm exists */
-static int xcb_checkotherwm(void) {
-    xcb_generic_error_t *error;
-    unsigned int values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT|XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY|
-                              XCB_EVENT_MASK_PROPERTY_CHANGE|XCB_EVENT_MASK_BUTTON_PRESS};
-    error = xcb_request_check(dis, xcb_change_window_attributes_checked(dis, screen->root, XCB_CW_EVENT_MASK, values));
-    xcb_flush(dis);
-    if (error) return 1;
-    return 0;
-}
-
-#endif
 
 /* vim: set ts=4 sw=4 :*/
