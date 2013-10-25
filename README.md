@@ -87,10 +87,15 @@ Work on steam
       launch steam or the game with SDL_AUDIODRIVER=alsa
 
 Work on menu.
+  * limit string length to rectangle/tile width.
+  * add user defined fonts in Xdefaults.
 
 Add a way to pipe desktopinfo to a panel like xmonad.
 
 Start breaking things into seperate files.
+  * look for conditional statements that can be moved to preprocessor conditionals.
+  * preprocessor conditions for function/variables/etc.
+  * overall organization.
 
 Bugs
 ----
