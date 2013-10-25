@@ -97,6 +97,8 @@ Start breaking things into seperate files.
   * preprocessor conditions for function/variables/etc.
   * overall organization.
 
+Work on floating layout.
+
 Bugs
 ----
 
