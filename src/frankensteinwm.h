@@ -187,7 +187,6 @@ extern monitor *wintomon(xcb_window_t w);
 extern xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym);
 
 // events.c
-//extern client* addwindow(xcb_window_t w, desktop *d);
 extern void buttonpress(xcb_generic_event_t *e);
 extern void clientmessage(xcb_generic_event_t *e);
 extern void configurerequest(xcb_generic_event_t *e);
