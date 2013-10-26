@@ -48,8 +48,9 @@ static int xcb_checkotherwm(void) {
     return 0;
 }
 
+
 /* remove all windows in all desktops by sending a delete message */
-void cleanup(void) {
+static void cleanup(void) {
     DEBUG("cleanup: entering");
     xcb_query_tree_reply_t  *query;
     xcb_window_t *c;
@@ -68,7 +69,7 @@ void cleanup(void) {
     DEBUG("cleanup: leaving");
 }
 
-Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
+static Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     DEBUG("createmenuentry: entering");
     Menu_Entry *m = (Menu_Entry*)malloc_safe(sizeof(Menu_Entry));
     
@@ -85,7 +86,7 @@ Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     return m;
 }
 
-Menu* createmenu(char **list) {
+static Menu* createmenu(char **list) {
     DEBUG("createmenu: entering");
     Menu *m = (Menu*)malloc_safe(sizeof(Menu));
     Menu_Entry *mentry, *sentry = NULL, *itr = NULL;
@@ -163,7 +164,7 @@ Menu* createmenu(char **list) {
     return m;
 }
 
-monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
+static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
     DEBUG("createmon: entering");
     monitor *m = (monitor*)malloc_safe(sizeof(monitor));
     
@@ -182,7 +183,7 @@ monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) 
 
 /* get a pixel with the requested color
  * to fill some window area - borders */
-unsigned int getcolor(char* color) {
+static unsigned int getcolor(char* color) {
     xcb_colormap_t map = screen->default_colormap;
     xcb_alloc_color_reply_t *c;
     unsigned int r, g, b, rgb, pixel;
@@ -197,8 +198,7 @@ unsigned int getcolor(char* color) {
     return pixel;
 }
 
-void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp)
-{
+static void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp) {
     DEBUG("getoutputs: entering");
     // Walk through all the RANDR outputs (number of outputs == len) there
     // was at time timestamp.
@@ -284,8 +284,7 @@ void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t time
     DEBUG("getoutputs: leaving");
 }
 
-void getrandr(void)                 // Get RANDR resources and figure out how many outputs there are.
-{
+static void getrandr(void) { // Get RANDR resources and figure out how many outputs there are.
     xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(dis, screen->root);
     xcb_randr_get_screen_resources_current_reply_t *res = xcb_randr_get_screen_resources_current_reply(dis, rcookie, NULL);
     if (NULL == res) return;
@@ -297,7 +296,7 @@ void getrandr(void)                 // Get RANDR resources and figure out how ma
     free(res);
 }
 
-void initializexresources() {
+static void initializexresources() {
     //we should also go ahead and intitialize all the font gc's
     uint32_t            value_list[3];
     uint32_t            gcvalues[2];
@@ -375,7 +374,7 @@ void initializexresources() {
 }
 
 /* main event loop - on receival of an event call the appropriate event handler */
-void run(void) {
+static void run(void) {
     DEBUG("run: entered");
     xcb_generic_event_t *ev; 
     while(running) {
@@ -402,8 +401,7 @@ void run(void) {
 }
 
 /* get numlock modifier using xcb */
-int setup_keyboard(void)
-{
+static int setup_keyboard(void) {
     xcb_get_modifier_mapping_reply_t *reply;
     xcb_keycode_t                    *modmap;
     xcb_keycode_t                    *numlock;
@@ -430,12 +428,30 @@ int setup_keyboard(void)
     return 0;
 }
 
+static void sigchld() {
+    if (signal(SIGCHLD, sigchld) == SIG_ERR)
+        err(EXIT_FAILURE, "cannot install SIGCHLD handler");
+    while(0 < waitpid(-1, NULL, WNOHANG));
+}
+
+static int setuprandr(void) { // Set up RANDR extension. Get the extension base and subscribe to
+    // events.
+    const xcb_query_extension_reply_t *extension = xcb_get_extension_data(dis, &xcb_randr_id);
+    if (!extension->present) return -1;
+    else getrandr();
+    int base = extension->first_event;
+    xcb_randr_select_input(dis, screen->root,XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
+            XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
+            XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
+    return base;
+}
+
 /* set initial values
  * root window - screen height/width - atoms - xerror handler
  * set masks for reporting events handled by the wm
  * and propagate the suported net atoms
  */
-int setup(int default_screen) {
+static int setup(int default_screen) {
     sigchld();
     screen = xcb_screen_of_display(dis, default_screen);
     if (!screen) err(EXIT_FAILURE, "error: cannot aquire screen\n");
@@ -506,24 +522,6 @@ int setup(int default_screen) {
         change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
     DEBUG("leaving setup");
     return 0;
-}
-
-int setuprandr(void)                // Set up RANDR extension. Get the extension base and subscribe to
-{                                   // events.
-    const xcb_query_extension_reply_t *extension = xcb_get_extension_data(dis, &xcb_randr_id);
-    if (!extension->present) return -1;
-    else getrandr();
-    int base = extension->first_event;
-    xcb_randr_select_input(dis, screen->root,XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
-            XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
-            XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
-    return base;
-}
-
-void sigchld() {
-    if (signal(SIGCHLD, sigchld) == SIG_ERR)
-        err(EXIT_FAILURE, "cannot install SIGCHLD handler");
-    while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
 int main(int argc, char *argv[]) {

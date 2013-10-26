@@ -2,6 +2,26 @@
 
 #include "frankensteinwm.h"
 
+/* variables */
+bool running = true;
+int randrbase, retval = 0, nmons = 0;
+unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent;
+xcb_connection_t *dis;
+xcb_screen_t *screen;
+xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
+desktop desktops[DESKTOPS];
+monitor *mons = NULL, *selmon = NULL;
+Menu *menus = NULL;
+Xresources xres;
+
+bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
+    [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
+};
+
+void (*tiledirection[TDIRECS])(client *n, client *c) = {
+    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
+};
+
 void adjustclientgaps(const int gap, client *c) {
         if (c->xp == 0) c->gapx = gap;
         else c->gapx = gap/2;
@@ -346,6 +366,24 @@ void grabkeys(void) {
     }
 }
 
+void* malloc_safe(size_t size) {
+    void *ret;
+    if(!(ret = malloc(size)))
+        puts("malloc_safe: fatal: could not malloc()");
+    memset(ret, 0, size);
+    return ret;
+}
+
+/* get the previous client from the given
+ *  * if no such client, return NULL */
+client* prev_client(client *c, desktop *d) {
+    if (!c || !d->head->next)
+        return NULL;
+    client *p;
+    for (p = d->head; p->next && p->next != c; p = p->next);
+    return p;
+}
+
 monitor* ptrtomon(int x, int y) {
     monitor *m;
     int i;
@@ -437,6 +475,18 @@ monitor *wintomon(xcb_window_t w) {
     
     DEBUG("wintomon: leaving, returning NULL monitor");
     return NULL;
+}
+
+/* wrapper to get xcb keycodes from keysymbol */
+xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
+    xcb_key_symbols_t *keysyms;
+    xcb_keycode_t     *keycode;
+
+    if (!(keysyms = xcb_key_symbols_alloc(dis))) return NULL;
+        keycode = xcb_key_symbols_get_keycode(keysyms, keysym);
+    xcb_key_symbols_free(keysyms);
+
+    return keycode;
 }
 
 /* vim: set ts=4 sw=4 :*/

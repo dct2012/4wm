@@ -23,6 +23,66 @@ static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_
     for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); /* TODO: Handle error */
 }
 
+/* find which client the given window belongs to */
+static client *wintoclient(xcb_window_t w) {
+    DEBUG("wintoclient: entering");
+    client *c = NULL;
+    int i;
+ 
+    for (i = 0; i < DESKTOPS; i++)
+        for (c = desktops[i].head; c; c = c->next)
+            if(c->win == w) {
+                DEBUG("wintoclient: leaving, returning found client");
+                return c;
+            }
+    
+    DEBUG("wintoclient: leaving, returning NULL client");
+    return NULL;
+}
+
+/* remove the specified client
+ *
+ * note, the removing client can be on any desktop,
+ * we must return back to the current focused desktop.
+ * if c was the previously focused, prevfocus must be updated
+ * else if c was the current one, current must be updated. */
+static void removeclient(client *c, desktop *d, const monitor *m) {
+    DEBUG("removeclient: entering"); 
+    client **p = NULL, *dead, *n;
+    for (p = &d->head; *p && (*p != c); p = &(*p)->next);
+    if (!p) 
+        return; 
+    else 
+        *p = c->next;
+    if (c == d->prevfocus) 
+        d->prevfocus = prev_client(d->current, d);
+    if (c == d->current) {
+        d->current = d->prevfocus ? d->prevfocus:d->head;
+        d->prevfocus = prev_client(d->current, d);
+    }
+
+    if (!ISFFT(c)) {
+        d->count -= 1;
+        dead = (client *)malloc_safe(sizeof(client));
+        *dead = *c;
+        dead->next = NULL;
+        if (!d->dead) {
+            DEBUG("removeclient: d->dead == NULL");
+            d->dead = dead;
+        }
+        else {
+            for (n = d->dead; n; n = n->next);
+            n = dead;
+        }
+        tileremove(d, m);
+    } 
+    free(c); c = NULL; 
+    setborders(d);
+    desktopinfo();
+    DEBUG("removeclient: leaving");
+}
+
+
 /* create a new client and add the new window
  * window should notify of property change events
  */
@@ -272,7 +332,7 @@ void keypress(xcb_generic_event_t *e) {
     xcb_key_press_event_t *ev       = (xcb_key_press_event_t *)e;
     xcb_keysym_t           keysym   = xcb_get_keysym(ev->detail);
     DEBUGP("xcb: keypress: code: %d mod: %d\n", ev->detail, ev->state);
-    for (unsigned int i=0; i<LENGTH(keys); i++)
+    for (unsigned int i=0; i < LENGTH(keys); i++)
         if (keysym == keys[i].keysym && CLEANMASK(keys[i].mod) == CLEANMASK(ev->state) && keys[i].func)
                 keys[i].func(&keys[i].arg);
 
@@ -397,48 +457,6 @@ void propertynotify(xcb_generic_event_t *e) {
     DEBUG("propertynotify: leaving");
 }
 
-/* remove the specified client
- *
- * note, the removing client can be on any desktop,
- * we must return back to the current focused desktop.
- * if c was the previously focused, prevfocus must be updated
- * else if c was the current one, current must be updated. */
-void removeclient(client *c, desktop *d, const monitor *m) {
-    DEBUG("removeclient: entering"); 
-    client **p = NULL, *dead, *n;
-    for (p = &d->head; *p && (*p != c); p = &(*p)->next);
-    if (!p) 
-        return; 
-    else 
-        *p = c->next;
-    if (c == d->prevfocus) 
-        d->prevfocus = prev_client(d->current, d);
-    if (c == d->current) {
-        d->current = d->prevfocus ? d->prevfocus:d->head;
-        d->prevfocus = prev_client(d->current, d);
-    }
-
-    if (!ISFFT(c)) {
-        d->count -= 1;
-        dead = (client *)malloc_safe(sizeof(client));
-        *dead = *c;
-        dead->next = NULL;
-        if (!d->dead) {
-            DEBUG("removeclient: d->dead == NULL");
-            d->dead = dead;
-        }
-        else {
-            for (n = d->dead; n; n = n->next);
-            n = dead;
-        }
-        tileremove(d, m);
-    } 
-    free(c); c = NULL; 
-    setborders(d);
-    desktopinfo();
-    DEBUG("removeclient: leaving");
-}
-
 /* windows that request to unmap should lose their
  * client, so no invisible windows exist on screen
  */
@@ -450,23 +468,6 @@ void unmapnotify(xcb_generic_event_t *e) {
     if (c && ev->event != screen->root) removeclient(c, &desktops[selmon->curr_dtop], m);
     desktopinfo();
     DEBUG("unmapnotify: leaving");
-}
-
-/* find which client the given window belongs to */
-client *wintoclient(xcb_window_t w) {
-    DEBUG("wintoclient: entering");
-    client *c = NULL;
-    int i;
- 
-    for (i = 0; i < DESKTOPS; i++)
-        for (c = desktops[i].head; c; c = c->next)
-            if(c->win == w) {
-                DEBUG("wintoclient: leaving, returning found client");
-                return c;
-            }
-    
-    DEBUG("wintoclient: leaving, returning NULL client");
-    return NULL;
 }
 
 /* vim: set ts=4 sw=4 :*/

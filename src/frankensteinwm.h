@@ -141,153 +141,118 @@ typedef struct Xresources {
     xcb_gcontext_t font_gc[12];
 } Xresources;
 
-/* Exposed function prototypes sorted alphabetically */
-
-static void change_desktop(const Arg *arg);
-static void client_to_desktop(const Arg *arg);
-static void decreasegap(const Arg *arg);
-static void focusurgent();
-static void increasegap(const Arg *arg);
-static void killclient();
-static void launchmenu(const Arg *arg);
-static void moveclient(const Arg *arg);
-static void moveclientup(int *num, client *c, client **list, desktop *d);
-static void moveclientleft(int *num, client *c, client **list, desktop *d);
-static void moveclientdown(int *num, client *c, client **list, desktop *d);
-static void moveclientright(int *num, client *c, client **list, desktop *d);
-static void movefocus(const Arg *arg);
-static void mousemotion(const Arg *arg);
-static void pushtotiling();
-static void quit(const Arg *arg);
-static void resizeclient(const Arg *arg);
-static void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-static void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-static void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-static void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-static void rotate(const Arg *arg);
-static void rotate_filled(const Arg *arg);
-static void spawn(const Arg *arg);
-static void switch_mode(const Arg *arg);
-static void switch_direction(const Arg *arg);
-static void togglepanel();
+// commands.c
+extern void change_desktop(const Arg *arg);
+extern void client_to_desktop(const Arg *arg);
+extern void decreasegap(const Arg *arg);
+extern void focusurgent();
+extern void increasegap(const Arg *arg);
+extern void killclient();
+extern void launchmenu(const Arg *arg);
+extern void moveclient(const Arg *arg);
+extern void moveclientup(int *num, client *c, client **list, desktop *d);
+extern void moveclientleft(int *num, client *c, client **list, desktop *d);
+extern void moveclientdown(int *num, client *c, client **list, desktop *d);
+extern void moveclientright(int *num, client *c, client **list, desktop *d);
+extern void movefocus(const Arg *arg);
+extern void mousemotion(const Arg *arg);
+extern void pushtotiling();
+extern void quit(const Arg *arg);
+extern void resizeclient(const Arg *arg);
+extern void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+extern void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+extern void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+extern void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+extern void rotate(const Arg *arg);
+extern void rotate_filled(const Arg *arg);
+extern void spawn(const Arg *arg);
+extern void switch_mode(const Arg *arg);
+extern void switch_direction(const Arg *arg);
+extern void togglepanel();
 
 #include "config.h"
 
-/* Hidden function prototypes sorted alphabetically */
-static client* addwindow(xcb_window_t w, desktop *d);
-static void adjustclientgaps(const int gap, client *c);
-static void buttonpress(xcb_generic_event_t *e);
-static void cleanup(void);
-static void clientmessage(xcb_generic_event_t *e);
-static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
-static bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
-static bool clientstouchingright(desktop *d, client *c, client **list, int *num);
-static bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
-static desktop *clienttodesktop(client *c);
-static void configurerequest(xcb_generic_event_t *e);
-static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop);
-static void deletewindow(xcb_window_t w);
-static void desktopinfo(void);
-static void destroynotify(xcb_generic_event_t *e);
-static void enternotify(xcb_generic_event_t *e);
-static void expose(xcb_generic_event_t *e);
-static void focus(client *c, desktop *d);
-static void focusin(xcb_generic_event_t *e);
-static unsigned int getcolor(char* color);
-static bool getrootptr(int *x, int *y);
-static void gettitle(client *c);
-static void grabbuttons(client *c);
-static void grabkeys(void);
-static void growbyh(client *match, const float size, client *c, monitor *m);
-static void growbyw(client *match, const float size, client *c, monitor *m);
-static void growbyx(client *match, const float size, client *c, monitor *m);
-static void growbyy(client *match, const float size, client *c, monitor *m);
-static void initializexresources();
-static void keypress(xcb_generic_event_t *e);
-static void mappingnotify(xcb_generic_event_t *e);
-static void maprequest(xcb_generic_event_t *e);
-static void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m);
-static client* prev_client(client *c, desktop *d);
-static void propertynotify(xcb_generic_event_t *e);
-static monitor* ptrtomon(int x, int y);
-static void removeclient(client *c, desktop *d, const monitor *m);
-static void retile(desktop *d, const monitor *m);
-static void run(void);
-static void setborders(desktop *d);
-static int setup(int default_screen);
-static int  setuprandr(void);
-static void shrinkbyh(client *match, const float size, client *c, monitor *m);
-static void shrinkbyw(client *match, const float size, client *c, monitor *m);
-static void shrinkbyx(client *match, const float size, client *c, monitor *m);
-static void shrinkbyy(client *match, const float size, client *c, monitor *m);
-static void sigchld();
-static void text_draw(unsigned int color, xcb_window_t window, int16_t x1, int16_t y1, const char *label);
-static void tilenew(desktop *d, const monitor *m);
-static void tilenewbottom(client *n, client *c);
-static void tilenewleft(client *n, client *c);
-static void tilenewright(client *n, client *c);
-static void tilenewtop(client *n, client *c);
-static void tileremove(desktop *d, const monitor *m);
-static void unmapnotify(xcb_generic_event_t *e);
-static client *wintoclient(xcb_window_t w);
-static monitor *wintomon(xcb_window_t w);
+// utils.c
+extern void adjustclientgaps(const int gap, client *c);
+extern bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
+extern bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
+extern bool clientstouchingright(desktop *d, client *c, client **list, int *num);
+extern bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
+extern void deletewindow(xcb_window_t w);
+extern void desktopinfo(void);
+extern void focus(client *c, desktop *d);
+extern bool getrootptr(int *x, int *y);
+extern void gettitle(client *c);
+extern void grabbuttons(client *c);
+extern void grabkeys(void);
+extern void* malloc_safe(size_t size);
+extern client* prev_client(client *c, desktop *d);
+extern monitor* ptrtomon(int x, int y);
+extern void setborders(desktop *d);
+extern monitor *wintomon(xcb_window_t w);
+extern xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym);
+
+// events.c
+extern client* addwindow(xcb_window_t w, desktop *d);
+extern void buttonpress(xcb_generic_event_t *e);
+extern void clientmessage(xcb_generic_event_t *e);
+//extern desktop *clienttodesktop(client *c);
+extern void configurerequest(xcb_generic_event_t *e);
+extern void destroynotify(xcb_generic_event_t *e);
+extern void enternotify(xcb_generic_event_t *e);
+extern void expose(xcb_generic_event_t *e);
+extern void focusin(xcb_generic_event_t *e);
+extern void keypress(xcb_generic_event_t *e);
+extern void mappingnotify(xcb_generic_event_t *e);
+extern void maprequest(xcb_generic_event_t *e);
+extern void propertynotify(xcb_generic_event_t *e);
+//extern void removeclient(client *c, desktop *d, const monitor *m);
+extern void unmapnotify(xcb_generic_event_t *e);
+
+// tiling.c
+extern void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m);
+extern void retile(desktop *d, const monitor *m);
+extern void tilenew(desktop *d, const monitor *m);
+extern void tilenewbottom(client *n, client *c);
+extern void tilenewleft(client *n, client *c);
+extern void tilenewright(client *n, client *c);
+extern void tilenewtop(client *n, client *c);
+extern void tileremove(desktop *d, const monitor *m);
 
 /* variables */
-static bool running = true;
-static int randrbase, retval = 0, nmons = 0;
-static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent;
-static xcb_connection_t *dis;
-static xcb_screen_t *screen;
-static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
-static desktop desktops[DESKTOPS];
-static monitor *mons = NULL, *selmon = NULL;
-static Menu *menus = NULL;
-static Xresources xres;
+extern bool running;
+extern int randrbase, retval, nmons;
+extern unsigned int numlockmask, win_unfocus, win_focus, win_outer, win_urgent;
+extern xcb_connection_t *dis;
+extern xcb_screen_t *screen;
+extern xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
+extern desktop desktops[DESKTOPS];
+extern monitor *mons, *selmon;
+extern Menu *menus;
+extern Xresources xres;
 
-/* events array
- * on receival of a new event, call the appropriate function to handle it
- */
-static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
+// config.def.h
+extern Key keys[];
+extern Button buttons[];
 
-static void* malloc_safe(size_t size)
-{
-    void *ret;
-    if(!(ret = malloc(size)))
-        puts("malloc_safe: fatal: could not malloc()");
-    memset(ret, 0, size);
-    return ret;
-}
+// utils.c
+extern bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num);
+extern void (*tiledirection[TDIRECS])(client *n, client *c);
 
-static bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
-    [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
-};
-
-static void (*tiledirection[TDIRECS])(client *n, client *c) = {
-    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
-};
+// events array
+// on receival of a new event, call the appropriate function to handle it
+void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 /* wrapper to move and resize window */
-static inline void xcb_move_resize(xcb_connection_t *con, xcb_window_t win, int x, int y, int w, int h) {
+inline void xcb_move_resize(xcb_connection_t *con, xcb_window_t win, int x, int y, int w, int h) {
     unsigned int pos[4] = { x, y, w, h };
     xcb_configure_window(con, win, XCB_MOVE_RESIZE, pos);
 }
 
 /* wrapper to raise window */
-static inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
+inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
     unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
     xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
-}
-
-/* wrapper to get xcb keycodes from keysymbol */
-static xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
-    xcb_key_symbols_t *keysyms;
-    xcb_keycode_t     *keycode;
-
-    if (!(keysyms = xcb_key_symbols_alloc(dis))) return NULL;
-    keycode = xcb_key_symbols_get_keycode(keysyms, keysym);
-    xcb_key_symbols_free(keysyms);
-
-    return keycode;
 }
 
 /* vim: set ts=4 sw=4 :*/

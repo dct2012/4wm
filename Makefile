@@ -18,8 +18,14 @@ LDFLAGS  += -s ${LIBS}
 
 EXEC = ${WMNAME}
 
-SRC = ${WMNAME}.c
-OBJ = ${SRC:.c=.o}
+SRCS =  src/utils.c		\
+	src/events.c		\
+	src/commands.c		\
+	src/tiling.c		\
+	src/frankensteinwm.c
+
+${OBJS}: config.h src/frankensteinwm.h
+OBJS = ${SRCS:.c=.o}
 
 ifeq (${DEBUG},0)
    CFLAGS  += -Os
@@ -39,21 +45,19 @@ options:
 
 .c.o:
 	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
-
-${OBJ}: config.h
+	@${CC} -c ${CFLAGS} $< -o $@
 
 config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
 
-${WMNAME}: ${OBJ}
-	@echo CC -o $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+${WMNAME}: ${OBJS}
+	@echo CC $@
+	@${CC} -o $@ ${OBJS} ${LDFLAGS}
 
 clean:
 	@echo cleaning
-	@rm -fv ${WMNAME} ${OBJ} ${WMNAME}-${VERSION}.tar.gz
+	@rm -fv ${WMNAME} ${OBJS} ${WMNAME}-${VERSION}.tar.gz
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin

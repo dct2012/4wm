@@ -17,6 +17,82 @@ static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, in
     xcb_configure_window(con, win, XCB_RESIZE, pos);
 }
 
+static void growbyh(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? (match->yp - c->yp):(c->hp + size);
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+static void growbyw(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? (match->xp - c->xp):(c->wp + size);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+static void growbyx(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
+    c->xp = match ? (match->xp + match->wp):(c->xp - size);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
+                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+static void growbyy(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
+    c->yp = match ? (match->yp + match->hp):(c->yp - size);
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+static void shrinkbyh(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? (match->yp - c->yp):(c->hp - size);
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+static void shrinkbyw(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? (match->xp - c->xp):(c->wp - size);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+static void shrinkbyx(client *match, const float size, client *c, monitor *m) {
+    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
+    c->xp = match ? (match->xp + match->wp):(c->xp + size);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
+                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+}
+
+static void shrinkbyy(client *match, const float size, client *c, monitor *m) {
+    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
+    c->yp = match ? (match->yp + match->hp):(c->yp + size);
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
+                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+}
+
+static void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
+    //xcb_void_cookie_t    cookie_gc;
+    xcb_void_cookie_t    cookie_text;
+    xcb_generic_error_t *error;
+    uint8_t              length;
+
+    length = strlen(label);
+
+    cookie_text = xcb_image_text_8_checked(dis, length, window, gc, x1, y1, label);
+    error = xcb_request_check(dis, cookie_text);
+    if (error) {
+        fprintf(stderr, "ERROR: can't paste text : %d\n", error->error_code);
+        xcb_disconnect(dis);
+        exit(-1);
+    }
+
+    // TODO: make sure all these gc's are being cleaned up
+    /*
+    cookie_gc = xcb_free_gc(dis, gc);
+    error = xcb_request_check (dis, cookie_gc);
+    if (error) {
+        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
+        xcb_disconnect (dis);
+        exit (-1);
+    }
+    */
+}
+
 /* focus another desktop
  *
  * to avoid flickering
@@ -165,30 +241,6 @@ void focusurgent() {
     }
 
     DEBUG("focusurgent: leaving");
-}
-
-void growbyh(client *match, const float size, client *c, monitor *m) {
-    c->hp = match ? (match->yp - c->yp):(c->hp + size);
-    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-}
-
-void growbyw(client *match, const float size, client *c, monitor *m) {
-    c->wp = match ? (match->xp - c->xp):(c->wp + size);
-    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-}
-
-void growbyx(client *match, const float size, client *c, monitor *m) {
-    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
-    c->xp = match ? (match->xp + match->wp):(c->xp - size);
-    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
-                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-}
-
-void growbyy(client *match, const float size, client *c, monitor *m) {
-    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
-    c->yp = match ? (match->yp + match->hp):(c->yp - size);
-    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
 }
 
 // increase gap between windows
@@ -777,30 +829,6 @@ void rotate_filled(const Arg *arg) {
     change_desktop(&(Arg){.i = (DESKTOPS + selmon->curr_dtop + n) % DESKTOPS});
 }
 
-void shrinkbyh(client *match, const float size, client *c, monitor *m) {
-    c->hp = match ? (match->yp - c->yp):(c->hp - size);
-    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-}
-
-void shrinkbyw(client *match, const float size, client *c, monitor *m) {
-    c->wp = match ? (match->xp - c->xp):(c->wp - size);
-    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-}
-
-void shrinkbyx(client *match, const float size, client *c, monitor *m) {
-    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
-    c->xp = match ? (match->xp + match->wp):(c->xp + size);
-    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
-                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-}
-
-void shrinkbyy(client *match, const float size, client *c, monitor *m) {
-    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
-    c->yp = match ? (match->yp + match->hp):(c->yp + size);
-    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-}
-
 /* execute a command */
 void spawn(const Arg *arg) {
     if (fork()) return;
@@ -838,34 +866,6 @@ void switch_mode(const Arg *arg) {
     retile(d, selmon);
     
     desktopinfo();
-}
-
-void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
-    //xcb_void_cookie_t    cookie_gc;
-    xcb_void_cookie_t    cookie_text;
-    xcb_generic_error_t *error;
-    uint8_t              length;
-
-    length = strlen(label);
-
-    cookie_text = xcb_image_text_8_checked(dis, length, window, gc, x1, y1, label);
-    error = xcb_request_check(dis, cookie_text);
-    if (error) {
-        fprintf(stderr, "ERROR: can't paste text : %d\n", error->error_code);
-        xcb_disconnect(dis);
-        exit(-1);
-    }
-
-    // TODO: make sure all these gc's are being cleaned up
-    /*
-    cookie_gc = xcb_free_gc(dis, gc);
-    error = xcb_request_check (dis, cookie_gc);
-    if (error) {
-        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-    */
 }
 
 /* toggle visibility state of the panel */
