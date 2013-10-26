@@ -57,7 +57,7 @@ ${WMNAME}: ${OBJS}
 
 clean:
 	@echo cleaning
-	@rm -fv ${WMNAME} ${OBJS} ${WMNAME}-${VERSION}.tar.gz
+	@rm -fv src/*.o
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
