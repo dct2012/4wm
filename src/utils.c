@@ -14,26 +14,7 @@ monitor *mons = NULL, *selmon = NULL;
 Menu *menus = NULL;
 Xresources xres;
 
-bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
-    [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
-};
-
-void (*tiledirection[TDIRECS])(client *n, client *c) = {
-    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
-};
-
-void adjustclientgaps(const int gap, client *c) {
-        if (c->xp == 0) c->gapx = gap;
-        else c->gapx = gap/2;
-        if (c->yp == 0) c->gapy = gap;
-        else c->gapy = gap/2;
-        if ((c->xp + c->wp) == 1) c->gapw = gap;
-        else c->gapw = gap/2;
-        if ((c->yp + c->hp) == 1) c->gaph = gap;
-        else c->gaph = gap/2;
-}
-
-bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
+static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingbottom: entering");
     if((c->yp + c->hp) < 1) { //capable of having windows below?
         float width;
@@ -77,7 +58,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
     return false;
 }
 
-bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
+static bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingleft: entering");
     if(c->xp > 0) { //capable of having windows to the left?
         float height;
@@ -122,7 +103,7 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     return false;
 }
 
-bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
+static bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingright: entering");
     if((c->xp + c->wp) < 1) { //capable of having windows to the right?
         float height;
@@ -165,7 +146,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     return false;
 }
 
-bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
+static bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingtop: entering");
     if(c->yp > 0) { //capable of having windows above?
         float width;
@@ -206,6 +187,57 @@ bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
     }
     DEBUG("clientstouchingtop: leaving error");
     return false;
+}
+
+static void gettitle(client *c) {
+    xcb_icccm_get_text_property_reply_t reply;
+    xcb_generic_error_t *err = NULL;
+
+    if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, netatoms[NET_WM_NAME]), &reply, &err))
+        if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, XCB_ATOM_WM_NAME), &reply, &err))
+            return;
+
+    if(err) {
+        free(err);
+        return;
+    }
+
+    // TODO: encoding
+    if(!reply.name || !reply.name_len)
+        return;
+
+    strncpy(c->title, reply.name, (reply.name_len+1 < 256 ? reply.name_len+1:256));
+    c->title[(reply.name_len + 1 < 255 ? reply.name_len +1:255)] = '\0';
+    xcb_icccm_get_text_property_reply_wipe(&reply);
+}
+
+static monitor* ptrtomon(int x, int y) {
+    monitor *m;
+    int i;
+
+    for(i = 0, m = mons; i < nmons; m = m->next, i++)
+        if(INRECT(x, y, m->x, m->y, m->w, m->h))
+            return m;
+    return selmon;
+}
+
+bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
+    [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
+};
+
+void (*tiledirection[TDIRECS])(client *n, client *c) = {
+    [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
+};
+
+void adjustclientgaps(const int gap, client *c) {
+        if (c->xp == 0) c->gapx = gap;
+        else c->gapx = gap/2;
+        if (c->yp == 0) c->gapy = gap;
+        else c->gapy = gap/2;
+        if ((c->xp + c->wp) == 1) c->gapw = gap;
+        else c->gapw = gap/2;
+        if ((c->yp + c->hp) == 1) c->gaph = gap;
+        else c->gaph = gap/2;
 }
 
 /* close the window */
@@ -308,28 +340,6 @@ bool getrootptr(int *x, int *y) {
     return true;
 }
 
-void gettitle(client *c) {
-    xcb_icccm_get_text_property_reply_t reply;
-    xcb_generic_error_t *err = NULL;
-
-    if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, netatoms[NET_WM_NAME]), &reply, &err))
-        if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, XCB_ATOM_WM_NAME), &reply, &err))
-            return;
-
-    if(err) {
-        free(err);
-        return;
-    }
-
-    // TODO: encoding
-    if(!reply.name || !reply.name_len)
-        return;
-
-    strncpy(c->title, reply.name, (reply.name_len+1 < 256 ? reply.name_len+1:256));
-    c->title[(reply.name_len + 1 < 255 ? reply.name_len +1:255)] = '\0';
-    xcb_icccm_get_text_property_reply_wipe(&reply);
-}
-
 // TODO work on CLICK_TO_FOCUS
 /* set the given client to listen to button events (presses / releases) */
 void grabbuttons(client *c) {
@@ -382,16 +392,6 @@ client* prev_client(client *c, desktop *d) {
     client *p;
     for (p = d->head; p->next && p->next != c; p = p->next);
     return p;
-}
-
-monitor* ptrtomon(int x, int y) {
-    monitor *m;
-    int i;
-
-    for(i = 0, m = mons; i < nmons; m = m->next, i++)
-        if(INRECT(x, y, m->x, m->y, m->w, m->h))
-            return m;
-    return selmon;
 }
 
 void setborders(desktop *d) {

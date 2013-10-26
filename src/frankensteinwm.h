@@ -174,29 +174,22 @@ extern void togglepanel();
 
 // utils.c
 extern void adjustclientgaps(const int gap, client *c);
-extern bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
-extern bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
-extern bool clientstouchingright(desktop *d, client *c, client **list, int *num);
-extern bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
 extern void deletewindow(xcb_window_t w);
 extern void desktopinfo(void);
 extern void focus(client *c, desktop *d);
 extern bool getrootptr(int *x, int *y);
-extern void gettitle(client *c);
 extern void grabbuttons(client *c);
 extern void grabkeys(void);
 extern void* malloc_safe(size_t size);
 extern client* prev_client(client *c, desktop *d);
-extern monitor* ptrtomon(int x, int y);
 extern void setborders(desktop *d);
 extern monitor *wintomon(xcb_window_t w);
 extern xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym);
 
 // events.c
-extern client* addwindow(xcb_window_t w, desktop *d);
+//extern client* addwindow(xcb_window_t w, desktop *d);
 extern void buttonpress(xcb_generic_event_t *e);
 extern void clientmessage(xcb_generic_event_t *e);
-//extern desktop *clienttodesktop(client *c);
 extern void configurerequest(xcb_generic_event_t *e);
 extern void destroynotify(xcb_generic_event_t *e);
 extern void enternotify(xcb_generic_event_t *e);
@@ -206,7 +199,6 @@ extern void keypress(xcb_generic_event_t *e);
 extern void mappingnotify(xcb_generic_event_t *e);
 extern void maprequest(xcb_generic_event_t *e);
 extern void propertynotify(xcb_generic_event_t *e);
-//extern void removeclient(client *c, desktop *d, const monitor *m);
 extern void unmapnotify(xcb_generic_event_t *e);
 
 // tiling.c
@@ -230,10 +222,6 @@ extern desktop desktops[DESKTOPS];
 extern monitor *mons, *selmon;
 extern Menu *menus;
 extern Xresources xres;
-
-// config.def.h
-extern Key keys[];
-extern Button buttons[];
 
 // utils.c
 extern bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num);

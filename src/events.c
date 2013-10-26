@@ -23,6 +23,27 @@ static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_
     for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); /* TODO: Handle error */
 }
 
+/* create a new client and add the new window
+ * window should notify of property change events
+ */
+static client* addwindow(xcb_window_t w, desktop *d) {
+    DEBUG("addwindow: entering");
+    client *c, *t = prev_client(d->head, d);
+ 
+    if (!(c = (client *)malloc_safe(sizeof(client)))) err(EXIT_FAILURE, "cannot allocate client");
+
+    if (!d->head) d->head = c;
+    else if (t) t->next = c; 
+    else d->head->next = c;
+
+    DEBUGP("addwindow: d->count = %d\n", d->count);
+
+    unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
+    xcb_change_window_attributes_checked(dis, (c->win = w), XCB_CW_EVENT_MASK, values);
+    DEBUG("addwindow: leaving");
+    return c;
+}
+
 /* find which client the given window belongs to */
 static client *wintoclient(xcb_window_t w) {
     DEBUG("wintoclient: entering");
@@ -82,27 +103,6 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
     DEBUG("removeclient: leaving");
 }
 
-
-/* create a new client and add the new window
- * window should notify of property change events
- */
-client* addwindow(xcb_window_t w, desktop *d) {
-    DEBUG("addwindow: entering");
-    client *c, *t = prev_client(d->head, d);
- 
-    if (!(c = (client *)malloc_safe(sizeof(client)))) err(EXIT_FAILURE, "cannot allocate client");
-
-    if (!d->head) d->head = c;
-    else if (t) t->next = c; 
-    else d->head->next = c;
-
-    DEBUGP("addwindow: d->count = %d\n", d->count);
-
-    unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
-    xcb_change_window_attributes_checked(dis, (c->win = w), XCB_CW_EVENT_MASK, values);
-    DEBUG("addwindow: leaving");
-    return c;
-}
 
 /* on the press of a button check to see if there's a binded function to call 
  * TODO: if we make the mouse able to switch monitors we could eliminate a call
