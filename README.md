@@ -4,12 +4,12 @@ frankensteinwm
 
 ----------------------
 **frankensteinwm** is a versatile, lightweight, dynamic tiling window manager with 
-two borders. Its mission is to be as small, versatile, and quick. It has three 
-layouts: a tiling layout and two fullscreen layouts. There are four direction in which 
-you can tile, four directions in which a window can swap with another, and four directions
-in which you can resize a window. Each desktop can have gaps between windows and the size
-can change. Each virtual desktop has its own properties, unaffected by other desktops' or
-monitors' settings.
+two borders. Its mission is to be small, versatile, and quick. It has three layouts: a 
+tiling layout and two fullscreen layouts. There are four direction in which you can tile,
+four directions in which a window can swap with another, and four directions in which you
+can resize a window. Each desktop can have gaps between windows and the size can change. 
+Each virtual desktop has its own properties, unaffected by other desktops' or monitors' 
+settings.
 
 Layouts
 -----
@@ -80,24 +80,25 @@ Build and install.
 TODO
 ----
 
-Work on steam
+* Work on steam
   * games 
     * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
       killing these pulseaudio processes allow the game to resume. alternatively you can
       launch steam or the game with SDL_AUDIODRIVER=alsa
 
-Work on menu.
+* Work on menu.
   * limit string length to rectangle/tile width.
   * add user defined fonts in Xdefaults.
 
-Add a way to pipe desktopinfo to a panel like xmonad.
+* Add a way to pipe desktopinfo to a panel like xmonad.
 
-Start breaking things into seperate files.
+* Start breaking things into seperate files.
   * look for conditional statements that can be moved to preprocessor conditionals.
   * preprocessor conditions for function/variables/etc.
   * overall organization.
+    * find a way to keep config.h one file and have no warnings.
 
-Work on floating layout.
+* Work on floating layout.
 
 Bugs
 ----
