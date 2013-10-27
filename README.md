@@ -89,6 +89,7 @@ TODO
 * Work on menu.
   * limit string length to rectangle/tile width.
   * add user defined fonts in Xdefaults.
+  * add keyboard use.
 
 * Add a way to pipe desktopinfo to a panel like xmonad.
 
