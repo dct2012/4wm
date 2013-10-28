@@ -93,11 +93,9 @@ TODO
 
 * Add a way to pipe desktopinfo to a panel like xmonad.
 
-* Finalize breaking things into seperate files.
-  * look for conditional statements that can be moved to preprocessor conditionals.
-  * preprocessor conditions for function/variables/etc.
-  * overall organization.
-    * find a way to keep config.h one file and have no warnings.
+* look for conditional statements that can be moved to preprocessor conditionals.
+* preprocessor conditions for function/variables/etc.
+* overall organization.
 
 * Work on floating layout.
 
