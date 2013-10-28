@@ -210,7 +210,7 @@ extern void tilenewright(client *n, client *c);
 extern void tilenewtop(client *n, client *c);
 extern void tileremove(desktop *d, const monitor *m);
 
-/* variables */
+// variables
 extern bool running;
 extern int randrbase, retval, nmons;
 extern unsigned int numlockmask, win_unfocus, win_focus, win_outer, win_urgent;
@@ -221,13 +221,11 @@ extern desktop desktops[DESKTOPS];
 extern monitor *mons, *selmon;
 extern Menu *menus;
 extern Xresources xres;
-
 // utils.c
 extern bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num);
 extern void (*tiledirection[TDIRECS])(client *n, client *c);
 
-// events array
-// on receival of a new event, call the appropriate function to handle it
+// events array on receival of a new event, call the appropriate function to handle it
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 /* wrapper to move and resize window */

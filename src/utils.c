@@ -34,7 +34,7 @@ static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width == 0) {
+                        if (width  < 0.00001) {
                             DEBUG("clientstouchingbottom: leaving true");
                             return true;
                         }
@@ -79,7 +79,8 @@ static bool clientstouchingleft(desktop *d, client *c, client **list, int *num) 
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (height == 0) {
+                        DEBUGP("clientstouchingleft: height = %f\n", height);
+                        if (height < 0.00001) {
                             DEBUG("clientstouchingleft: leaving true");
                             return true;
                         }
@@ -122,7 +123,7 @@ static bool clientstouchingright(desktop *d, client *c, client **list, int *num)
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (height == 0) {
+                        if (height  < 0.00001) {
                             DEBUG("clientstouchingright: leaving true");
                             return true;
                         }
@@ -165,7 +166,7 @@ static bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width == 0) {
+                        if (width  < 0.00001) {
                             DEBUG("clientstouchingtop: leaving true");
                             return true;
                         }
