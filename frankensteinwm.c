@@ -215,15 +215,15 @@ static void tilenewtop(client *n, client *c);
 static void tileremove(desktop *d, const monitor *m);
 
 // variables
-static bool running;
-static int randrbase, retval, nmons;
-static unsigned int numlockmask, win_unfocus, win_focus, win_outer, win_urgent;
+static bool running = true;
+static int randrbase, retval = 0, nmons = 0;
+static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent;
 static xcb_connection_t *dis;
 static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
-static monitor *mons, *selmon;
-static Menu *menus;
+static monitor *mons = NULL, *selmon = NULL;
+static Menu *menus = NULL;
 static Xresources xres;
 
 // events array on receival of a new event, call the appropriate function to handle it
