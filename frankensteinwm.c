@@ -438,8 +438,8 @@ void client_to_desktop(const Arg *arg) {
         d->dead = dead;
     }
     else {
-        for (itr = d->dead; itr; itr = itr->next);
-        itr = dead;
+        for (itr = d->dead; itr && itr->next; itr = itr->next);
+        itr->next = dead;
     }
     tileremove(d, selmon);
     focus(d->prevfocus, d);
@@ -1687,8 +1687,8 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
             d->dead = dead;
         }
         else {
-            for (n = d->dead; n; n = n->next);
-            n = dead;
+            for (n = d->dead; n && n->next; n = n->next);
+            n->next = dead;
         }
         tileremove(d, m);
     } 
