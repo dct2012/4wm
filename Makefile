@@ -19,6 +19,7 @@ LDFLAGS  += -s ${LIBS}
 EXEC = ${WMNAME}
 
 SRC = ${WMNAME}.c
+OBJS = frankensteinwm.h config.h
 OBJ = ${SRC:.c=.o}
 
 ifeq (${DEBUG},0)
