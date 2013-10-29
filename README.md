@@ -93,9 +93,9 @@ TODO
 
 * Add a way to pipe desktopinfo to a panel like xmonad.
 
-* look for conditional statements that can be moved to preprocessor conditionals.
-* preprocessor conditions for function/variables/etc.
 * overall organization.
+  * look for conditional statements that can be moved to preprocessor conditionals.
+  * preprocessor conditions for function/variables/etc.
 
 * Work on floating layout.
 
