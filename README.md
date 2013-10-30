@@ -99,10 +99,6 @@ TODO
 
 * Work on floating layout.
 
-* Work on the dead clients.
-
-* We still have precision issues. (tileremove?)
-
 Bugs
 ----
 
