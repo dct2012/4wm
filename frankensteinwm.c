@@ -951,9 +951,9 @@ void adjustclientgaps(const int gap, client *c) {
         else c->gapx = gap/2;
         if (c->yp == 0) c->gapy = gap;
         else c->gapy = gap/2;
-        if ((c->xp + c->wp) == 1) c->gapw = gap;
+        if ((c->xp + c->wp) > 0.99999) c->gapw = gap;
         else c->gapw = gap/2;
-        if ((c->yp + c->hp) == 1) c->gaph = gap;
+        if ((c->yp + c->hp) > 0.99999) c->gaph = gap;
         else c->gaph = gap/2;
 }
 
@@ -1924,8 +1924,11 @@ void tilenew(desktop *d, const monitor *m) {
                             (n->h = (m->h * n->hp) - 2*gap));
         }
         if (dead) {
-            d->dead = d->dead->next;
-            free(dead); dead = NULL;
+            for ( ; d->dead; ) {
+                d->dead = d->dead->next;
+                free(dead); 
+                dead = d->dead;
+            }
         }
     }
     else if (dead) {
