@@ -977,7 +977,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width  < 0.00001) {
+                        if (width < 0.00001) {
                             DEBUG("clientstouchingbottom: leaving true");
                             return true;
                         }
@@ -1066,7 +1066,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (height  < 0.00001) {
+                        if (height < 0.00001) {
                             DEBUG("clientstouchingright: leaving true");
                             return true;
                         }
@@ -1109,7 +1109,7 @@ bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width  < 0.00001) {
+                        if (width < 0.00001) {
                             DEBUG("clientstouchingtop: leaving true");
                             return true;
                         }
@@ -1945,7 +1945,6 @@ void tilenew(desktop *d, const monitor *m) {
         }
         d->dead = d->dead->next;
         free(dead); dead = NULL;
-        //TODO: we should go ahead and try to fill other dead clients
     }
     else {
         tiledirection[d->direction](n, c);
@@ -2039,8 +2038,11 @@ void tileremove(desktop *d, const monitor *m) {
                             (c->w = (m->w * c->wp) - 2*c->gapw), 
                             (c->h = (m->h * c->hp) - 2*c->gaph));
         }
-        d->dead = d->dead->next;
-        free(dead); dead = NULL;
+        for ( ; d->dead; ) {
+            d->dead = d->dead->next;
+            free(dead); 
+            dead = d->dead;
+        }
         DEBUG("tileremove: leaving");
         return;
     }
