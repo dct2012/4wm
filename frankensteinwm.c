@@ -462,7 +462,7 @@ void mousemotion(const Arg *arg) {
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
     if (!d->current->isfloating) d->current->isfloating = true;
-    retile(d, selmon); 
+    //retile(d, selmon); 
     focus(d->current, d);
 
     xcb_generic_event_t *e = NULL;
@@ -877,31 +877,22 @@ void spawn(const Arg *arg) {
     exit(EXIT_SUCCESS);
 }
 
+//switch the tiling direction
 void switch_direction(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     if (d->mode != TILE) {
         d->mode = TILE;
-        if (d->mode != FLOAT)
-            for (client *c = d->head; c; c = c->next) 
-                c->isfloating = false;
         retile(d, selmon);
     }
-    if (d->direction != arg->i)
-        d->direction = arg->i;
-
+    if (d->direction != arg->i) d->direction = arg->i;
     desktopinfo();
 }
 
-/* switch the tiling mode and reset all floating windows */
+// switch the tiling mode or to floating mode,
 void switch_mode(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
-    if (d->mode != arg->i) 
-        d->mode = arg->i;
-    if (d->mode != FLOAT)
-        for (client *c = d->head; c; c = c->next) 
-            c->isfloating = false;
-    retile(d, selmon);
-    
+    if (d->mode != arg->i) d->mode = arg->i;
+    if (d->mode != FLOAT) retile(d, selmon);
     desktopinfo();
 }
 
