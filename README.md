@@ -98,6 +98,9 @@ TODO
   * preprocessor conditions for function/variables/etc.
 
 * Work on floating layout.
+  * need to work on tilenew when current client is a floater
+
+* Bug with pushing a already tiling client to tiling.
 
 Bugs
 ----
