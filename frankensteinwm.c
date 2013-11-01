@@ -656,12 +656,8 @@ void pushtotiling() {
     n->isfloating = false;
     n->istransient = false;
     n->isfullscrn = false;
-
-    if (d->prevfocus)
-        c = d->prevfocus;
-    else if (d->head && (d->head != n))
-        c = d->head;
-    else { // it must be the only client on this desktop
+ 
+    if (d->count == 0) { // no tiled clients
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         adjustclientgaps(gap, n);
         d->count += 1;
@@ -672,7 +668,13 @@ void pushtotiling() {
                             (n->h = m->h - 2*n->gaph));
         DEBUG("pushtotiling: leaving, tiled only client on desktop");
         return;
-    }
+    } else if (d->prevfocus && !ISFFT(d->prevfocus))
+        c = d->prevfocus;
+    // else find the client behind it
+    // else find the client behind the pointer
+    // else just find the first tiled client
+    else if (d->head && (d->head != n))
+        c = d->head;
 
     if(!c) {
         DEBUG("pushtotiling: leaving, error, !c");
@@ -686,7 +688,7 @@ void pushtotiling() {
     adjustclientgaps(gap, c);
     adjustclientgaps(gap, n);
     
-    if (d->mode == TILE) {
+    if (d->mode == TILE || d->mode == FLOAT) {
         xcb_move_resize(dis, c->win,
                         (c->x = m->x + (m->w * c->xp) + c->gapx), 
                         (c->y = m->y + (m->h * c->yp) + c->gapy), 
@@ -704,6 +706,8 @@ void pushtotiling() {
     else
             monocle(m->x, m->y, m->w, m->h, d, m);
 
+    setborders(d);
+    
     DEBUG("pushtotiling: leaving");
 }
 

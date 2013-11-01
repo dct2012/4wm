@@ -96,11 +96,17 @@ TODO
 * overall organization.
   * look for conditional statements that can be moved to preprocessor conditionals.
   * preprocessor conditions for function/variables/etc.
+  * constantly impove readability.
 
 * Work on floating layout.
-  * need to work on tilenew when current client is a floater
+  * need to work on tilenew when current client is a floater.
+    * use the same method for pushtotiling.
 
-* Bug with pushing a already tiling client to tiling.
+* Work on push to tiling.
+  * pushing transient or borderless windows into tiling have no borders. setborders?
+  * handle pushing when mode is float. should be just like when the mode is tile.
+    * I think what we are going to do is when prevfocus is also a float, tile it with 
+      the client that is behind it or the pointer.
 
 Bugs
 ----
