@@ -93,7 +93,7 @@ TODO
 
 * Add a way to pipe desktopinfo to a panel like xmonad.
 
-* overall organization.
+* Overall organization.
   * look for conditional statements that can be moved to preprocessor conditionals.
   * preprocessor conditions for function/variables/etc.
   * constantly impove readability.
@@ -105,6 +105,8 @@ TODO
 
 * Work on push to tiling.
   * finding the client to tile with.
+
+* Add a command to invert the current windows color.
 
 Bugs
 ----
