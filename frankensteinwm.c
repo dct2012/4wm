@@ -650,6 +650,9 @@ void pushtotiling() {
     client *c = NULL, *n = d->current; // the client to push
     monitor *m = selmon;
     
+    if (!n->isfloating && !n->istransient) // then it must already be tiled
+        return;
+
     n->isfloating = false;
     n->istransient = false;
     n->isfullscrn = false;
