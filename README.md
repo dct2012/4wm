@@ -101,7 +101,7 @@ TODO
 * Work on floating layout.
   * need to work on tilenew when current client is a floater.
     * finding the client to tile with.
-    * in floating mode, clients that are tiled are not being retiled after being destroyed.
+  * in floating mode, clients that are tiled are not being retiled after being destroyed.
 
 * Work on push to tiling.
   * finding the client to tile with.
