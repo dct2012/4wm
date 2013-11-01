@@ -222,7 +222,7 @@ void client_to_desktop(const Arg *arg) {
     *dead = *c;
     dead->next = NULL;
     if (!d->dead) {
-        DEBUG("removeclient: d->dead == NULL");
+        DEBUG("client_to_desktop: d->dead == NULL");
         d->dead = dead;
     }
     else {
@@ -2028,7 +2028,7 @@ void tileremove(desktop *d, const monitor *m) {
         client *c = d->head;
         c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
 
-        if ((m != NULL) && (d->mode == TILE)) {
+        if ((m != NULL) && (d->mode == TILE || d->mode == FLOAT)) {
             adjustclientgaps(gap, c);
             xcb_move_resize(dis, c->win, 
                             (c->x = m->x + (m->w * c->xp) + c->gapx), 
@@ -2051,7 +2051,7 @@ void tileremove(desktop *d, const monitor *m) {
         // clients in list should gain the emptyspace
         for (int i = 0; i < n; i++) {
             list[i]->hp += dead->hp;
-            if (m != NULL && (d->mode == TILE)) {
+            if (m != NULL && (d->mode == TILE || d->mode == FLOAT)) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
                                 list[i]->x, 
@@ -2071,7 +2071,7 @@ void tileremove(desktop *d, const monitor *m) {
         // clients in list should gain the emptyspace
         for (int i = 0; i < n; i++) {
             list[i]->wp += dead->wp;
-            if (m != NULL && (d->mode == TILE)) {
+            if (m != NULL && (d->mode == TILE || d->mode == FLOAT)) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
                                 list[i]->x, 
@@ -2092,7 +2092,7 @@ void tileremove(desktop *d, const monitor *m) {
         for (int i = 0; i < n; i++) {
             list[i]->yp = dead->yp;
             list[i]->hp += dead->hp;
-            if (m != NULL && (d->mode == TILE)) {
+            if (m != NULL && (d->mode == TILE || d->mode == FLOAT)) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
                                 list[i]->x, 
@@ -2113,7 +2113,7 @@ void tileremove(desktop *d, const monitor *m) {
         for (int i = 0; i < n; i++) {
             list[i]->xp = dead->xp;
             list[i]->wp += dead->wp;
-            if (m != NULL && (d->mode == TILE)) {
+            if (m != NULL && (d->mode == TILE || d->mode == FLOAT)) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
                                 (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
