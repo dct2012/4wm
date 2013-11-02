@@ -479,8 +479,11 @@ void mousemotion(const Arg *arg) {
                 ev = (xcb_motion_notify_event_t*)e;
                 xw = (arg->i == MOVE ? winx : winw) + ev->root_x - mx;
                 yh = (arg->i == MOVE ? winy : winh) + ev->root_y - my;
-                if (arg->i == RESIZE) xcb_resize(dis, d->current->win, xw>MINWSZ?xw:winw, yh>MINWSZ?yh:winh);
-                else if (arg->i == MOVE) xcb_move(dis, d->current->win, xw, yh);
+                if (arg->i == RESIZE) { 
+                    xcb_resize(dis, d->current->win, (d->current->w = xw>MINWSZ?xw:winw), ( d->current->h = yh>MINWSZ?yh:winh));
+                    setborders(d); // TODO: we should setborders for a individual window, there's probably other cases too
+                } else if (arg->i == MOVE) 
+                    xcb_move(dis, d->current->win, xw, yh);
                 xcb_flush(dis);
                 break;
             case XCB_KEY_PRESS:
