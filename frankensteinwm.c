@@ -483,7 +483,7 @@ void mousemotion(const Arg *arg) {
                     xcb_resize(dis, d->current->win, (d->current->w = xw>MINWSZ?xw:winw), ( d->current->h = yh>MINWSZ?yh:winh));
                     setclientborders(d, d->current);
                 } else if (arg->i == MOVE) 
-                    xcb_move(dis, d->current->win, xw, yh);
+                    xcb_move(dis, d->current->win, (d->current->x = xw), (d->current->y = yh));
                 xcb_flush(dis);
                 break;
             case XCB_KEY_PRESS:
@@ -1881,7 +1881,7 @@ void retile(desktop *d, const monitor *m) {
     DEBUG("retile: entering");
     int gap = d->gap;
 
-    if (d->mode == TILE) {
+    if (d->mode == TILE || d->mode == FLOAT) {
         int n = d->count;
         DEBUGP("retile: d->count = %d\n", d->count);
        
