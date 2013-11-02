@@ -481,7 +481,7 @@ void mousemotion(const Arg *arg) {
                 yh = (arg->i == MOVE ? winy : winh) + ev->root_y - my;
                 if (arg->i == RESIZE) { 
                     xcb_resize(dis, d->current->win, (d->current->w = xw>MINWSZ?xw:winw), ( d->current->h = yh>MINWSZ?yh:winh));
-                    setborders(d); // TODO: we should setborders for a individual window, there's probably other cases too
+                    setclientborders(d, d->current);
                 } else if (arg->i == MOVE) 
                     xcb_move(dis, d->current->win, xw, yh);
                 xcb_flush(dis);
@@ -541,7 +541,8 @@ void moveclientdown(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-        setborders(d);
+        setclientborders(d, list[0]);
+        setclientborders(d, c);
     }
     DEBUG("moveclientdown: leaving");
 }
@@ -569,7 +570,8 @@ void moveclientleft(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        setborders(d);
+        setclientborders(d, list[0]);
+        setclientborders(d, c);
     }
     DEBUG("moveclientleft: leaving");
 }
@@ -597,7 +599,8 @@ void moveclientright(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        setborders(d);
+        setclientborders(d, list[0]);
+        setclientborders(d, c);
     }
     DEBUG("moveclientright: leaving");
 }
@@ -626,7 +629,8 @@ void moveclientup(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-        setborders(d);
+        setclientborders(d, list[0]);
+        setclientborders(d, c);
     }
     DEBUG("moveclientup: leaving");
 }
@@ -704,11 +708,11 @@ void pushtotiling() {
                         (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
                         (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
         DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
-    }
-    else
-            monocle(m->x, m->y, m->w, m->h, d, m);
-
-    setborders(d);
+    
+        setclientborders(d, c);
+        setclientborders(d, n);
+    } else 
+        monocle(m->x, m->y, m->w, m->h, d, m);
     
     DEBUG("pushtotiling: leaving");
 }
@@ -739,7 +743,7 @@ void resizeclient(const Arg *arg) {
 
     (arg->r)(d, arg->i, &n, arg->d, c, m, list);
     free(list);
-    setborders(d);
+    setdesktopborders(d); // TODO: we could propably move this to the individual functions below
     DEBUG("resizeclient: leaving");
 } 
 
@@ -1208,7 +1212,7 @@ void focus(client *c, desktop *d) {
         d->prevfocus = d->current; 
         d->current = c; 
     }
-    setborders(d);
+    setdesktopborders(d); // TODO: see if we can change this to the client one
     gettitle(c);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);
@@ -1288,65 +1292,70 @@ client* prev_client(client *c, desktop *d) {
     return p;
 }
 
-void setborders(desktop *d) {
-    DEBUG("setborders: entering"); 
+void setclientborders(desktop *d, client *c) {
+    DEBUG("setclientborders: entering"); 
     unsigned int values[1];  /* this is the color maintainer */
     unsigned int zero[1];
     int half;
-    client *c;
     
     zero[0] = 0;
     values[0] = BORDER_WIDTH; /* Set border width. */ 
 
     // find n = number of windows with set borders
     int n = d->count;
-    DEBUGP("setborders: d->count = %d\n", d->count);
+    DEBUGP("setclientborders: d->count = %d\n", d->count);
 
-    for (c = d->head; c; c = c -> next) {
-        // rules for no border
-        if ((n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
-            xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
-        }
-        else {
-            xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
-            //if (c == d->head && c->next == NULL)
-                //half = -OUTER_BORDER;
-                //else
-            half = OUTER_BORDER;
-            const xcb_rectangle_t rect_inner[] = {
-                { c->w,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
-                { c->w+BORDER_WIDTH+half,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
-                { 0,c->h,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
-                { 0, c->h+BORDER_WIDTH+half,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
-                { c->w+BORDER_WIDTH+half,BORDER_WIDTH+c->h+half,BORDER_WIDTH,BORDER_WIDTH }
-            };
-            const xcb_rectangle_t rect_outer[] = {
-                {c->w+BORDER_WIDTH-half,0,half,c->h+BORDER_WIDTH*2},
-                {c->w+BORDER_WIDTH,0,half,c->h+BORDER_WIDTH*2},
-                {0,c->h+BORDER_WIDTH-half,c->w+BORDER_WIDTH*2,half},
-                {0,c->h+BORDER_WIDTH,c->w+BORDER_WIDTH*2,half}
-            };
-            xcb_pixmap_t pmap = xcb_generate_id(dis);
-            // 2bwm test have shown that drawing the pixmap directly on the root 
-            // window is faster then drawing it on the window directly
-            xcb_create_pixmap(dis, screen->root_depth, pmap, c->win, c->w+(BORDER_WIDTH*2), c->h+(BORDER_WIDTH*2));
-            xcb_gcontext_t gc = xcb_generate_id(dis);
-            xcb_create_gc(dis, gc, pmap, 0, NULL);
-            
-            xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, 
-                            (c->isurgent ? &win_urgent:c->istransient ? &win_trn:c->isfloating ? &win_flt:&win_outer));
-            xcb_poly_fill_rectangle(dis, pmap, gc, 4, rect_outer);
+    // rules for no border
+    if ((n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
+        xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
+    }
+    else {
+        xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
+        //if (c == d->head && c->next == NULL)
+            //half = -OUTER_BORDER;
+            //else
+        half = OUTER_BORDER;
+        const xcb_rectangle_t rect_inner[] = {
+            { c->w,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
+            { c->w+BORDER_WIDTH+half,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
+            { 0,c->h,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
+            { 0, c->h+BORDER_WIDTH+half,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
+            { c->w+BORDER_WIDTH+half,BORDER_WIDTH+c->h+half,BORDER_WIDTH,BORDER_WIDTH }
+        };
+        const xcb_rectangle_t rect_outer[] = {
+            {c->w+BORDER_WIDTH-half,0,half,c->h+BORDER_WIDTH*2},
+            {c->w+BORDER_WIDTH,0,half,c->h+BORDER_WIDTH*2},
+            {0,c->h+BORDER_WIDTH-half,c->w+BORDER_WIDTH*2,half},
+            {0,c->h+BORDER_WIDTH,c->w+BORDER_WIDTH*2,half}
+        };
+        xcb_pixmap_t pmap = xcb_generate_id(dis);
+        // 2bwm test have shown that drawing the pixmap directly on the root 
+        // window is faster then drawing it on the window directly
+        xcb_create_pixmap(dis, screen->root_depth, pmap, c->win, c->w+(BORDER_WIDTH*2), c->h+(BORDER_WIDTH*2));
+        xcb_gcontext_t gc = xcb_generate_id(dis);
+        xcb_create_gc(dis, gc, pmap, 0, NULL);
+        
+        xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, 
+                        (c->isurgent ? &win_urgent:c->istransient ? &win_trn:c->isfloating ? &win_flt:&win_outer));
+        xcb_poly_fill_rectangle(dis, pmap, gc, 4, rect_outer);
 
-            xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current ? &win_focus:&win_unfocus));
-            xcb_poly_fill_rectangle(dis, pmap, gc, 5, rect_inner);
-            xcb_change_window_attributes(dis,c->win, XCB_CW_BORDER_PIXMAP, &pmap);
-            /* free the memory we allocated for the pixmap */
-            xcb_free_pixmap(dis,pmap);
-            xcb_free_gc(dis,gc);
-        }
+        xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current ? &win_focus:&win_unfocus));
+        xcb_poly_fill_rectangle(dis, pmap, gc, 5, rect_inner);
+        xcb_change_window_attributes(dis,c->win, XCB_CW_BORDER_PIXMAP, &pmap);
+        /* free the memory we allocated for the pixmap */
+        xcb_free_pixmap(dis,pmap);
+        xcb_free_gc(dis,gc);
     }
     xcb_flush(dis);
-    DEBUG("setborders: leaving");
+    DEBUG("setclientborders: leaving");
+}
+
+void setdesktopborders(desktop *d) {
+    DEBUG("setdesktopborders: entering");  
+    client *c = NULL;
+    for (c = d->head; c; c = c -> next)
+        setclientborders(d, c);
+    DEBUG("setdesktopborders: leaving");
 }
 
 /* find which monitor the given window belongs to */
@@ -1482,7 +1491,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         tileremove(d, m);
     } 
     free(c); c = NULL; 
-    setborders(d);
+    setdesktopborders(d); // TODO: see if we can handle this individually in tileremove
     desktopinfo();
     DEBUG("removeclient: leaving");
 }
@@ -1898,7 +1907,7 @@ void retile(desktop *d, const monitor *m) {
     }
     else
         monocle(m->x, m->y, m->w, m->h, d, m);
-    setborders(d);
+    setdesktopborders(d);
 
     DEBUG("retile: leaving");
 }
