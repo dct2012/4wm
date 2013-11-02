@@ -102,7 +102,6 @@ TODO
   * need to work on tilenew when current client is a floater.
     * finding the client to tile with.
   * work on borders.
-    * give them unique colors.
     * add a new setborders function for individual windows.
       * find other cases to use this. see if there are cases similar to this for retile.
   * add a pulltofloat command.
