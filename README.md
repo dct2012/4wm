@@ -102,6 +102,8 @@ TODO
   * need to work on tilenew when current client is a floater.
     * finding the client to tile with.
   * work on borders.
+    * give them unique colors.
+    * clients x,y,w,h needs to be adjust when mousemotion move/resize, so borders appear properly.
   * add a pulltofloat command.
 
 * Work on push to tiling.
