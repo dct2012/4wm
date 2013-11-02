@@ -905,7 +905,7 @@ void switch_direction(const Arg *arg) {
 void switch_mode(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     if (d->mode != arg->i) d->mode = arg->i;
-    if (d->mode != FLOAT) retile(d, selmon);
+    retile(d, selmon); // we need to retile when switching from video/monocle to tile/float
     desktopinfo();
 }
 
@@ -1902,7 +1902,8 @@ void retile(desktop *d, const monitor *m) {
                                     (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                                     (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
-            }
+            } else
+                xcb_move_resize(dis, c->win, c->x, c->y, c->w, c->h);
         } 
     }
     else

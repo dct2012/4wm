@@ -101,11 +101,13 @@ TODO
 * Work on floating layout.
   * need to work on tilenew when current client is a floater.
     * finding the client to tile with.
-  * work on borders.
-    * add a new setborders function for individual windows.
-      * find other cases to use this. see if there are cases similar to this for retile.
   * add a pulltofloat command.
   * make sure floating windows are always on top.
+
+* Setborders
+  * finalize the switch to setclientborders and setdesktopborders.
+
+* Fix issue with mouse motion pulling windows to float.
 
 * Work on push to tiling.
   * finding the client to tile with.
