@@ -5,7 +5,7 @@
 // variables
 static bool running = true;
 static int randrbase, retval = 0, nmons = 0;
-static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent;
+static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent, win_trn, win_flt;
 static xcb_connection_t *dis;
 static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
@@ -1333,7 +1333,8 @@ void setborders(desktop *d) {
             xcb_gcontext_t gc = xcb_generate_id(dis);
             xcb_create_gc(dis, gc, pmap, 0, NULL);
             
-            xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c->isurgent ? &win_urgent:&win_outer));
+            xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, 
+                            (c->isurgent ? &win_urgent:c->istransient ? &win_trn:c->isfloating ? &win_flt:&win_outer));
             xcb_poly_fill_rectangle(dis, pmap, gc, 4, rect_outer);
 
             xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current ? &win_focus:&win_unfocus));
@@ -2598,8 +2599,11 @@ static int setup(int default_screen) {
 
     win_focus   = getcolor(FOCUS);
     win_unfocus = getcolor(UNFOCUS);
-    win_outer = getcolor(OTRBRDRCOL);
-    win_urgent = getcolor(URGNBRDRCOL);
+    win_outer   = getcolor(OTRBRDRCOL);
+    win_urgent  = getcolor(URGNBRDRCOL);
+    win_flt     = getcolor(FLTBRDCOL);
+    win_trn     = getcolor(TRNBDRCOL);
+
 
     // initialize the menu 
     Menu *m = NULL;

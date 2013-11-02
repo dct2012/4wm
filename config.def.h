@@ -50,6 +50,10 @@
 #define OTRBRDRCOL      "#626262"
 // urgent color for border
 #define URGNBRDRCOL     "#FFFF5F"
+// floating outer border color
+#define FLTBRDCOL       "#00FF5F"
+// transeint outer border color
+#define TRNBDRCOL       "#AF5FD7"
 // minimum window size in pixels
 #define MINWSZ          50          
 // the desktop to focus initially
