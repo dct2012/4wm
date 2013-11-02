@@ -36,7 +36,7 @@
 #define LENGTH(x) (sizeof(x)/sizeof(*x))
 #define BUTTONMASK      XCB_EVENT_MASK_BUTTON_PRESS|XCB_EVENT_MASK_BUTTON_RELEASE
 #define INRECT(X,Y,RX,RY,RW,RH) ((X) >= (RX) && (X) < (RX) + (RW) && (Y) >= (RY) && (Y) < (RY) + (RH))
-#define ISFFT(c)        (c->isfullscrn || c->isfloating || c->istransient)
+#define ISFT(c)        (c->isfloating || c->istransient)
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, VIDEO, FLOAT };
@@ -56,7 +56,6 @@ typedef struct {
  *
  * isurgent    - set when the window received an urgent hint
  * istransient - set when the window is transient
- * isfullscrn  - set when the window is fullscreen
  * isfloating  - set when the window is floating
  *
  * istransient is separate from isfloating as floating window can be reset
@@ -67,7 +66,7 @@ typedef struct client {
     int x, y, w, h;                                     // actual window size
     float xp, yp, wp, hp;                               // percent of monitor, before adjustment
     int gapx, gapy, gapw, gaph;                         // gap sizes
-    bool isurgent, istransient, isfullscrn, isfloating; //
+    bool isurgent, istransient, isfloating;             // property flags
     xcb_window_t win;                                   // the window this client is representing
     char title[256];
 } client;
