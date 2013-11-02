@@ -106,6 +106,7 @@ TODO
     * add a new setborders function for individual windows.
       * find other cases to use this. see if there are cases similar to this for retile.
   * add a pulltofloat command.
+  * make sure floating windows are always on top.
 
 * Work on push to tiling.
   * finding the client to tile with.
