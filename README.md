@@ -105,6 +105,9 @@ TODO
 * Setborders
   * finalize the switch to setclientborders and setdesktopborders.
 
+* Work on a issue in setclientborders with n == 1 causing all windows to be drawn without
+borders. (floaters need them)
+
 * Add a command to invert the current windows color.
 
 Bugs
