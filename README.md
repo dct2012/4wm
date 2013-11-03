@@ -107,8 +107,6 @@ TODO
 * Setborders
   * finalize the switch to setclientborders and setdesktopborders.
 
-* Fix issue with mouse motion pulling windows to float.
-
 * Work on push to tiling.
   * finding the client to tile with.
 

@@ -461,14 +461,13 @@ void mousemotion(const Arg *arg) {
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME), NULL);
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
-    if (!d->current->isfloating) d->current->isfloating = true;
     //retile(d, selmon); 
     focus(d->current, d);
 
     xcb_generic_event_t *e = NULL;
     xcb_motion_notify_event_t *ev = NULL;
-    bool ungrab = false;
-    do {
+    bool ungrab = d->current->isfloating ? false:true;
+    while (!ungrab && d->current) {
         if (e) free(e); xcb_flush(dis);
         while(!(e = xcb_wait_for_event(dis))) xcb_flush(dis);
         switch (e->response_type & ~0x80) {
@@ -492,7 +491,7 @@ void mousemotion(const Arg *arg) {
             case XCB_BUTTON_RELEASE:
                 ungrab = true;
         }
-    } while(!ungrab && d->current);
+    }
     xcb_ungrab_pointer(dis, XCB_CURRENT_TIME);
     DEBUG("mousemotion: leaving");
 }
@@ -1517,8 +1516,7 @@ void buttonpress(xcb_generic_event_t *e) {
     }
 
     for (unsigned int i=0; i<LENGTH(buttons); i++)
-        if (buttons[i].func && buttons[i].button == ev->detail &&
-            CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
+        if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
             if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop]);
             buttons[i].func(&(buttons[i].arg));
         }
