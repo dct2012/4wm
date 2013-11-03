@@ -134,6 +134,8 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_l,           moveclient,         {.m = &moveclientright}},
     // push client into tiling
     {  MOD1,            XK_t,           pushtotiling,       {NULL}},
+    // pull client to float
+    {  MOD1,            XK_f,           pulltofloat,        {NULL}},
     // Switch layouts/directions 
     {  MOD1|SHIFT,      XK_s,           switch_direction,   {.i = TBOTTOM}},
     {  MOD1|SHIFT,      XK_a,           switch_direction,   {.i = TLEFT}},

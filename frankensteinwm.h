@@ -155,6 +155,7 @@ extern void moveclientdown(int *num, client *c, client **list, desktop *d);
 extern void moveclientright(int *num, client *c, client **list, desktop *d);
 extern void movefocus(const Arg *arg);
 extern void mousemotion(const Arg *arg);
+extern void pulltofloat();
 extern void pushtotiling();
 extern void quit(const Arg *arg);
 extern void resizeclient(const Arg *arg);

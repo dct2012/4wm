@@ -99,7 +99,6 @@ TODO
   * constantly impove readability.
 
 * Work on floating layout. 
-  * add a pulltofloat command.
   * make sure floating windows are always on top.
 
 * Setborders

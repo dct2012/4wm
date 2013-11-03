@@ -224,8 +224,7 @@ void client_to_desktop(const Arg *arg) {
     if (!d->dead) {
         DEBUG("client_to_desktop: d->dead == NULL");
         d->dead = dead;
-    }
-    else {
+    } else {
         for (itr = d->dead; itr && itr->next; itr = itr->next);
         itr->next = dead;
     }
@@ -649,6 +648,31 @@ void movefocus(const Arg *arg) {
     }
 }
 
+void pulltofloat() {
+    DEBUG("pulltofloat: entering");
+    desktop *d = &desktops[selmon->curr_dtop];
+    client *c = d->current, *n, *dead = NULL;
+
+    if (!c->isfloating) {
+        c->isfloating = true;
+        d->count -= 1; // TODO: we could make a function initializedead
+        dead = (client *)malloc_safe(sizeof(client));
+        *dead = *c;
+        dead->next = NULL;
+        if (!d->dead) {
+            DEBUG("removeclient: d->dead == NULL");
+            d->dead = dead;
+        } else {
+            for (n = d->dead; n && n->next; n = n->next);
+            n->next = dead;
+        }
+        tileremove(d, selmon);
+    
+        // move it to the center of the screen
+        xcb_move_resize(dis, c->win, (c->x = selmon->w/2 - c->w/2), (c->y = selmon->h/2 - c->h/2), c->w, c->h);
+    }
+}
+
 void pushtotiling() {
     DEBUG("pushtotiling: entering");
     desktop *d = &desktops[selmon->curr_dtop];
@@ -977,7 +1001,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
-            if ((c != n ) && !ISFT(c) && (n->yp == (c->yp + c->hp))) { // directly below
+            if ((c != n ) && !ISFT(n) && (n->yp == (c->yp + c->hp))) { // directly below
                 if ((n->xp + n->wp) <= (c->xp + c->wp)) { // width equivalent or less than
                     if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
                         DEBUG("clientstouchingbottom: found direct match");
@@ -1022,7 +1046,7 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
             DEBUGP("clientstouchingleft: %f == %f\n", c->xp, n->xp + n->wp);
-            if ((c != n ) && !ISFT(c) && (c->xp == (n->xp + n->wp))) { // directly to the left
+            if ((c != n ) && !ISFT(n) && (c->xp == (n->xp + n->wp))) { // directly to the left
                 DEBUGP("clientstouchingleft: %f <= %f\n",n->yp + n->hp, c->yp + c->hp);
                 if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
                     if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
@@ -1067,7 +1091,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
-            if ((c != n ) && !ISFT(c) && (n->xp == (c->xp + c->wp))) { //directly to the right
+            if ((c != n ) && !ISFT(n) && (n->xp == (c->xp + c->wp))) { //directly to the right
                 if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
                     if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
                         list[(*num)] = n;
@@ -1110,7 +1134,7 @@ bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
-            if ((c != n) && !ISFT(c) && (c->yp == (n->yp + n->hp))) {// directly above
+            if ((c != n) && !ISFT(n) && (c->yp == (n->yp + n->hp))) {// directly above
                 if ((n->xp + n->wp) <= (c->xp + c->wp)) { //width equivalent or less than
                     if ((n->xp == c->xp) && (n->wp == c->wp)) { //direct match?
                         list[(*num)] = n;
@@ -1492,8 +1516,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         if (!d->dead) {
             DEBUG("removeclient: d->dead == NULL");
             d->dead = dead;
-        }
-        else {
+        } else {
             for (n = d->dead; n && n->next; n = n->next);
             n->next = dead;
         }
