@@ -32,7 +32,9 @@ Panel - Statusbar
 
 Currently, frankensteinwm only provides you with a way to clear space for a panel and
 with desktop information that needs to be parsed. For further details refer to 
-[monsterwm][https://github.com/c00kiemon5ter/monsterwm#panel---statusbar].
+[monsterwm][monsterwm-panel].
+
+  [monsterwm-panel]: https://github.com/c00kiemon5ter/monsterwm#panel---statusbar
 
 Menu - launcher
 ---------------
