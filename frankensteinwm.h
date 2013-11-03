@@ -184,6 +184,7 @@ extern void focus(client *c, desktop *d);
 extern bool getrootptr(int *x, int *y);
 extern void grabbuttons(client *c);
 extern void grabkeys(void);
+extern void initializedead(client *c, desktop *d, const monitor *m);
 extern void* malloc_safe(size_t size);
 extern client* prev_client(client *c, desktop *d);
 extern void setclientborders(desktop *d, client *c);

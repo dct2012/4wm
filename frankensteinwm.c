@@ -203,41 +203,31 @@ void client_to_desktop(const Arg *arg) {
         }
 
     desktop *d = &desktops[selmon->curr_dtop], *n = &desktops[arg->i];
-    client *c = d->current, *p = prev_client(d->current, d), *l = prev_client(n->head, n), *dead, *itr;
+    client *c = d->current, *p = prev_client(d->current, d), *l = prev_client(n->head, n);
     
     if (c == d->head || !p) 
         d->head = c->next; 
     else 
         p->next = c->next;
     c->next = NULL;
-    if (!ISFT(c))
+    if (!ISFT(c)) {
         d->count -= 1;
-    DEBUGP("client_to_desktop: d->count = %d\n", d->count);
+        n->count += 1;
+        initializedead(c, d, selmon);
+    }
+    DEBUGP("client_to_desktop: d->count = %d\nclient_to_desktop: n->count = %d\n", d->count, n->count);
 
     if (!flag) { // window is not moving to another monitor 
         xcb_unmap_window(dis, c->win);
     }
-
-    dead = (client *)malloc_safe(sizeof(client));
-    *dead = *c;
-    dead->next = NULL;
-    if (!d->dead) {
-        DEBUG("client_to_desktop: d->dead == NULL");
-        d->dead = dead;
-    } else {
-        for (itr = d->dead; itr && itr->next; itr = itr->next);
-        itr->next = dead;
-    }
-    tileremove(d, selmon);
+ 
     focus(d->prevfocus, d);
     if (l)
         l->next = c;
     else if (n->head)
         n->head->next = c;
     else
-        n->head = c; 
-    n->count += 1;
-    DEBUGP("client_to_desktop: n->count = %d\n", n->count);
+        n->head = c;  
 
     m = wintomon(n->head->win);
     tilenew(n, m); // itll be ok if m == NULL 
@@ -651,26 +641,17 @@ void movefocus(const Arg *arg) {
 void pulltofloat() {
     DEBUG("pulltofloat: entering");
     desktop *d = &desktops[selmon->curr_dtop];
-    client *c = d->current, *n, *dead = NULL;
+    client *c = d->current;
 
     if (!c->isfloating) {
         c->isfloating = true;
-        d->count -= 1; // TODO: we could make a function initializedead
-        dead = (client *)malloc_safe(sizeof(client));
-        *dead = *c;
-        dead->next = NULL;
-        if (!d->dead) {
-            DEBUG("removeclient: d->dead == NULL");
-            d->dead = dead;
-        } else {
-            for (n = d->dead; n && n->next; n = n->next);
-            n->next = dead;
-        }
-        tileremove(d, selmon);
+        d->count -= 1;
+        initializedead(c, d, selmon);
     
         // move it to the center of the screen
         xcb_move_resize(dis, c->win, (c->x = selmon->w/2 - c->w/2), (c->y = selmon->h/2 - c->h/2), c->w, c->h);
     }
+    DEBUG("pulltofloat: leaving");
 }
 
 void pushtotiling() {
@@ -1487,6 +1468,22 @@ static client *wintoclient(xcb_window_t w) {
     return NULL;
 }
 
+void initializedead(client *c, desktop *d, const monitor *m) {
+    DEBUG("initializedead: entering");
+    client *n = NULL, *dead = (client *)malloc_safe(sizeof(client));
+    *dead = *c;
+    dead->next = NULL;
+    if (!d->dead) {
+        DEBUG("initializedead: d->dead == NULL");
+        d->dead = dead;
+    } else {
+        for (n = d->dead; n && n->next; n = n->next);
+        n->next = dead;
+    }
+    tileremove(d, m);
+    DEBUG("initializedead: leaving");
+}
+
 /* remove the specified client
  *
  * note, the removing client can be on any desktop,
@@ -1495,7 +1492,7 @@ static client *wintoclient(xcb_window_t w) {
  * else if c was the current one, current must be updated. */
 static void removeclient(client *c, desktop *d, const monitor *m) {
     DEBUG("removeclient: entering"); 
-    client **p = NULL, *dead, *n;
+    client **p = NULL;
     for (p = &d->head; *p && (*p != c); p = &(*p)->next);
     if (!p) 
         return; 
@@ -1510,17 +1507,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
 
     if (!ISFT(c)) {
         d->count -= 1;
-        dead = (client *)malloc_safe(sizeof(client));
-        *dead = *c;
-        dead->next = NULL;
-        if (!d->dead) {
-            DEBUG("removeclient: d->dead == NULL");
-            d->dead = dead;
-        } else {
-            for (n = d->dead; n && n->next; n = n->next);
-            n->next = dead;
-        }
-        tileremove(d, m);
+        initializedead(c, d, m); 
     } 
     free(c); c = NULL; 
     setdesktopborders(d); // TODO: see if we can handle this individually in tileremove
@@ -1949,7 +1936,10 @@ void tilenew(desktop *d, const monitor *m) {
     client *c = d->current, *n, *dead = d->dead;
     int gap = d->gap; 
 
-    if (!d->head || d->mode == FLOAT) return; // nothing to arange 
+    if (!d->head || d->mode == FLOAT) {
+        DEBUG("tilenew: leaving, nothing to arrange");
+        return; // nothing to arange
+    }
     if (c && c->isfloating) {
         // try to find the first one behind the pointer
         xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
