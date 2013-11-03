@@ -1914,13 +1914,22 @@ void retile(desktop *d, const monitor *m) {
 void tilenew(desktop *d, const monitor *m) {
     DEBUG("tilenew: entering");
     client *c = d->current, *n, *dead = d->dead;
-    int gap = d->gap;
+    int gap = d->gap; 
 
     if (!d->head || d->mode == FLOAT) return; // nothing to arange 
+    if (c && c->isfloating) {
+        xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
+        if (!pointer) return;
+        int mx = pointer->root_x; int my = pointer->root_y;
+        for (c = d->head; c; c = c->next)
+            if(!ISFT(c) && INRECT(mx, my, c->x, c->y, c->w, c->h))
+                break;
+    }
+
     for (n = d->head; n && n->next; n = n->next);
     if (ISFT(n))
         xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);    
-    else if (n == d->head) {
+    else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {

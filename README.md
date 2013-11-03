@@ -98,9 +98,7 @@ TODO
   * preprocessor conditions for function/variables/etc.
   * constantly impove readability.
 
-* Work on floating layout.
-  * need to work on tilenew when current client is a floater.
-    * finding the client to tile with.
+* Work on floating layout. 
   * add a pulltofloat command.
   * make sure floating windows are always on top.
 
