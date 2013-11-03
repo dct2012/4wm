@@ -673,15 +673,27 @@ void pushtotiling() {
                             (n->h = m->h - 2*n->gaph));
         DEBUG("pushtotiling: leaving, tiled only client on desktop");
         return;
-    } else if (d->prevfocus && !ISFT(d->prevfocus))
+    } else if (d->prevfocus)
         c = d->prevfocus;
-    // else find the client behind it
-    // else find the client behind the pointer
-    // else just find the first tiled client
-    else if (d->head && (d->head != n))
-        c = d->head;
+    if (c && c->isfloating) {
+        // try to find the first one behind the pointer
+        xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
+        DEBUG("check");
+        if (!pointer) return;
+        DEBUG("double check");
+        int mx = pointer->root_x; int my = pointer->root_y;
+        for (c = d->head; c; c = c->next)
+            if(!ISFT(c) && INRECT(mx, my, c->x, c->y, c->w, c->h))
+                break;
+        // just find the first tiled client.
+        if (!c)
+            for (c = d->head; c; c = c->next)
+                if(!ISFT(c))
+                    break;
+    } 
 
     if(!c) {
+        // TODO: get rid of this check
         DEBUG("pushtotiling: leaving, error, !c");
         return;
     }
@@ -1918,12 +1930,18 @@ void tilenew(desktop *d, const monitor *m) {
 
     if (!d->head || d->mode == FLOAT) return; // nothing to arange 
     if (c && c->isfloating) {
+        // try to find the first one behind the pointer
         xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
         if (!pointer) return;
         int mx = pointer->root_x; int my = pointer->root_y;
         for (c = d->head; c; c = c->next)
             if(!ISFT(c) && INRECT(mx, my, c->x, c->y, c->w, c->h))
                 break;
+        // just find the first tiled client.
+        if (!c)
+            for (c = d->head; c; c = c->next)
+                if(!ISFT(c))
+                    break;
     }
 
     for (n = d->head; n && n->next; n = n->next);

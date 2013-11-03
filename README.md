@@ -105,9 +105,6 @@ TODO
 * Setborders
   * finalize the switch to setclientborders and setdesktopborders.
 
-* Work on push to tiling.
-  * finding the client to tile with.
-
 * Add a command to invert the current windows color.
 
 Bugs
