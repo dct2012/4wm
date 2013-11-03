@@ -30,33 +30,9 @@ which to tile.
 Panel - Statusbar
 -----------------
 
-The user can define an empty space (by default 16px) on the bottom or top(default) of the
-screen, to be used by a panel. The panel is toggleable, but will be visible if no windows
-are on the screen.
-
-Frankensteinwm does not provide a panel and/or statusbar itself. Instead it adheres
-to the [UNIX philosophy][unix] and outputs information about the existent
-desktop, the number of windows on each, the mode of each desktop, the current
-desktop and urgent hints whenever needed. The user can use whatever tool or
-panel suits him best (dzen2, conky, w/e), to process and display that information.
-
-To disable the panel completely set `PANEL_HEIGHT` to zero `0`.
-The `SHOW_PANELL` setting controls whether the panel is visible on startup,
-it does not control whether there is a panel or not.
-
- [unix]: http://en.wikipedia.org/wiki/Unix_philosophy
-
-Here is a list of minimal and lightweight panels:
-
- * [`bar`](https://github.com/LemonBoy/bar)
- * [`some_sorta_bar`](https://github.com/moetunes/Some_sorta_bar)
- * [`bipolarbar`](https://github.com/moetunes/bipolarbar)
- * [`mopag`](https://github.com/c00kiemon5ter/mopag) (pager)
-
-You can find examples of configurations for panels [here](https://gist.github.com/1905427).
-You can actually parse frankensteinwm's output with any language you want,
-build anything you want, and display the information however you like.
-Do not be limited by those examples.
+Currently, frankensteinwm only provides you with a way to clear space for a panel and
+with desktop information that needs to be parsed. For further details refer to 
+[monsterwm][https://github.com/c00kiemon5ter/monsterwm#panel---statusbar].
 
 Menu - launcher
 ---------------
