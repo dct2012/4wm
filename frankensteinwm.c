@@ -678,9 +678,7 @@ void pushtotiling() {
     if (c && c->isfloating) {
         // try to find the first one behind the pointer
         xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
-        DEBUG("check");
         if (!pointer) return;
-        DEBUG("double check");
         int mx = pointer->root_x; int my = pointer->root_y;
         for (c = d->head; c; c = c->next)
             if(!ISFT(c) && INRECT(mx, my, c->x, c->y, c->w, c->h))
