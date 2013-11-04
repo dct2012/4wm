@@ -1320,7 +1320,7 @@ void setclientborders(desktop *d, client *c) {
     DEBUGP("setclientborders: d->count = %d\n", d->count);
 
     // rules for no border
-    if ((n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
+    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
         xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
     }
     else {
