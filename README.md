@@ -78,6 +78,7 @@ TODO
 
 * Work on floating layout. 
   * make sure floating windows are always on top.
+  * handle movefocus and moveclient.
 
 * Add a command to invert the current windows color.
 
