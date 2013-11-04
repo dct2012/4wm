@@ -1217,8 +1217,7 @@ void desktopinfo(void) {
  *
  * a window should have borders in any case, except if
  *  - the window is the only window on screen
- *  - the window is fullscreen
- *  - the mode is MONOCLE and the window is not floating or transient */
+ *  - the mode is MONOCLE or VIDEO*/
 void focus(client *c, desktop *d) {
     DEBUG("focus: entering"); 
     
@@ -1233,7 +1232,7 @@ void focus(client *c, desktop *d) {
         d->prevfocus = d->current; 
         d->current = c; 
     }
-    setdesktopborders(d); // TODO: see if we can change this to just the two clients switching un/focus
+    setdesktopborders(d);
     gettitle(c);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);

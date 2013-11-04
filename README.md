@@ -79,9 +79,6 @@ TODO
 * Work on floating layout. 
   * make sure floating windows are always on top.
 
-* Setborders
-  * finalize the switch to setclientborders and setdesktopborders.
-
 * Add a command to invert the current windows color.
 
 Bugs
