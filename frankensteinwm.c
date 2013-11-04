@@ -1226,7 +1226,7 @@ void focus(client *c, desktop *d) {
         d->prevfocus = d->current; 
         d->current = c; 
     }
-    setdesktopborders(d); // TODO: see if we can change this to the client one
+    setdesktopborders(d); // TODO: see if we can change this to just the two clients switching un/focus
     gettitle(c);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);
@@ -1510,7 +1510,6 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         initializedead(c, d, m); 
     } 
     free(c); c = NULL; 
-    setdesktopborders(d); // TODO: see if we can handle this individually in tileremove
     desktopinfo();
     DEBUG("removeclient: leaving");
 }
@@ -2072,7 +2071,8 @@ void tileremove(desktop *d, const monitor *m) {
 
     if (n == 1) {
         DEBUG("tileremove: only one client; fitting screen");
-        client *c = d->head;
+        client *c = NULL;
+        for (c = d->head; c && c->isfloating; c = c->next); //find the first non-floating
         c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
 
         if ((m != NULL) && (d->mode == TILE || d->mode == FLOAT)) {
@@ -2082,6 +2082,7 @@ void tileremove(desktop *d, const monitor *m) {
                             (c->y = m->y + (m->h * c->yp) + c->gapy), 
                             (c->w = (m->w * c->wp) - 2*c->gapw), 
                             (c->h = (m->h * c->hp) - 2*c->gaph));
+            setclientborders(d, c);
         }
         for ( ; d->dead; ) {
             d->dead = d->dead->next;
@@ -2105,6 +2106,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 list[i]->w, 
                                 (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                setclientborders(d, list[i]);
             }
         }
         d->dead = d->dead->next;
@@ -2125,6 +2127,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
+                setclientborders(d, list[i]);
             }
         }
         d->dead = d->dead->next;
@@ -2146,6 +2149,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
                                 list[i]->w, 
                                 (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                setclientborders(d, list[i]);
             }
         }
         d->dead = d->dead->next;
@@ -2167,6 +2171,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
+                setclientborders(d, list[i]);
             }
         }
         d->dead = d->dead->next;
