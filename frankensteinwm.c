@@ -1935,7 +1935,7 @@ void tilenew(desktop *d, const monitor *m) {
     client *c = d->current, *n, *dead = d->dead;
     int gap = d->gap; 
 
-    if (!d->head || d->mode == FLOAT) {
+    if (!d->head) {
         DEBUG("tilenew: leaving, nothing to arrange");
         return; // nothing to arange
     }
@@ -1955,9 +1955,12 @@ void tilenew(desktop *d, const monitor *m) {
     }
 
     for (n = d->head; n && n->next; n = n->next);
-    if (ISFT(n))
-        xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);    
-    else if (d->count == 1) {
+    if (ISFT(n)) {
+        if (!m || n->istransient)
+            xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);
+        else // move floaters to the center of the screen
+            xcb_move_resize(dis, n->win, (n->x = m->w/2 - n->w/2), (n->y = m->h/2 - n->h/2), n->w, n->h);
+    } else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {

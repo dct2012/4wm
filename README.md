@@ -78,7 +78,6 @@ TODO
 
 * Work on floating layout. 
   * make sure floating windows are always on top.
-  * tilenew floaters in the middle.
 
 * Setborders
   * finalize the switch to setclientborders and setdesktopborders.
