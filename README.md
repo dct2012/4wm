@@ -79,6 +79,8 @@ TODO
 
 * Add a command to invert the current windows color.
 
+* Work on the man page.
+
 Bugs
 ----
 
