@@ -629,7 +629,7 @@ void movefocus(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list;
 
-    if(d->mode == TILE) { //capable of having windows to the right?
+    if((d->mode == TILE || d->mode == FLOAT) && !c->isfloating) { //capable of having windows to the right?
         int n = d->count;
         DEBUGP("movefocusdown: d->count = %d\n", d->count);
         c = d->current;
