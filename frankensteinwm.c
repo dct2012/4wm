@@ -492,8 +492,8 @@ void moveclient(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     client *c = d->current, **list; 
 
-    if (!c) {
-        DEBUG("moveclient: leaving, no d->current");
+    if (!c || c->isfloating) {
+        DEBUG("moveclient: leaving, no d->current or c->isfloating");
         return;
     }
 

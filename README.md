@@ -77,7 +77,7 @@ TODO
   * constantly impove readability.
 
 * Work on floating layout. 
-  * handle movefocus and moveclient.
+  * handle movefocus.
 
 * Add a command to invert the current windows color.
 
