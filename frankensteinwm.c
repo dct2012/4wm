@@ -23,12 +23,6 @@ inline void xcb_move_resize(xcb_connection_t *con, xcb_window_t win, int x, int 
     xcb_configure_window(con, win, XCB_MOVE_RESIZE, pos);
 }
 
-/* wrapper to raise window */
-inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
-    unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
-    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
-}
-
 bool (*findtouchingclients[TDIRECS])(desktop *d, client *c, client **list, int *num) = {
     [TBOTTOM] = clientstouchingbottom, [TLEFT] = clientstouchingleft, [TRIGHT] = clientstouchingright, [TTOP] = clientstouchingtop,
 };
@@ -1236,8 +1230,6 @@ void focus(client *c, desktop *d) {
     gettitle(c);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);
-    if (ISFT(c))
-        xcb_raise_window(dis, c->win);
 
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
@@ -1888,15 +1880,28 @@ void unmapnotify(xcb_generic_event_t *e) {
 
 /* TILING */
 
+// wrapper to lower window
+inline void xcb_lower_window(xcb_connection_t *con, xcb_window_t win) {
+    unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
+    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
+}
+
+// wrapper to raise window
+inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
+    unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
+    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
+}
+
 /* each window should cover all the available screen space */
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: entering");
     int gap = d->gap; 
-    for (client *c = d->head; c; c = c->next) 
+    for (client *c = d->head; c; c = c->next) {
         if (d->mode == VIDEO)
             xcb_move_resize(dis, c->win, x, (y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
         else
             xcb_move_resize(dis, c->win, (x + gap), (y + gap), (w - 2*gap), (h - 2*gap));
+    }
     DEBUG("monocle: leaving");
 }
 
@@ -1966,6 +1971,7 @@ void tilenew(desktop *d, const monitor *m) {
             xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);
         else // move floaters to the center of the screen
             xcb_move_resize(dis, n->win, (n->x = m->w/2 - n->w/2), (n->y = m->h/2 - n->h/2), n->w, n->h);
+        xcb_raise_window(dis, n->win);
     } else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
@@ -1975,6 +1981,7 @@ void tilenew(desktop *d, const monitor *m) {
                             (n->y = m->y + (m->h * n->yp) + gap), 
                             (n->w = (m->w * n->wp) - 2*gap), 
                             (n->h = (m->h * n->hp) - 2*gap));
+            xcb_lower_window(dis, n->win);    
         }
         if (dead) {
             for ( ; d->dead; ) {
@@ -1995,6 +2002,7 @@ void tilenew(desktop *d, const monitor *m) {
                             (n->y = m->y + (m->h * n->yp) + n->gapy), 
                             (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
                             (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+            xcb_lower_window(dis, n->win);
         }
         d->dead = d->dead->next;
         free(dead); dead = NULL;
@@ -2012,13 +2020,14 @@ void tilenew(desktop *d, const monitor *m) {
                                 (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
                                 (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
-
+                xcb_lower_window(dis, c->win);
                 xcb_move_resize(dis, n->win, 
                                 (n->x = m->x + (m->w * n->xp) + n->gapx), 
                                 (n->y = m->y + (m->h * n->yp) + n->gapy), 
                                 (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
                                 (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
                 DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+                xcb_lower_window(dis, n->win);
             }
             else
                 monocle(m->x, m->y, m->w, m->h, d, m);
