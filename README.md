@@ -4,28 +4,26 @@ frankensteinwm
 
 ----------------------
 **frankensteinwm** is a versatile, lightweight, dynamic tiling window manager with 
-two borders. Its mission is to be small, versatile, and quick. It has three layouts: a 
-tiling layout and two fullscreen layouts. There are four direction in which you can tile,
-four directions in which a window can swap with another, and four directions in which you
-can resize a window. Each desktop can have gaps between windows and the size can change. 
+two borders. Its mission is to be small, versatile, and quick. There are four modes: 
+tiling, floating, monocle and video.. There are four direction in which you can tile, four
+directions in which a window can swap with another, and four directions in which you can 
+resize a window. Each desktop can have gaps between windows and the size can be change. 
 Each virtual desktop has its own properties, unaffected by other desktops' or monitors' 
 settings.
-
-Layouts
------
-
-The three layouts are: tiling, monocle and video. Monocle is a fullscreen layout with no
-borders and obeys the desktops' gap and the monitors' panel. Video is a fullscreen layout 
-that has no borders and ignores both the desktops' gap and monitors' panel. The tiling 
-layout, along with the other two layouts, split the current window in half and place the 
-new window in the direction of it's mode. Tiling is the only layout that displays the 
-windows in their correct position.
 
 Modes
 -----
 
-The four modes are: tbottom, tleft, tright, ttop. They are simply just directions in
-which to tile.
+There are four modes: tiling, floating, monocle and video. Tiling has four directions it 
+can tile: bottom, left, right, top. In tile mode the current window will be resized half
+its size and the new window will be placed in the empty space to the direction selected.
+Monocle is a fullscreen mode that respects the desktops' gaps and a screens' panel. Video
+is a fullscreen mode that ignores both the desktops' gaps and a screens' panel. This is a 
+tiling window manager, so anytime a window is created, we tile/handle/mangage it. The 
+exception to the rule is in floating mode, where the window will configure its width and 
+height then we'll move it to the center, from there the user will manage it. In video and 
+monocle mode each window is handled like it is in the tiling mode; it is only drawn 
+fullscreen.
 
 Panel - Statusbar
 -----------------
@@ -77,7 +75,7 @@ TODO
   * constantly impove readability.
 
 * Work on floating layout. 
-  * handle movefocus.
+  * re-add next_win and prev_win.
 
 * Add a command to invert the current windows color.
 

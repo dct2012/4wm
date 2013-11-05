@@ -143,7 +143,7 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_w,           switch_direction,   {.i = TTOP}},
     {  MOD1|SHIFT,      XK_m,           switch_mode,        {.i = MONOCLE}},
     {  MOD1|SHIFT,      XK_v,           switch_mode,        {.i = VIDEO}},
-    //{  MOD1|SHIFT,      XK_z,           switch_mode,        {.i = FLOAT}},
+    {  MOD1|SHIFT,      XK_z,           switch_mode,        {.i = FLOAT}},
     // quit with exit value 0
     {  MOD1|SHIFT,      XK_q,           quit,               {.i = 0}},
     // quit with exit value 1
