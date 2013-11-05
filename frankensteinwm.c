@@ -640,6 +640,22 @@ void movefocus(const Arg *arg) {
     }
 }
 
+// cyclic focus the next window
+// if the window is the last on stack, focus head
+void next_win() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    if (!d->current || !d->head->next) return;
+    focus(d->current->next ? d->current->next:d->head, d);
+}
+
+// cyclic focus the previous window
+// if the window is the head, focus the last stack window
+void prev_win() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    if (!d->current || !d->head->next) return;
+    focus(prev_client(d->prevfocus = d->current, d), d);
+}
+
 void pulltofloat() {
     DEBUG("pulltofloat: entering");
     desktop *d = &desktops[selmon->curr_dtop];

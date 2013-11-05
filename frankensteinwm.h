@@ -22,7 +22,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      puts(x);
 #  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
 #else
@@ -155,6 +155,8 @@ extern void moveclientdown(int *num, client *c, client **list, desktop *d);
 extern void moveclientright(int *num, client *c, client **list, desktop *d);
 extern void movefocus(const Arg *arg);
 extern void mousemotion(const Arg *arg);
+extern void next_win();
+extern void prev_win();
 extern void pulltofloat();
 extern void pushtotiling();
 extern void quit(const Arg *arg);

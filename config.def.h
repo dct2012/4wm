@@ -112,7 +112,7 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_minus,       rotate_filled,      {.i = -1}},
     // rotate fowards through desktops with windows
     {  MOD1|SHIFT,      XK_equal,       rotate_filled,      {.i = +1}},
-    // move focus
+    // move focus only for tiled windows
     {  MOD1|CONTROL,    XK_k,           movefocus,          {.i = TTOP}},
     {  MOD1|CONTROL,    XK_h,           movefocus,          {.i = TLEFT}},
     {  MOD1|CONTROL,    XK_j,           movefocus,          {.i = TBOTTOM}},
@@ -144,6 +144,9 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_m,           switch_mode,        {.i = MONOCLE}},
     {  MOD1|SHIFT,      XK_v,           switch_mode,        {.i = VIDEO}},
     {  MOD1|SHIFT,      XK_z,           switch_mode,        {.i = FLOAT}},
+    // cycle focus through all window
+    {  MOD1,            XK_Right,       next_win,           {NULL}},
+    {  MOD1,            XK_Left,        prev_win,           {NULL}},
     // quit with exit value 0
     {  MOD1|SHIFT,      XK_q,           quit,               {.i = 0}},
     // quit with exit value 1

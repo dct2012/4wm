@@ -74,9 +74,6 @@ TODO
   * preprocessor conditions for function/variables/etc.
   * constantly impove readability.
 
-* Work on floating layout. 
-  * re-add next_win and prev_win.
-
 * Add a command to invert the current windows color.
 
 * Work on the man page.
