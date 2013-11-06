@@ -19,7 +19,7 @@ can tile: bottom, left, right, top. In tile mode the current window will be resi
 its size and the new window will be placed in the empty space to the direction selected.
 Monocle is a fullscreen mode that respects the desktops' gaps and a screens' panel. Video
 is a fullscreen mode that ignores both the desktops' gaps and a screens' panel. This is a 
-tiling window manager, so anytime a window is created, we tile/handle/mangage it. The 
+tiling window manager, so anytime a window is created, we tile/handle/manage it. The 
 exception to the rule is in floating mode, where the window will configure its width and 
 height then we'll move it to the center, from there the user will manage it. In video and 
 monocle mode each window is handled like it is in the tiling mode; it is only drawn 
