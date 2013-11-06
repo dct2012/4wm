@@ -1986,7 +1986,7 @@ void tilenew(desktop *d, const monitor *m) {
         if (!m || n->istransient)
             xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);
         else // move floaters to the center of the screen
-            xcb_move_resize(dis, n->win, (n->x = m->w/2 - n->w/2), (n->y = m->h/2 - n->h/2), n->w, n->h);
+            xcb_move_resize(dis, n->win, (n->x = m->x + (m->w/2 - n->w/2)), (n->y = m->y + (m->h/2 - n->h/2)), n->w, n->h);
         xcb_raise_window(dis, n->win);
     } else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor");
