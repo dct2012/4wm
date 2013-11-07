@@ -5,22 +5,27 @@ frankensteinwm \- a dynamic tiling window manager
 .B frankensteinwm
 .RB [ \-v ]
 .SH DESCRIPTION
-frankensteinwm is a small, lightweight, versatile, dynamic tiling window manager with two borders.
+frankensteinwm is a small, lightweight, versatile, dynamic tiling window manager with two 
+borders.
 .P
 .SH MODES
-There is one tiling layout with four directions that split the current window in half and 
-add the new window to either the left, right, top, or bottom.
-.P
-.B frankensteinwm
-other modes are:
+There are four modes: tiling, floating, monocle, and video.
+.TP
+.B Tiling mode
+Tiles the window in one of the four directions: left, right, top, bottom. The current 
+window is split in half and the new window is added in the selected direction.
+.TP
 .I Monocle mode
-, a fullscreen mode, where the clients take up the entire workspace excluding the gap, and 
-additional clients are hidden behind the current shown window.
+A fullscreen mode, where the clients take up the entire workspace, while respecting the 
+desktops' gap and/or the monitors' panel. The additional clients are hidden behind the 
+current shown window.
+.TP
 .I Video mode
-, a fullscreen mode, where the clients take up the entire workspace, and additional clients
+A fullscreen mode, where the clients take up the entire workspace, and additional clients
 are hidden behind the current shown window.
+.TP
 .I Floating mode
-where, windows can move and be resized freely in the screen space.
+Where, windows can move and be resized freely in the screen space.
 .SH OPTIONS
 .TP
 .B \-v
