@@ -1,6 +1,6 @@
 /* see license for copyright and license */
 
-#include "frankensteinwm.h"
+#include "4wm.h"
 
 // variables
 static bool running = true;
@@ -2224,7 +2224,7 @@ void tileremove(desktop *d, const monitor *m) {
 static char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
 static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
 
-#define USAGE           "usage: frankensteinwm [-h] [-v]"
+#define USAGE           "usage: 4wm [-h] [-v]"
 
 /* get screen of display */
 static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
@@ -2252,7 +2252,7 @@ static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
         if (reply) {
             DEBUGP("%s : %d\n", names[i], reply->atom);
             atoms[i] = reply->atom; free(reply);
-        } else puts("WARN: frankensteinwm failed to register %s atom.\nThings might not work right.");
+        } else puts("WARN: 4wm failed to register %s atom.\nThings might not work right.");
     }
 }
 

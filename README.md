@@ -1,9 +1,9 @@
-frankensteinwm
+4wm
 =============
 
 
 ----------------------
-**frankensteinwm** is a versatile, lightweight, dynamic tiling window manager with 
+**4wm** is a versatile, lightweight, dynamic tiling window manager with 
 two borders. Its mission is to be small, versatile, and quick. There are four modes: 
 tiling, floating, monocle and video.. There are four direction in which you can tile, four
 directions in which a window can swap with another, and four directions in which you can 
@@ -28,7 +28,7 @@ fullscreen.
 Panel - Statusbar
 -----------------
 
-Currently, frankensteinwm only provides you with a way to clear space for a panel and
+Currently, 4wm only provides you with a way to clear space for a panel and
 with desktop information that needs to be parsed. For further details refer to 
 [monsterwm][monsterwm-panel].
 
@@ -37,7 +37,7 @@ with desktop information that needs to be parsed. For further details refer to
 Menu - launcher
 ---------------
 
-Frankensteinwm provides a menu or a launcher similar to xmonad's grid select. It will use
+4wm provides a menu or a launcher similar to xmonad's grid select. It will use
 the colors from your Xdefaults for the tiles.
 
 Installation
@@ -84,9 +84,9 @@ Bugs
 For any bug or request [fill an issue][bug] on [GitHub][ghp]. Also check the [TODO][tdo]
 for your issue.
 
-  [bug]: https://github.com/dct2012/frankensteinwm/issues
-  [ghp]: https://github.com/dct2012/frankensteinwm
-  [tdo]: https://github.com/dct2012/frankensteinwm#TODO
+  [bug]: https://github.com/dct2012/4wm/issues
+  [ghp]: https://github.com/dct2012/4wm
+  [tdo]: https://github.com/dct2012/4wm#TODO
 
 
 License
@@ -94,7 +94,7 @@ License
 
 Licensed under MIT/X Consortium License, see [LICENSE][law] file for more copyright and license information.
 
-   [law]: https://raw.github.com/dct2012/frankensteinwm/master/LICENSE
+   [law]: https://raw.github.com/dct2012/4wm/master/LICENSE
 
 Thanks
 ------

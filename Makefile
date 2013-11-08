@@ -1,7 +1,7 @@
-# Makefile for frankensteinwm - see LICENSE for license and copyright information
+# Makefile for 4wm - see LICENSE for license and copyright information
 
 VERSION = alpha
-WMNAME  = frankensteinwm
+WMNAME  = 4wm
 
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -19,7 +19,7 @@ LDFLAGS  += -s ${LIBS}
 EXEC = ${WMNAME}
 
 SRC = ${WMNAME}.c
-OBJS = frankensteinwm.h config.h
+OBJS = 4wm.h config.h
 OBJ = ${SRC:.c=.o}
 
 ifeq (${DEBUG},0)
