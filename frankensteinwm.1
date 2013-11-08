@@ -66,17 +66,26 @@ Sets monocle layout.
 .B Mod1\-Shift\-b
 Sets video layout.
 .TP
+.B Mod1\-Shift\-z
+Sets floating layout.
+.TP
 .B Mod1\-Control\-k
-Moves focus up.
+Moves focus up. (only for tiled windows)
 .TP
 .B Mod1\-Control\-h
-Moves focus left.
+Moves focus left. (only for tiled windows)
 .TP
 .B Mod1\-Control\-j
-Moves focus down.
+Moves focus down. (only for tiled windows)
 .TP
 .B Mod1\-Control\-l
-Moves focus right.
+Moves focus right. (only for tiled windows)
+.TP
+.B Mod1\-Right
+Cycle focus fowards through all windows.
+.TP
+.B Mod1\-Left
+Cycle focus backwards through all windows.
 .TP
 .B Mod1\-Backspace
 Focus the window that raised an urgent hint. If no such window in current desktop,
@@ -128,6 +137,15 @@ decreases desktop's gap between windows.
 .TP
 .B Mod1\-equal
 increases desktop's gap between windows.
+.TP 
+.B Mod1\-t
+Push floating window to tiling.
+.TP 
+.B Mod1\-f
+Pull tiled window to floating.
+.TP
+.B Mod1\-Control\-m
+Launch menu.
 .TP
 .B Mod1\-Button1
 Dragging the mouse will move the selected window.
