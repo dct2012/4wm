@@ -56,14 +56,14 @@ Build and install.
 TODO
 ----
 
-*BUGS*
+***BUGS***
   * steam
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa
 
-*New Features*
+***New Features***
   * Work on menu.
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
@@ -72,7 +72,7 @@ TODO
   * pipe desktopinfo to a panel like xmonad.
   * Add a command to invert the current windows color.
 
-*MISC*
+***MISC***
   * Overall organization.
     * look for conditional statements that can be moved to preprocessor conditionals.
     * preprocessor conditions for function/variables/etc.
