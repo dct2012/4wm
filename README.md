@@ -56,27 +56,29 @@ Build and install.
 TODO
 ----
 
-* Work on steam
-  * games 
-    * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
-      killing these pulseaudio processes allow the game to resume. alternatively you can
-      launch steam or the game with SDL_AUDIODRIVER=alsa
+* BUGS
+  * steam
+    * games 
+      * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
+        killing these pulseaudio processes allow the game to resume. alternatively you can
+        launch steam or the game with SDL_AUDIODRIVER=alsa
 
-* Work on menu.
-  * limit string length to rectangle/tile width.
-  * add user defined fonts in Xdefaults.
-  * add keyboard use.
+* New Features
+  * Work on menu.
+    * limit string length to rectangle/tile width.
+    * add user defined fonts in Xdefaults.
+    * add keyboard use.
 
-* Add a way to pipe desktopinfo to a panel like xmonad.
+  * pipe desktopinfo to a panel like xmonad.
+  * Add a command to invert the current windows color.
 
-* Overall organization.
-  * look for conditional statements that can be moved to preprocessor conditionals.
-  * preprocessor conditions for function/variables/etc.
-  * constantly impove readability.
+* MISC
+  * Overall organization.
+    * look for conditional statements that can be moved to preprocessor conditionals.
+    * preprocessor conditions for function/variables/etc.
+    * constantly impove readability.
 
-* Add a command to invert the current windows color.
-
-* Work on the man page.
+  * Work on the man page.
 
 Bugs
 ----
