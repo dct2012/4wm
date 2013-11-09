@@ -1,3 +1,4 @@
 *.o
 *.swp
 4wm2dzen
+config.h
