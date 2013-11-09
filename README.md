@@ -56,7 +56,6 @@ Build and install.
 TODO
 ----
 
-
 ***BUGS***
   * steam
     * games 
@@ -64,8 +63,7 @@ TODO
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa
 
-
-****New Features****
+***New Features***
   * Menu.
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
@@ -82,7 +80,6 @@ TODO
     * maybe add seperators
 
   * Add a command to invert the current windows color.
-
 
 ***MISC***
   * Overall organization.
