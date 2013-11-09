@@ -56,6 +56,7 @@ Build and install.
 TODO
 ----
 
+
 ***BUGS***
   * steam
     * games 
@@ -63,14 +64,25 @@ TODO
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa
 
-***New Features***
-  * Work on menu.
+
+****New Features****
+  * Menu.
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
     * add keyboard use.
 
-  * pipe desktopinfo to a panel like xmonad.
+  * pretty print to dzen.
+    * add option for tags
+      * ws tags, mode tags, direction tags
+    * reduce calls to printf()
+    * add a way to pipe another stream (conky) to dzen
+    * handle urgent
+    * add mode
+    * try to allow the user to control what is displayed and the order
+    * maybe add seperators
+
   * Add a command to invert the current windows color.
+
 
 ***MISC***
   * Overall organization.
