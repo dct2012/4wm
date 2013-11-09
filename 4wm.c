@@ -1199,6 +1199,7 @@ void deletewindow(xcb_window_t w) {
 // if a monitor is displaying a empty desktop go ahead and say it has a window
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering");
+    #if 1
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
 
@@ -1211,6 +1212,27 @@ void desktopinfo(void) {
     }
     printf("%s\n", desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
     fflush(stdout);
+    #else
+    // we need to print the desktop number or tag, the mode, the direction, d->current->title
+    desktop *d = NULL; client *c = NULL; monitor *m = NULL;
+    bool urgent = false; 
+    //w = num of windows
+    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
+        for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
+        for (m = mons; m; m = m->next)
+            if (i == m->curr_dtop && w == 0)
+                w++;
+        if (d == &desktops[selmon->curr_dtop])  printf("^fg(%s)", DZEN_CURRENT);
+        else if (w) printf("^fg(%s)", DZEN_VISIBLE);
+        else printf("^fg(%s)", DZEN_HIDDEN);
+        printf("%d ", i + 1);
+    }
+    d = &desktops[selmon->curr_dtop];
+    //printf("%d ", d->mode);
+    printf("^fg(%s)%d ", DZEN_DIR, d->direction);
+    printf("^fg(%s)%s\n", DZEN_TITLE, desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
+    fflush(stdout);
+    #endif
     DEBUG("desktopinfo: leaving");
 }
 
@@ -2742,6 +2764,42 @@ static int setup(int default_screen) {
     //DEBUG("setup: about to switch to default desktop");
     if (DEFAULT_DESKTOP >= 0 && DEFAULT_DESKTOP < DESKTOPS)
         change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
+    
+    // new pipe to messenger, panel, dzen
+    #if 0
+    int pfds[2];
+    pid_t pid;
+
+    if (pipe(pfds) < 0) {
+        perror("pipe failed");
+        return EXIT_FAILURE;
+    }
+
+    pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        return EXIT_FAILURE;
+    } else if (pid == 0) { // child
+        close(pfds[0]); // close unused read end
+
+        // set write end of pipe as stdout for this child process
+        dup2(pfds[1], STDOUT_FILENO);
+        close(pfds[1]);
+
+        desktopinfo();
+    } else /* if (pid > 0) */ { // parent
+        char *args[] = DZEN_CMD;
+        close(pfds[1]); // close unused write end
+        // set read end of pipe as stdin for this process
+        dup2(pfds[0], STDIN_FILENO);
+        close(pfds[0]); // already redirected to stdin
+
+        execvp(args[0], args);
+        perror("exec failed");
+        exit(EXIT_FAILURE);
+    }
+    #endif
+
     DEBUG("leaving setup");
     return 0;
 }
