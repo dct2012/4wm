@@ -1199,7 +1199,7 @@ void deletewindow(xcb_window_t w) {
 // if a monitor is displaying a empty desktop go ahead and say it has a window
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering");
-    #if 1
+    #if 0
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
 
@@ -1948,6 +1948,7 @@ void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: entering");
     int gap = d->gap; 
     for (client *c = d->head; c; c = c->next) {
+        xcb_raise_window(dis, c->win);
         if (d->mode == VIDEO)
             xcb_move_resize(dis, c->win, x, (y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
         else
@@ -1965,7 +1966,8 @@ void retile(desktop *d, const monitor *m) {
         DEBUGP("retile: d->count = %d\n", d->count);
        
         for (client *c = d->head; c; c=c->next) {
-            if (!ISFT(c)) {
+            if (!c->isfloating) {
+                xcb_lower_window(dis, c->win);
                 if (n == 1) {
                     c->gapx = c->gapy = c->gapw = c->gaph = gap;
                     xcb_move_resize(dis, c->win, 
@@ -1981,8 +1983,10 @@ void retile(desktop *d, const monitor *m) {
                                     (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                                     (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
-            } else
+            } else {
+                xcb_raise_window(dis, c->win);
                 xcb_move_resize(dis, c->win, c->x, c->y, c->w, c->h);
+            }
         } 
     }
     else
@@ -2779,7 +2783,7 @@ static int setup(int default_screen) {
         change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
     
     // new pipe to messenger, panel, dzen
-    #if 0
+    #if 1
     int pfds[2];
     pid_t pid;
 

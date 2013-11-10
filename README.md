@@ -56,9 +56,7 @@ Build and install.
 TODO
 ----
 
-***BUGS***
-  * titled clients are stacked behind a panel. switching to video or monocle, the panel
-    is on top
+***BUGS*** 
   * steam
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
