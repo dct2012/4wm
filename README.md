@@ -30,7 +30,7 @@ The exception to the rule is in floating mode.
   * In floating mode, the window will configure its width and height, then we'll move it
   to the center, from there the user will manage it.
 
-In video and monocle mode each window is handled like it is in the tiling mode; it only 
+In video and monocle mode, each window is handled like it is in the tiling mode; it only 
 appears to be fullscreen.
 
 Panel - Statusbar
