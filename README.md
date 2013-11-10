@@ -16,9 +16,9 @@ Modes
 
 There are four modes: tiling, floating, monocle and video. 
 * *Tiling*
-  * Tiling has four directions it can tile: bottom, left, right, top. In tile mode the 
-  current window will be resized half its size and the new window will be placed in the 
-  empty space to the direction selected.
+  * Tiling mode has four directions it can tile: bottom, left, right, and top. In tile 
+  mode, the current window will be resized half of its size and the new window will be 
+  placed in the new space created in the direction selected.
 * *Monocle*
   * Monocle is a fullscreen mode that respects the desktops' gaps and a screens' panel. 
 * *Video*
@@ -27,8 +27,9 @@ There are four modes: tiling, floating, monocle and video.
 This is a tiling window manager, so anytime a window is created, we tile/handle/manage it. 
 The exception to the rule is in floating mode.
 * *Floating*
-  * In floating mode, the window will configure its width and height then we'll move it to 
-  the center, from there the user will manage it. 
+  * In floating mode, the window will configure its width and height, then we'll move it
+  to the center, from there the user will manage it.
+
 In video and monocle mode each window is handled like it is in the tiling mode; it only 
 appears to be fullscreen.
 
