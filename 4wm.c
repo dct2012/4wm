@@ -1216,21 +1216,34 @@ void desktopinfo(void) {
     // we need to print the desktop number or tag, the mode, the direction, d->current->title
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
+    char *tags_ws[] = PP_TAGS_WS; 
+    char *tags_mode[] = PP_TAGS_MODE;
+    char *tags_dir[] = PP_TAGS_DIR;
     //w = num of windows
     for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
         for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
         for (m = mons; m; m = m->next)
             if (i == m->curr_dtop && w == 0)
                 w++;
-        if (d == &desktops[selmon->curr_dtop])  printf("^fg(%s)", DZEN_CURRENT);
-        else if (w) printf("^fg(%s)", DZEN_VISIBLE);
-        else printf("^fg(%s)", DZEN_HIDDEN);
-        printf("%d ", i + 1);
+        if (d == &desktops[selmon->curr_dtop])  printf("^fg(%s)", PP_COL_CURRENT);
+        else if (w) printf("^fg(%s)", PP_COL_VISIBLE);
+        else printf("^fg(%s)", PP_COL_HIDDEN);
+        
+        if (tags_ws[i])
+            printf("%s ", tags_ws[i]);
+        else 
+            printf("%d ", i + 1);
     }
     d = &desktops[selmon->curr_dtop];
-    //printf("%d ", d->mode);
-    printf("^fg(%s)%d ", DZEN_DIR, d->direction);
-    printf("^fg(%s)%s\n", DZEN_TITLE, desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
+    if (tags_mode[d->mode])
+        printf("^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
+    else
+        printf("^fg(%s)%d ", PP_COL_MODE, d->mode);
+    if (tags_dir[d->direction])
+        printf("^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
+    else 
+        printf("^fg(%s)%d ", PP_COL_DIR, d->direction);
+    printf("^fg(%s)%s\n", PP_COL_TITLE, desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
     fflush(stdout);
     #endif
     DEBUG("desktopinfo: leaving");
@@ -2788,7 +2801,7 @@ static int setup(int default_screen) {
 
         desktopinfo();
     } else /* if (pid > 0) */ { // parent
-        char *args[] = DZEN_CMD;
+        char *args[] = PP_CMD;
         close(pfds[1]); // close unused write end
         // set read end of pipe as stdin for this process
         dup2(pfds[0], STDIN_FILENO);

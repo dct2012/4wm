@@ -57,6 +57,8 @@ TODO
 ----
 
 ***BUGS***
+  * titled clients are stacked behind a panel. switching to video or monocle, the panel
+    is on top
   * steam
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
@@ -65,17 +67,16 @@ TODO
 
 ***New Features***
   * Menu.
+    * make sure we can compile without all this stuff defined
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
     * add keyboard use.
 
   * pretty print to dzen.
-    * add option for tags
-      * ws tags, mode tags, direction tags
+    * make sure we can compile without all this stuff defined
     * reduce calls to printf()
     * add a way to pipe another stream (conky) to dzen
     * handle urgent
-    * add mode
     * try to allow the user to control what is displayed and the order
     * maybe add seperators
 
