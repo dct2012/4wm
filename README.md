@@ -72,8 +72,9 @@ TODO
     * add user defined fonts in Xdefaults.
     * add keyboard use.
 
-  * pretty print to dzen.
+  * pretty print.
     * make sure we can compile without all this stuff defined
+    * make sure it also works for messengers other than dzen2
     * reduce calls to printf()
     * add a way to pipe another stream (conky) to dzen
     * handle urgent
