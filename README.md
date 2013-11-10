@@ -125,6 +125,7 @@ TODO
   * pretty print.
     * make sure we can compile without all this stuff defined
     * make sure it also works for messengers other than dzen2
+    * get the title to work nicely
     * reduce calls to printf()
     * add a way to pipe another stream (conky) to dzen
     * try to allow the user to control what is displayed and the order
