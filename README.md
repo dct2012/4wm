@@ -61,40 +61,6 @@ Build and install.
     $ make
     # make clean install
 
-TODO
-----
-
-***BUGS*** 
-  * steam
-    * games 
-      * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
-        killing these pulseaudio processes allow the game to resume. alternatively you can
-        launch steam or the game with SDL_AUDIODRIVER=alsa
-
-***New Features***
-  * Menu.
-    * make sure we can compile without all this stuff defined
-    * limit string length to rectangle/tile width.
-    * add user defined fonts in Xdefaults.
-    * add keyboard use.
-
-  * pretty print.
-    * make sure we can compile without all this stuff defined
-    * make sure it also works for messengers other than dzen2
-    * reduce calls to printf()
-    * add a way to pipe another stream (conky) to dzen
-    * try to allow the user to control what is displayed and the order
-
-  * Add a command to invert the current windows color.
-
-***MISC***
-  * Overall organization.
-    * look for conditional statements that can be moved to preprocessor conditionals.
-    * preprocessor conditions for function/variables/etc.
-    * constantly impove readability.
-
-  * Work on the man page.
-
 Bugs
 ----
 
@@ -138,3 +104,37 @@ Thanks
   [2bwm]: https://github.com/venam/2bwm
   [vnm]: https://github.com/venam
   [i3]: http://i3wm.org/
+
+TODO
+----
+
+***BUGS*** 
+  * steam
+    * games 
+      * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
+        killing these pulseaudio processes allow the game to resume. alternatively you can
+        launch steam or the game with SDL_AUDIODRIVER=alsa
+
+***New Features***
+  * Menu.
+    * make sure we can compile without all this stuff defined
+    * limit string length to rectangle/tile width.
+    * add user defined fonts in Xdefaults.
+    * add keyboard use.
+
+  * pretty print.
+    * make sure we can compile without all this stuff defined
+    * make sure it also works for messengers other than dzen2
+    * reduce calls to printf()
+    * add a way to pipe another stream (conky) to dzen
+    * try to allow the user to control what is displayed and the order
+
+  * Add a command to invert the current windows color.
+
+***MISC***
+  * Overall organization.
+    * look for conditional statements that can be moved to preprocessor conditionals.
+    * preprocessor conditions for function/variables/etc.
+    * constantly impove readability.
+
+  * Work on the man page.
