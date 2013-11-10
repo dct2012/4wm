@@ -1199,7 +1199,7 @@ void deletewindow(xcb_window_t w) {
 // if a monitor is displaying a empty desktop go ahead and say it has a window
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering");
-    #if 0
+    #if 1
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
 
@@ -1226,6 +1226,7 @@ void desktopinfo(void) {
             if (i == m->curr_dtop && w == 0)
                 w++;
         if (d == &desktops[selmon->curr_dtop])  printf("^fg(%s)", PP_COL_CURRENT);
+        else if (urgent) printf("^fg(%s)", PP_COL_URGENT);
         else if (w) printf("^fg(%s)", PP_COL_VISIBLE);
         else printf("^fg(%s)", PP_COL_HIDDEN);
         
@@ -2783,7 +2784,7 @@ static int setup(int default_screen) {
         change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
     
     // new pipe to messenger, panel, dzen
-    #if 1
+    #if 0
     int pfds[2];
     pid_t pid;
 

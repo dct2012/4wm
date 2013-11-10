@@ -75,9 +75,7 @@ TODO
     * make sure it also works for messengers other than dzen2
     * reduce calls to printf()
     * add a way to pipe another stream (conky) to dzen
-    * handle urgent
     * try to allow the user to control what is displayed and the order
-    * maybe add seperators
 
   * Add a command to invert the current windows color.
 
