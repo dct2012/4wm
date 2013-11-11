@@ -23,8 +23,8 @@
 
 /* set this to 1 to enable debug prints */
 #if 0
-#  define DEBUG(x)      puts(x);
-#  define DEBUGP(x,...) printf(x, ##__VA_ARGS__);
+#  define DEBUG(x)      fputs(x, stderr);
+#  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
 #  define DEBUG(x)      ;
 #  define DEBUGP(x,...) ;
