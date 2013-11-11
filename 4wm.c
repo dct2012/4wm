@@ -2058,12 +2058,7 @@ void tilenew(desktop *d, const monitor *m) {
         DEBUG("tilenew: tiling empty monitor\n");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {
-            xcb_move_resize(dis, n->win, 
-                            (n->x = m->x + (m->w * n->xp) + gap), 
-                            (n->y = m->y + (m->h * n->yp) + gap), 
-                            (n->w = (m->w * n->wp) - 2*gap), 
-                            (n->h = (m->h * n->hp) - 2*gap));
-            xcb_lower_window(dis, n->win);    
+            monocle(m->x, m->y, m->w, m->h, d, m); 
         }
         if (dead) {
             for ( ; d->dead; ) {
