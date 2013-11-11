@@ -181,7 +181,9 @@ extern bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
 extern bool clientstouchingright(desktop *d, client *c, client **list, int *num);
 extern bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
 extern void deletewindow(xcb_window_t w);
+#if PRETTY_PRINT
 extern void desktopinfo(void);
+#endif
 extern void focus(client *c, desktop *d);
 extern bool getrootptr(int *x, int *y);
 extern void grabbuttons(client *c);
