@@ -36,11 +36,10 @@ appears to be fullscreen.
 Panel - Statusbar
 -----------------
 
-Currently, 4wm only provides you with a way to clear space for a panel and
-with desktop information that needs to be parsed. For further details refer to 
-[monsterwm][monsterwm-panel].
+4wm does not provide a panel or statusbar. It provides a way to pipe the information to a
+panel or statusbar. Currently, only [dzen2][dz2] is supported.
 
-  [monsterwm-panel]: https://github.com/c00kiemon5ter/monsterwm#panel---statusbar
+  [dz2]: https://github.com/robm/dzen
 
 Menu - launcher
 ---------------
@@ -123,12 +122,9 @@ TODO
     * add keyboard use.
 
   * pretty print.
-    * make sure we can compile without all this stuff defined
     * make sure it also works for messengers other than dzen2
     * get the title to work nicely
-    * reduce calls to printf()
-    * add a way to pipe another stream (conky) to dzen
-    * try to allow the user to control what is displayed and the order
+    * allow the user to control what is displayed and the order
 
   * Add a command to invert the current windows color.
 

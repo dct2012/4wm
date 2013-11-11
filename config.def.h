@@ -67,6 +67,21 @@
 // the minimum gap size
 #define MINGAP          0
 
+// pretty print, 1 = on, 0 = off
+#define PRETTY_PRINT 0
+#if PRETTY_PRINT
+#define PP_CMD { "dzen2", "-x", "0", "-y", "784", "-h", "16", "-w", "640", NULL }
+#define PP_COL_CURRENT  "#005FFF"
+#define PP_COL_URGENT   "#FFFF5F"
+#define PP_COL_VISIBLE  "#FFFFFF"
+#define PP_COL_HIDDEN   "#262626"
+#define PP_COL_DIR      "#00FF5F"
+#define PP_COL_MODE     "#AF00FF"
+#define PP_COL_TITLE    "#FFFFFF"
+#define PP_TAGS_WS { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" }
+#define PP_TAGS_MODE { "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)" }
+#define PP_TAGS_DIR { "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)" } 
+#endif
 
 /**
  * open applications to specified desktop with specified mode.
