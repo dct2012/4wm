@@ -1198,21 +1198,8 @@ void deletewindow(xcb_window_t w) {
  * once the info is collected, immediately flush the stream */
 // if a monitor is displaying a empty desktop go ahead and say it has a window
 void desktopinfo(void) {
-    DEBUG("desktopinfo: entering");
+    DEBUG("desktopinfo: entering"); 
     #if 1
-    desktop *d = NULL; client *c = NULL; monitor *m = NULL;
-    bool urgent = false; 
-
-    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
-        for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
-        for (m = mons; m; m = m->next)
-            if (i == m->curr_dtop && w == 0)
-                w++;
-        printf("%d:%d:%d:%d:%d%c", i, w, d->direction, i == selmon->curr_dtop, urgent, (i < DESKTOPS - 1) ? ' ':'|');
-    }
-    printf("%s\n", desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
-    fflush(stdout);
-    #else
     // we need to print the desktop number or tag, the mode, the direction, d->current->title
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
@@ -1220,21 +1207,23 @@ void desktopinfo(void) {
     char *tags_mode[] = PP_TAGS_MODE;
     char *tags_dir[] = PP_TAGS_DIR;
     //w = num of windows
+    
     for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
         for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
         for (m = mons; m; m = m->next)
             if (i == m->curr_dtop && w == 0)
                 w++;
-        if (d == &desktops[selmon->curr_dtop])  printf("^fg(%s)", PP_COL_CURRENT);
-        else if (urgent) printf("^fg(%s)", PP_COL_URGENT);
-        else if (w) printf("^fg(%s)", PP_COL_VISIBLE);
-        else printf("^fg(%s)", PP_COL_HIDDEN);
         
         if (tags_ws[i])
-            printf("%s ", tags_ws[i]);
+            printf("^fg(%s)%s ", 
+                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
+                    tags_ws[i]);
         else 
-            printf("%d ", i + 1);
+            printf("^fg(%s)%d ", 
+                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
+                    i + 1);
     }
+    
     d = &desktops[selmon->curr_dtop];
     if (tags_mode[d->mode])
         printf("^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
@@ -1244,9 +1233,11 @@ void desktopinfo(void) {
         printf("^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
     else 
         printf("^fg(%s)%d ", PP_COL_DIR, d->direction);
-    printf("^fg(%s)%s\n", PP_COL_TITLE, desktops[selmon->curr_dtop].current ? desktops[selmon->curr_dtop].current->title :"");
+    if (d->current) gettitle(d->current);
+    printf("^fg(%s)%s\n", PP_COL_TITLE, d->current ? d->current->title :"");
     fflush(stdout);
     #endif
+
     DEBUG("desktopinfo: leaving");
 }
 
@@ -1279,14 +1270,13 @@ void focus(client *c, desktop *d) {
         d->current = c; 
     }
     setdesktopborders(d);
-    gettitle(c);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);
 
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
     xcb_flush(dis);
-    
+     
     desktopinfo();
     DEBUG("focus: leaving");
 }
@@ -2784,7 +2774,7 @@ static int setup(int default_screen) {
         change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
     
     // new pipe to messenger, panel, dzen
-    #if 0
+    #if 1
     int pfds[2];
     pid_t pid;
 

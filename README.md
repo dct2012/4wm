@@ -5,7 +5,7 @@
 ----------------------
 **4wm** is a versatile, lightweight, dynamic tiling window manager with 
 two borders. Its mission is to be small, versatile, and quick. There are four modes: 
-tiling, floating, monocle and video.. There are four direction in which you can tile, four
+tiling, floating, monocle and video. There are four direction in which you can tile, four
 directions in which a window can swap with another, and four directions in which you can 
 resize a window. Each desktop can have gaps between windows and the size can be change. 
 Each virtual desktop has its own properties, unaffected by other desktops' or monitors' 
