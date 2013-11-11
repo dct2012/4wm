@@ -1916,7 +1916,13 @@ void propertynotify(xcb_generic_event_t *e) {
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
     xcb_icccm_wm_hints_t wmh;
     client *c;
- 
+
+    #if PRETTY_PRINT
+    if (ev->atom == XCB_ATOM_WM_NAME) {
+        DEBUG("propertynotify: ev->atom == XCB_ATOM_WM_NAME\n");
+        desktopinfo(); 
+    }
+    #endif
     if (ev->atom != XCB_ICCCM_WM_ALL_HINTS) {
         DEBUG("propertynotify: leaving, ev->atom != XCB_ICCCM_WM_ALL_HINTS\n");
         return;
@@ -1930,10 +1936,7 @@ void propertynotify(xcb_generic_event_t *e) {
         c->isurgent = c != desktops[selmon->curr_dtop].current && (wmh.flags & XCB_ICCCM_WM_HINT_X_URGENCY);
         DEBUG("propertynotify: got hint!\n");
         return;
-    }
-    #if PRETTY_PRINT
-    desktopinfo();
-    #endif
+    } 
 
     DEBUG("propertynotify: leaving\n");
 }

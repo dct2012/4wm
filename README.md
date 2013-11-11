@@ -122,7 +122,6 @@ TODO
 
   * pretty print.
     * make sure it also works for messengers other than dzen2
-    * get the title to work nicely
     * allow the user to control what is displayed and the order
     * maybe add a struct and only have certain parts updated when need be.
 
