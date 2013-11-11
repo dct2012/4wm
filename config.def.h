@@ -100,9 +100,12 @@ static const AppRule rules[] = { \
 static const char *termcmd[] = { "xterm",     NULL };
 static const char *webbrowsercmd[] = { "chromium", NULL };
 
+// menu, 1 = on, (0 = off and make sure you dont have a launchmenu keybind)
+#define MENU 1
+#if MENU
 static char *menu1[] = { "xterm", "chromium", "firefox", "libreoffice", "mupen64plus", NULL };
-
 #define MENUS { menu1, NULL }
+#endif
 
 #define DESKTOPCHANGE(K,N) \
     {  MOD1,             K,              change_desktop, {.i = N}}, \

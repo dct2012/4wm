@@ -116,7 +116,6 @@ TODO
 
 ***New Features***
   * Menu.
-    * make sure we can compile without all this stuff defined
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
     * add keyboard use.
@@ -125,6 +124,7 @@ TODO
     * make sure it also works for messengers other than dzen2
     * get the title to work nicely
     * allow the user to control what is displayed and the order
+    * maybe add a struct and only have certain parts updated when need be.
 
   * Add a command to invert the current windows color.
 

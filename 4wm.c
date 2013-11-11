@@ -11,8 +11,10 @@ static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
 static monitor *mons = NULL, *selmon = NULL;
+#if MENU
 static Menu *menus = NULL;
 static Xresources xres;
+#endif
 
 // events array on receival of a new event, call the appropriate function to handle it
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
@@ -104,6 +106,7 @@ static void shrinkbyy(client *match, const float size, client *c, monitor *m, de
     setclientborders(d, c);
 }
 
+#if MENU
 static void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16_t y1, const char *label) {
     //xcb_void_cookie_t    cookie_gc;
     xcb_void_cookie_t    cookie_text;
@@ -131,6 +134,7 @@ static void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16
     }
     */
 }
+#endif
 
 /* focus another desktop
  *
@@ -306,6 +310,7 @@ void killclient() {
     DEBUG("killclient: leaving\n");
 }
 
+#if MENU
 void launchmenu(const Arg *arg) {
     DEBUG("launchmenu: entering\n");
     xcb_drawable_t win;
@@ -421,6 +426,7 @@ void launchmenu(const Arg *arg) {
     }
     DEBUG("launchmenu: leaving\n");
 }
+#endif
 
 /* grab the pointer and get it's current position
  * all pointer movement events will be reported until it's ungrabbed
@@ -2339,12 +2345,15 @@ static void cleanup(void) {
     }
     
     free(mons);
+    #if MENU
     free(menus);
+    #endif
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
     xcb_flush(dis);
     DEBUG("cleanup: leaving\n");
 }
 
+#if MENU
 static Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     DEBUG("createmenuentry: entering\n");
     Menu_Entry *m = (Menu_Entry*)malloc_safe(sizeof(Menu_Entry));
@@ -2439,6 +2448,7 @@ static Menu* createmenu(char **list) {
     DEBUG("createmenu: leaving\n");
     return m;
 }
+#endif
 
 static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
     DEBUG("createmon: entering\n");
@@ -2572,6 +2582,7 @@ static void getrandr(void) { // Get RANDR resources and figure out how many outp
     free(res);
 }
 
+#if MENU
 static void initializexresources() {
     //we should also go ahead and intitialize all the font gc's
     uint32_t            value_list[3];
@@ -2648,6 +2659,7 @@ static void initializexresources() {
         exit (-1);
     }
 }
+#endif
 
 /* main event loop - on receival of an event call the appropriate event handler */
 static void run(void) {
@@ -2746,7 +2758,7 @@ static int setup(int default_screen) {
     win_flt     = getcolor(FLTBRDCOL);
     win_trn     = getcolor(TRNBDRCOL);
 
-
+    #if MENU
     // initialize the menu 
     Menu *m = NULL;
     Menu *itr = NULL;
@@ -2762,6 +2774,7 @@ static int setup(int default_screen) {
     }
 
     initializexresources();
+    #endif
 
     /* setup keyboard */
     if (setup_keyboard() == -1)
