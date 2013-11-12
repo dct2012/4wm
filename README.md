@@ -128,6 +128,8 @@ TODO
   * Add a command to invert the current windows color.
 
 ***MISC***
+  * When a floater is moved to another monitor (desktop), it should be placed in that
+  desktop's client list and removed from the current.
   * Overall organization.
     * look for conditional statements that can be moved to preprocessor conditionals.
     * preprocessor conditions for function/variables/etc.
