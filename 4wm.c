@@ -462,8 +462,8 @@ void mousemotion(const Arg *arg) {
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME), NULL);
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
-    //retile(d, selmon); 
-    focus(d->current, d);
+    // what is probably meant here, is for when FOLLOW_MOUSE is set to false, we will need to focus the client under mouse.
+    //focus(d->current, d); 
 
     xcb_generic_event_t *e = NULL;
     xcb_motion_notify_event_t *ev = NULL;
@@ -1562,10 +1562,11 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         d->prevfocus = prev_client(d->current, d);
     }
 
-    if (!ISFT(c)) {
+    if (!c->isfloating) {
         d->count -= 1;
         initializedead(c, d, m); 
-    } 
+    } else
+        setclientborders(d, d->current);
     free(c); c = NULL; 
     #if PRETTY_PRINT
     desktopinfo();
