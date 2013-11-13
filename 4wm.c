@@ -440,14 +440,15 @@ void launchmenu(const Arg *arg) {
 void mousemotion(const Arg *arg) {
     DEBUG("mousemotion: entering\n");
     desktop *d = &desktops[selmon->curr_dtop];
+    client *c = d->current;
 
     xcb_get_geometry_reply_t  *geometry;
     xcb_query_pointer_reply_t *pointer;
     xcb_grab_pointer_reply_t  *grab_reply;
     int mx, my, winx, winy, winw, winh, xw, yh;
 
-    if (!d->current) return;
-    geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, d->current->win), NULL); /* TODO: error handling */
+    if (!c) return;
+    geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, c->win), NULL); /* TODO: error handling */
     if (geometry) {
         winx = geometry->x;     winy = geometry->y;
         winw = geometry->width; winh = geometry->height;
@@ -463,12 +464,12 @@ void mousemotion(const Arg *arg) {
     if (!grab_reply || grab_reply->status != XCB_GRAB_STATUS_SUCCESS) return;
 
     // what is probably meant here, is for when FOLLOW_MOUSE is set to false, we will need to focus the client under mouse.
-    //focus(d->current, d); 
+    //focus(c, d); 
 
     xcb_generic_event_t *e = NULL;
     xcb_motion_notify_event_t *ev = NULL;
-    bool ungrab = d->current->isfloating ? false:true;
-    while (!ungrab && d->current) {
+    bool ungrab = c->isfloating ? false:true;
+    while (!ungrab && c) {
         if (e) free(e); xcb_flush(dis);
         while(!(e = xcb_wait_for_event(dis))) xcb_flush(dis);
         switch (e->response_type & ~0x80) {
@@ -480,10 +481,26 @@ void mousemotion(const Arg *arg) {
                 xw = (arg->i == MOVE ? winx : winw) + ev->root_x - mx;
                 yh = (arg->i == MOVE ? winy : winh) + ev->root_y - my;
                 if (arg->i == RESIZE) { 
-                    xcb_resize(dis, d->current->win, (d->current->w = xw>MINWSZ?xw:winw), ( d->current->h = yh>MINWSZ?yh:winh));
+                    xcb_resize(dis, c->win, (c->w = xw>MINWSZ?xw:winw), ( c->h = yh>MINWSZ?yh:winh));
                     setclientborders(d, d->current);
-                } else if (arg->i == MOVE) 
-                    xcb_move(dis, d->current->win, (d->current->x = xw), (d->current->y = yh));
+                } else if (arg->i == MOVE) {  
+                    xcb_move(dis, c->win, (c->x = xw), (c->y = yh));
+                    
+                    // if xw or yh leave selmon, we need to find which monitor it goes,
+                    // that monitor's desktop and add it to it, and remove it from it's 
+                    // current desktop
+
+                    /*if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
+                        monitor *m = NULL;
+                        for (m = mons; m && !INRECT(xw, yh, m->x, m->y, m->w, m->h); m = m->next);
+                        //remove client from its current shit
+                        d->current = d->prevfocus ? d->prevfocus:d->head;
+                        d->prevfocus = prev_client(d->current, d);
+                        client *n = NULL;
+                        for (n = desktops[m->curr_dtop].head; n && n->next; n = n->next);
+                        n->next = c;
+                    }*/
+                }
                 xcb_flush(dis);
                 break;
             case XCB_KEY_PRESS:
@@ -1565,7 +1582,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
     if (!c->isfloating) {
         d->count -= 1;
         initializedead(c, d, m); 
-    } else
+    } else if (d->current)
         setclientborders(d, d->current);
     free(c); c = NULL; 
     #if PRETTY_PRINT
