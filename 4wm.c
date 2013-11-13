@@ -493,12 +493,27 @@ void mousemotion(const Arg *arg) {
                     /*if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
                         monitor *m = NULL;
                         for (m = mons; m && !INRECT(xw, yh, m->x, m->y, m->w, m->h); m = m->next);
-                        //remove client from its current shit
-                        d->current = d->prevfocus ? d->prevfocus:d->head;
-                        d->prevfocus = prev_client(d->current, d);
-                        client *n = NULL;
-                        for (n = desktops[m->curr_dtop].head; n && n->next; n = n->next);
-                        n->next = c;
+                        if (m) { // we found a monitor
+                            desktop *n = &desktops[m->curr_dtop];
+                            client *p = prev_client(d->current, d), *l = prev_client(n->head, n);
+                            
+                            if (c == d->head || !p) 
+                                d->head = c->next; 
+                            else 
+                                p->next = c->next;
+                            c->next = NULL; 
+                         
+                            if (l)
+                                l->next = c;
+                            else if (n->head)
+                                n->head->next = c;
+                            else
+                                n->head = c;
+                        
+                            selmon = m;
+                            d = &desktops[m->curr_dtop];
+                            desktopinfo();
+                        }
                     }*/
                 }
                 xcb_flush(dis);
