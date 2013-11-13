@@ -174,9 +174,7 @@ static Key keys[] = {
     // launch xterm
     {  MOD1|SHIFT,      XK_Return,      spawn,              {.com = termcmd}},
     // launch web browser
-    {  MOD1|SHIFT,      XK_f,           spawn,              {.com = webbrowsercmd}}, 
-    // launch file manager
-    {  MOD1|SHIFT,      XK_p,           spawn,              {.com = filemanagercmd}},
+    {  MOD1|SHIFT,      XK_f,           spawn,              {.com = webbrowsercmd}},
 
 
     /*------------------------------------
