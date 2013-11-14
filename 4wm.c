@@ -490,7 +490,7 @@ void mousemotion(const Arg *arg) {
                     // that monitor's desktop and add it to it, and remove it from it's 
                     // current desktop
 
-                    /*if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
+                    if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
                         monitor *m = NULL;
                         for (m = mons; m && !INRECT(xw, yh, m->x, m->y, m->w, m->h); m = m->next);
                         if (m) { // we found a monitor
@@ -517,7 +517,7 @@ void mousemotion(const Arg *arg) {
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
                         }
-                    }*/
+                    }
                 }
                 xcb_flush(dis);
                 break;
@@ -2095,10 +2095,10 @@ void tilenew(desktop *d, const monitor *m) {
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {
             if (d->mode == VIDEO)
-                xcb_move_resize(dis, c->win, m->x, (m->y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), m->w, (m->h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
+                xcb_move_resize(dis, n->win, m->x, (m->y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), m->w, (m->h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
             else
-                xcb_move_resize(dis, c->win, (m->x + gap), (m->y + gap), (m->w - 2*gap), (m->h - 2*gap)); 
-            xcb_lower_window(dis, c->win);
+                xcb_move_resize(dis, n->win, (m->x + gap), (m->y + gap), (m->w - 2*gap), (m->h - 2*gap)); 
+            xcb_lower_window(dis, n->win);
         }
         if (dead) {
             for ( ; d->dead; ) {
