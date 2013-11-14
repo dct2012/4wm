@@ -485,39 +485,34 @@ void mousemotion(const Arg *arg) {
                     setclientborders(d, d->current);
                 } else if (arg->i == MOVE) {  
                     xcb_move(dis, c->win, (c->x = xw), (c->y = yh));
-                    
-                    // if xw or yh leave selmon, we need to find which monitor it goes,
-                    // that monitor's desktop and add it to it, and remove it from it's 
-                    // current desktop
-
-                    /*if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
+            
+                    // handle floater moving monitors
+                    if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
                         monitor *m = NULL;
                         for (m = mons; m && !INRECT(xw, yh, m->x, m->y, m->w, m->h); m = m->next);
                         if (m) { // we found a monitor
                             desktop *n = &desktops[m->curr_dtop];
                             client *p = prev_client(d->current, d), *l = prev_client(n->head, n);
-                            
+                            // pull client from desktop
                             if (c == d->head || !p) 
                                 d->head = c->next; 
                             else 
                                 p->next = c->next;
-                            c->next = NULL; 
-                         
+                            c->next = NULL;  
+                            focus(d->prevfocus, d); // readjust the focus from that desktop
+                            // add to new desktop
                             if (l)
                                 l->next = c;
                             else if (n->head)
                                 n->head->next = c;
                             else
-                                n->head = c;
-                        
-                            //if (d->head) DEBUG("d->head\n");
-                            //if (n->head) DEBUG("n->head\n");
-
-                            selmon = m;
+                                n->head = c; 
+                            focus(c, n); //readjust focus for new desktop
+                            selmon = m; 
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
                         }
-                    }*/
+                    }
                 }
                 xcb_flush(dis);
                 break;
