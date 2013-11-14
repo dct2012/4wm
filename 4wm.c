@@ -510,6 +510,9 @@ void mousemotion(const Arg *arg) {
                             else
                                 n->head = c;
                         
+                            if (d->head) DEBUG("d->head\n");
+                            if (n->head) DEBUG("n->head\n");
+
                             selmon = m;
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
@@ -2091,7 +2094,11 @@ void tilenew(desktop *d, const monitor *m) {
         DEBUG("tilenew: tiling empty monitor\n");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {
-            monocle(m->x, m->y, m->w, m->h, d, m); 
+            if (d->mode == VIDEO)
+                xcb_move_resize(dis, c->win, m->x, (m->y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), m->w, (m->h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
+            else
+                xcb_move_resize(dis, c->win, (m->x + gap), (m->y + gap), (m->w - 2*gap), (m->h - 2*gap)); 
+            xcb_lower_window(dis, c->win);
         }
         if (dead) {
             for ( ; d->dead; ) {
