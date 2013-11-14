@@ -510,8 +510,8 @@ void mousemotion(const Arg *arg) {
                             else
                                 n->head = c;
                         
-                            if (d->head) DEBUG("d->head\n");
-                            if (n->head) DEBUG("n->head\n");
+                            //if (d->head) DEBUG("d->head\n");
+                            //if (n->head) DEBUG("n->head\n");
 
                             selmon = m;
                             d = &desktops[m->curr_dtop];
@@ -2047,6 +2047,12 @@ void retile(desktop *d, const monitor *m) {
                                     (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
             } else {
+                for ( ; c->x > m->x + m->w; c->x -= m->w);
+                for ( ; c->y > m->y + m->h; c->y -= m->h);
+
+                for ( ; c->x < m->x; c->x += m->w);
+                for ( ; c->y < m->y; c->y += m->h);
+                
                 xcb_raise_window(dis, c->win);
                 xcb_move_resize(dis, c->win, c->x, c->y, c->w, c->h);
             }
@@ -2094,11 +2100,13 @@ void tilenew(desktop *d, const monitor *m) {
         DEBUG("tilenew: tiling empty monitor\n");
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         if (m != NULL) {
-            if (d->mode == VIDEO)
+            if (d->mode == VIDEO) {
                 xcb_move_resize(dis, n->win, m->x, (m->y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), m->w, (m->h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
-            else
+                xcb_raise_window(dis, n->win);
+            } else {
                 xcb_move_resize(dis, n->win, (m->x + gap), (m->y + gap), (m->w - 2*gap), (m->h - 2*gap)); 
-            xcb_lower_window(dis, n->win);
+                xcb_lower_window(dis, n->win);
+            }
         }
         if (dead) {
             for ( ; d->dead; ) {
