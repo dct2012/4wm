@@ -490,7 +490,7 @@ void mousemotion(const Arg *arg) {
                     // that monitor's desktop and add it to it, and remove it from it's 
                     // current desktop
 
-                    if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
+                    /*if (!INRECT(xw, yh, selmon->x, selmon->y, selmon->w, selmon->h)) {
                         monitor *m = NULL;
                         for (m = mons; m && !INRECT(xw, yh, m->x, m->y, m->w, m->h); m = m->next);
                         if (m) { // we found a monitor
@@ -517,7 +517,7 @@ void mousemotion(const Arg *arg) {
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
                         }
-                    }
+                    }*/
                 }
                 xcb_flush(dis);
                 break;
