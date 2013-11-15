@@ -1657,8 +1657,7 @@ void clientmessage(xcb_generic_event_t *e) {
 
     xcb_client_message_event_t *ev = (xcb_client_message_event_t*)e;
     client *c = wintoclient(ev->window);
-    monitor *m = wintomon(c->win);
-    desktop *d = &desktops[m->curr_dtop]; 
+    desktop *d = &desktops[selmon->curr_dtop]; 
     if (!c) 
         return;
 
@@ -1666,9 +1665,9 @@ void clientmessage(xcb_generic_event_t *e) {
           && ((unsigned)ev->data.data32[1] == netatoms[NET_FULLSCREEN]
           ||  (unsigned)ev->data.data32[2] == netatoms[NET_FULLSCREEN])) {
             if (!(c->isfloating || c->istransient) || !d->head->next)
-                retile(d, m);
+                retile(d, selmon);
     } else if (c && ev->type == netatoms[NET_ACTIVE]) 
-        focus(c, d, m);
+        focus(c, d, selmon);
 
     DEBUG("clientmessage: leaving\n");
 }
