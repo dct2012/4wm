@@ -119,21 +119,15 @@ TODO
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
     * add keyboard use.
-
   * pretty print.
     * make sure it also works for messengers other than dzen2.
     * allow the user to control what is displayed and the order.
     * maybe add a struct and only have certain parts updated when need be.
-
   * Add a command to invert the current windows color.
 
 ***MISC***
-  * Not selected monitors should not display focused borders.
-    * focus should also work as unfocus.
-    * when selmon changes, focus should unfocus the previous monitor's desktop.
   * Overall organization.
     * look for conditional statements that can be moved to preprocessor conditionals.
     * preprocessor conditions for function/variables/etc.
     * constantly impove readability.
-
   * Work on the man page.

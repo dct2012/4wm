@@ -50,60 +50,60 @@ static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, in
     xcb_configure_window(con, win, XCB_RESIZE, pos);
 }
 
-static void growbyh(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void growbyh(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? (match->yp - c->yp):(c->hp + size);
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void growbyw(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void growbyw(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? (match->xp - c->xp):(c->wp + size);
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void growbyx(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void growbyx(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
     c->xp = match ? (match->xp + match->wp):(c->xp - size);
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void growbyy(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void growbyy(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
     c->yp = match ? (match->yp + match->hp):(c->yp - size);
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
                     c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void shrinkbyh(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void shrinkbyh(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? (match->yp - c->yp):(c->hp - size);
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void shrinkbyw(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void shrinkbyw(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? (match->xp - c->xp):(c->wp - size);
     xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void shrinkbyx(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void shrinkbyx(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
     c->xp = match ? (match->xp + match->wp):(c->xp + size);
     xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
                     (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
-static void shrinkbyy(client *match, const float size, client *c, monitor *m, desktop *d) {
+static void shrinkbyy(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
     c->yp = match ? (match->yp + match->hp):(c->yp + size);
     xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
                     c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-    setclientborders(d, c);
+    setclientborders(d, c, m);
 }
 
 #if MENU
@@ -229,7 +229,7 @@ void client_to_desktop(const Arg *arg) {
         xcb_unmap_window(dis, c->win);
     }
  
-    focus(d->prevfocus, d);
+    focus(d->prevfocus, d, selmon);
     if (l)
         l->next = c;
     else if (n->head)
@@ -239,7 +239,7 @@ void client_to_desktop(const Arg *arg) {
 
     m = wintomon(n->head->win);
     tilenew(n, m); // itll be ok if m == NULL 
-    focus(c, n);
+    focus(c, n, m);
 
     if (FOLLOW_WINDOW) 
         change_desktop(arg); 
@@ -273,7 +273,7 @@ void focusurgent() {
     //current_desktop = current_desktop;
     if (c) { 
         change_desktop(&(Arg){.i = --d}); 
-        focus(c, &desktops[selmon->curr_dtop]);
+        focus(c, &desktops[selmon->curr_dtop], selmon);
     }
 
     DEBUG("focusurgent: leaving\n");
@@ -407,7 +407,7 @@ void launchmenu(const Arg *arg) {
                 }
     
                 if (!found)
-                    focus(desktops[selmon->curr_dtop].current, &desktops[selmon->curr_dtop]);
+                    focus(desktops[selmon->curr_dtop].current, &desktops[selmon->curr_dtop], selmon);
 
                 break;
             }
@@ -482,7 +482,7 @@ void mousemotion(const Arg *arg) {
                 yh = (arg->i == MOVE ? winy : winh) + ev->root_y - my;
                 if (arg->i == RESIZE) { 
                     xcb_resize(dis, c->win, (c->w = xw>MINWSZ?xw:winw), ( c->h = yh>MINWSZ?yh:winh));
-                    setclientborders(d, d->current);
+                    setclientborders(d, d->current, selmon);
                 } else if (arg->i == MOVE) {  
                     xcb_move(dis, c->win, (c->x = xw), (c->y = yh));
             
@@ -498,17 +498,19 @@ void mousemotion(const Arg *arg) {
                                 d->head = c->next; 
                             else 
                                 p->next = c->next;
-                            c->next = NULL;  
-                            focus(d->prevfocus, d); // readjust the focus from that desktop
+                            c->next = NULL;   
                             // add to new desktop
                             if (l)
                                 l->next = c;
                             else if (n->head)
                                 n->head->next = c;
                             else
-                                n->head = c; 
-                            focus(c, n); //readjust focus for new desktop
-                            selmon = m; 
+                                n->head = c;  
+                            monitor *mold = selmon;
+                            selmon = m;
+                            focus(c, n, m); //readjust focus for new desktop
+                            focus(d->prevfocus, d, mold); // readjust the focus from that desktop
+                            //setclientborders(d, d->prevfocus, mold);
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
                         }
@@ -571,8 +573,8 @@ void moveclientdown(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-        setclientborders(d, list[0]);
-        setclientborders(d, c);
+        setclientborders(d, list[0], selmon);
+        setclientborders(d, c, selmon);
     }
     DEBUG("moveclientdown: leaving\n");
 }
@@ -600,8 +602,8 @@ void moveclientleft(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        setclientborders(d, list[0]);
-        setclientborders(d, c);
+        setclientborders(d, list[0], selmon);
+        setclientborders(d, c, selmon);
     }
     DEBUG("moveclientleft: leaving\n");
 }
@@ -629,8 +631,8 @@ void moveclientright(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        setclientborders(d, list[0]);
-        setclientborders(d, c);
+        setclientborders(d, list[0], selmon);
+        setclientborders(d, c, selmon);
     }
     DEBUG("moveclientright: leaving\n");
 }
@@ -659,8 +661,8 @@ void moveclientup(int *num, client *c, client **list, desktop *d) {
                         (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
                         (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
                         (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
-        setclientborders(d, list[0]);
-        setclientborders(d, c);
+        setclientborders(d, list[0], selmon);
+        setclientborders(d, c, selmon);
     }
     DEBUG("moveclientup: leaving\n");
 }
@@ -675,7 +677,7 @@ void movefocus(const Arg *arg) {
         c = d->current;
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients[arg->i](d, c, list, &n);
-        if (list[0] != NULL) focus(list[0], d);
+        if (list[0] != NULL) focus(list[0], d, selmon);
         free(list);
     }
 }
@@ -685,7 +687,7 @@ void movefocus(const Arg *arg) {
 void next_win() {
     desktop *d = &desktops[selmon->curr_dtop];
     if (!d->current || !d->head->next) return;
-    focus(d->current->next ? d->current->next:d->head, d);
+    focus(d->current->next ? d->current->next:d->head, d, selmon);
 }
 
 // cyclic focus the previous window
@@ -693,7 +695,7 @@ void next_win() {
 void prev_win() {
     desktop *d = &desktops[selmon->curr_dtop];
     if (!d->current || !d->head->next) return;
-    focus(prev_client(d->prevfocus = d->current, d), d);
+    focus(prev_client(d->prevfocus = d->current, d), d, selmon);
 }
 
 void pulltofloat() {
@@ -781,8 +783,8 @@ void pushtotiling() {
                         (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
         DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
     
-        setclientborders(d, c);
-        setclientborders(d, n);
+        setclientborders(d, c, selmon);
+        setclientborders(d, n, selmon);
     } else 
         monocle(m->x, m->y, m->w, m->h, d, m);
     
@@ -1300,7 +1302,7 @@ void desktopinfo(void) {
  * a window should have borders in any case, except if
  *  - the window is the only window on screen
  *  - the mode is MONOCLE or VIDEO*/
-void focus(client *c, desktop *d) {
+void focus(client *c, desktop *d, const monitor *m) {
     DEBUG("focus: entering\n"); 
     
     if (!c) {
@@ -1314,7 +1316,7 @@ void focus(client *c, desktop *d) {
         d->prevfocus = d->current; 
         d->current = c; 
     }
-    setdesktopborders(d);
+    setdesktopborders(d, m);
     if (CLICK_TO_FOCUS) 
         grabbuttons(c);
 
@@ -1393,7 +1395,7 @@ client* prev_client(client *c, desktop *d) {
     return p;
 }
 
-void setclientborders(desktop *d, client *c) {
+void setclientborders(desktop *d, client *c, const monitor *m) {
     DEBUG("setclientborders: entering\n"); 
     unsigned int values[1];  /* this is the color maintainer */
     unsigned int zero[1];
@@ -1440,7 +1442,7 @@ void setclientborders(desktop *d, client *c) {
                         (c->isurgent ? &win_urgent:c->istransient ? &win_trn:c->isfloating ? &win_flt:&win_outer));
         xcb_poly_fill_rectangle(dis, pmap, gc, 4, rect_outer);
 
-        xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current ? &win_focus:&win_unfocus));
+        xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current && m == selmon ? &win_focus:&win_unfocus));
         xcb_poly_fill_rectangle(dis, pmap, gc, 5, rect_inner);
         xcb_change_window_attributes(dis,c->win, XCB_CW_BORDER_PIXMAP, &pmap);
         /* free the memory we allocated for the pixmap */
@@ -1451,11 +1453,11 @@ void setclientborders(desktop *d, client *c) {
     DEBUG("setclientborders: leaving\n");
 }
 
-void setdesktopborders(desktop *d) {
+void setdesktopborders(desktop *d, const monitor *m) {
     DEBUG("setdesktopborders: entering\n");  
     client *c = NULL;
     for (c = d->head; c; c = c -> next)
-        setclientborders(d, c);
+        setclientborders(d, c, m);
     DEBUG("setdesktopborders: leaving\n");
 }
 
@@ -1596,7 +1598,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         d->count -= 1;
         initializedead(c, d, m); 
     } else if (d->current)
-        setclientborders(d, d->current);
+        setclientborders(d, d->current, m);
     free(c); c = NULL; 
     #if PRETTY_PRINT
     desktopinfo();
@@ -1615,11 +1617,16 @@ void buttonpress(xcb_generic_event_t *e) {
     client *c = wintoclient(ev->event);
 
     if (CLICK_TO_FOCUS && ev->detail == XCB_BUTTON_INDEX_1) {
-        if (m && m != selmon)
-            selmon = m; 
+        if (m && m != selmon) {
+            monitor *mold = selmon;
+            client *cold = desktops[selmon->curr_dtop].current;
+            selmon = m;
+            if (cold)
+                setclientborders(&desktops[selmon->curr_dtop], cold, mold);
+        }
      
         if (c && c != desktops[selmon->curr_dtop].current) 
-            focus(c, &desktops[m->curr_dtop]);
+            focus(c, &desktops[m->curr_dtop], m);
 
         #if PRETTY_PRINT
         desktopinfo();
@@ -1628,7 +1635,7 @@ void buttonpress(xcb_generic_event_t *e) {
 
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
-            if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop]);
+            if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop], m);
             buttons[i].func(&(buttons[i].arg));
         }
 
@@ -1650,7 +1657,8 @@ void clientmessage(xcb_generic_event_t *e) {
 
     xcb_client_message_event_t *ev = (xcb_client_message_event_t*)e;
     client *c = wintoclient(ev->window);
-    desktop *d = &desktops[selmon->curr_dtop]; 
+    monitor *m = wintomon(c->win);
+    desktop *d = &desktops[m->curr_dtop]; 
     if (!c) 
         return;
 
@@ -1658,9 +1666,9 @@ void clientmessage(xcb_generic_event_t *e) {
           && ((unsigned)ev->data.data32[1] == netatoms[NET_FULLSCREEN]
           ||  (unsigned)ev->data.data32[2] == netatoms[NET_FULLSCREEN])) {
             if (!(c->isfloating || c->istransient) || !d->head->next)
-                retile(d, selmon);
+                retile(d, m);
     } else if (c && ev->type == netatoms[NET_ACTIVE]) 
-        focus(c, d);
+        focus(c, d, m);
 
     DEBUG("clientmessage: leaving\n");
 }
@@ -1768,6 +1776,7 @@ void destroynotify(xcb_generic_event_t *e) {
     DEBUG("destroynotify: leaving\n");
 }
 
+// TODO: we dont need this event for FOLLOW_MOUSE false
 /* when the mouse enters a window's borders
  * the window, if notifying of such events (EnterWindowMask)
  * will notify the wm and will get focus */
@@ -1787,12 +1796,18 @@ void enternotify(xcb_generic_event_t *e) {
     }
     
     monitor *m = NULL;
-    if((m = wintomon(ev->event)) && m != selmon)
+    if((m = wintomon(ev->event)) && m != selmon) {
+        monitor *mold = selmon;
+        client *cold = desktops[selmon->curr_dtop].current;
         selmon = m;
+        if (cold)
+            setclientborders(&desktops[selmon->curr_dtop], cold, mold);
+    
+    }
 
     desktop *d = &desktops[m->curr_dtop]; 
     DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp), (m->h * c->hp));
-    focus(c, d);
+    focus(c, d, selmon);
     #if PRETTY_PRINT
     desktopinfo();
     #endif
@@ -1928,7 +1943,7 @@ void maprequest(xcb_generic_event_t *e) {
     }
     else if (follow)
         change_desktop(&(Arg){.i = newdsk}); 
-    focus(c, &desktops[m->curr_dtop]);
+    focus(c, &desktops[m->curr_dtop], m);
     grabbuttons(c);
     
     #if PRETTY_PRINT
@@ -2055,7 +2070,7 @@ void retile(desktop *d, const monitor *m) {
     }
     else
         monocle(m->x, m->y, m->w, m->h, d, m);
-    setdesktopborders(d);
+    setdesktopborders(d, m);
 
     DEBUG("retile: leaving\n");
 }
@@ -2220,7 +2235,7 @@ void tileremove(desktop *d, const monitor *m) {
                             (c->y = m->y + (m->h * c->yp) + c->gapy), 
                             (c->w = (m->w * c->wp) - 2*c->gapw), 
                             (c->h = (m->h * c->hp) - 2*c->gaph));
-            setclientborders(d, c);
+            setclientborders(d, c, m);
         }
         for ( ; d->dead; ) {
             d->dead = d->dead->next;
@@ -2244,7 +2259,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 list[i]->w, 
                                 (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                setclientborders(d, list[i]);
+                setclientborders(d, list[i], m);
             }
         }
         d->dead = d->dead->next;
@@ -2265,7 +2280,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
-                setclientborders(d, list[i]);
+                setclientborders(d, list[i], m);
             }
         }
         d->dead = d->dead->next;
@@ -2287,7 +2302,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
                                 list[i]->w, 
                                 (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
-                setclientborders(d, list[i]);
+                setclientborders(d, list[i], m);
             }
         }
         d->dead = d->dead->next;
@@ -2309,7 +2324,7 @@ void tileremove(desktop *d, const monitor *m) {
                                 list[i]->y, 
                                 (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
-                setclientborders(d, list[i]);
+                setclientborders(d, list[i], m);
             }
         }
         d->dead = d->dead->next;
