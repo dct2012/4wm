@@ -510,7 +510,6 @@ void mousemotion(const Arg *arg) {
                             selmon = m;
                             focus(c, n, m); //readjust focus for new desktop
                             focus(d->prevfocus, d, mold); // readjust the focus from that desktop
-                            //setclientborders(d, d->prevfocus, mold);
                             d = &desktops[m->curr_dtop];
                             desktopinfo();
                         }
@@ -1622,7 +1621,7 @@ void buttonpress(xcb_generic_event_t *e) {
             client *cold = desktops[selmon->curr_dtop].current;
             selmon = m;
             if (cold)
-                setclientborders(&desktops[selmon->curr_dtop], cold, mold);
+                setclientborders(&desktops[mold->curr_dtop], cold, mold);
         }
      
         if (c && c != desktops[selmon->curr_dtop].current) 
@@ -1800,7 +1799,7 @@ void enternotify(xcb_generic_event_t *e) {
         client *cold = desktops[selmon->curr_dtop].current;
         selmon = m;
         if (cold)
-            setclientborders(&desktops[selmon->curr_dtop], cold, mold);
+            setclientborders(&desktops[mold->curr_dtop], cold, mold);
     
     }
 
