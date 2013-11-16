@@ -1,4 +1,4 @@
-/* see license for copyright and license */
+// see license for copyright and license 
 
 #include "4wm.h"
 
@@ -33,18 +33,18 @@ void (*tiledirection[TDIRECS])(client *n, client *c) = {
     [TBOTTOM] = tilenewbottom, [TLEFT] = tilenewleft, [TRIGHT] = tilenewright, [TTOP] = tilenewtop,
 };
 
-/* COMMANDS */
+// COMMANDS 
 
 #define XCB_MOVE        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y
 #define XCB_RESIZE      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
 
-/* wrapper to move window */
+// wrapper to move window
 static inline void xcb_move(xcb_connection_t *con, xcb_window_t win, int x, int y) {
     unsigned int pos[2] = { x, y };
     xcb_configure_window(con, win, XCB_MOVE, pos);
 }
 
-/* wrapper to resize window */
+// wrapper to resize window
 static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, int h) {
     unsigned int pos[2] = { w, h };
     xcb_configure_window(con, win, XCB_RESIZE, pos);
@@ -136,13 +136,13 @@ static void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16
 }
 #endif
 
-/* focus another desktop
- *
- * to avoid flickering
- * first map the new windows
- * first the current window and then all other
- * then unmap the old windows
- * first all others then the current */
+// focus another desktop
+//
+// to avoid flickering
+// first map the new windows
+// first the current window and then all other
+// then unmap the old windows
+// first all others then the current
 void change_desktop(const Arg *arg) {  
     DEBUG("change_desktop: Entered\n"); 
     int i;
@@ -192,17 +192,17 @@ void change_desktop(const Arg *arg) {
     DEBUG("change_desktop: leaving\n");
 }
 
-/* move a client to another desktop
- *
- * remove the current client from the current desktop's client list
- * and add it as last client of the new desktop's client list */
+// move a client to another desktop
+//
+// remove the current client from the current desktop's client list
+// and add it as last client of the new desktop's client list
 void client_to_desktop(const Arg *arg) {
     DEBUG("client_to_desktop: entering\n");
 
     if (arg->i == selmon->curr_dtop || arg->i < 0 || arg->i >= DESKTOPS || !desktops[selmon->curr_dtop].current) 
         return;
    
-    //see if window will be moving to another monitor
+    // see if window will be moving to another monitor
     bool flag = false; monitor *m = NULL; int i;
     for (i = 0, m = mons; i < nmons; m = m->next, i++)
         if ((m->curr_dtop == arg->i) && m != selmon) {
@@ -261,8 +261,8 @@ void decreasegap(const Arg *arg) {
     }
 }
 
-/* find and focus the client which received
- * the urgent hint in the current desktop */
+// find and focus the client which received
+// the urgent hint in the current desktop
 void focusurgent() {
     DEBUG("focusurgent: entering\n");
     client *c = NULL;
@@ -270,7 +270,6 @@ void focusurgent() {
     for (c=desktops[selmon->curr_dtop].head; c && !c->isurgent; c=c->next);
     while (!c && d < DESKTOPS-1) 
         for (c = desktops[++d].head; c && !c->isurgent; c = c->next);
-    //current_desktop = current_desktop;
     if (c) { 
         change_desktop(&(Arg){.i = --d}); 
         focus(c, &desktops[selmon->curr_dtop], selmon);
@@ -290,8 +289,8 @@ void increasegap(const Arg *arg) {
     }
 }
 
-/* explicitly kill a client - close the highlighted window
- * send a delete message and remove the client */
+// explicitly kill a client - close the highlighted window
+// send a delete message and remove the client
 void killclient() {
     DEBUG("killclient: entering\n");
     desktop *d = &desktops[selmon->curr_dtop];
@@ -299,7 +298,7 @@ void killclient() {
     xcb_icccm_get_wm_protocols_reply_t reply; unsigned int n = 0; bool got = false;
     if (xcb_icccm_get_wm_protocols_reply(dis,
         xcb_icccm_get_wm_protocols(dis, d->current->win, wmatoms[WM_PROTOCOLS]),
-        &reply, NULL)) { /* TODO: Handle error? */
+        &reply, NULL)) { // TODO: Handle error?
         for(; n != reply.atoms_len; ++n) 
             if ((got = reply.atoms[n] == wmatoms[WM_DELETE_WINDOW])) 
                 break;
@@ -428,15 +427,15 @@ void launchmenu(const Arg *arg) {
 }
 #endif
 
-/* grab the pointer and get it's current position
- * all pointer movement events will be reported until it's ungrabbed
- * until the mouse button has not been released,
- * grab the interesting events - button press/release and pointer motion
- * and on on pointer movement resize or move the window under the curson.
- * if the received event is a map request or a configure request call the
- * appropriate handler, and stop listening for other events.
- * Ungrab the poitner and event handling is passed back to run() function.
- * Once a window has been moved or resized, it's marked as floating. */
+// grab the pointer and get it's current position
+// all pointer movement events will be reported until it's ungrabbed
+// until the mouse button has not been released,
+// grab the interesting events - button press/release and pointer motion
+// and on on pointer movement resize or move the window under the curson.
+// if the received event is a map request or a configure request call the
+// appropriate handler, and stop listening for other events.
+// Ungrab the poitner and event handling is passed back to run() function.
+// Once a window has been moved or resized, it's marked as floating.
 void mousemotion(const Arg *arg) {
     DEBUG("mousemotion: entering\n");
     desktop *d = &desktops[selmon->curr_dtop];
@@ -448,7 +447,7 @@ void mousemotion(const Arg *arg) {
     int mx, my, winx, winy, winw, winh, xw, yh;
 
     if (!c) return;
-    geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, c->win), NULL); /* TODO: error handling */
+    geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, c->win), NULL); // TODO: error handling
     if (geometry) {
         winx = geometry->x;     winy = geometry->y;
         winw = geometry->width; winh = geometry->height;
@@ -790,9 +789,8 @@ void pushtotiling() {
     DEBUG("pushtotiling: leaving\n");
 }
 
-/* to quit just stop receiving events
- * run() is stopped and control is back to main()
- */
+// to quit just stop receiving events
+// run() is stopped and control is back to main()
 void quit(const Arg *arg) {
     retval = arg->i;
     running = false;
@@ -939,30 +937,30 @@ void resizeclienttop(desktop *d, const int grow, int *n, const float size, clien
     DEBUG("resizeclienttop: leaving\n");
 }
 
-/* jump and focus the next or previous desktop */
+// jump and focus the next or previous desktop
 void rotate(const Arg *arg) {
     change_desktop(&(Arg){.i = (DESKTOPS + selmon->curr_dtop + arg->i) % DESKTOPS});
 }
 
-/* jump and focus the next or previous desktop that has clients */
+// jump and focus the next or previous desktop that has clients
 void rotate_filled(const Arg *arg) {
     int n = arg->i;
     while (n < DESKTOPS && !desktops[(DESKTOPS + selmon->curr_dtop + n) % DESKTOPS].head) (n += arg->i);
     change_desktop(&(Arg){.i = (DESKTOPS + selmon->curr_dtop + n) % DESKTOPS});
 }
 
-/* execute a command */
+// execute a command
 void spawn(const Arg *arg) {
     if (fork()) return;
     if (dis) close(screen->root);
     setsid();
     execvp((char*)arg->com[0], (char**)arg->com);
     fprintf(stderr, "error: execvp %s", (char *)arg->com[0]);
-    perror(" failed"); /* also prints the err msg */
+    perror(" failed"); // also prints the err msg
     exit(EXIT_SUCCESS);
 }
 
-//switch the tiling direction
+// switch the tiling direction
 void switch_direction(const Arg *arg) {
     desktop *d = &desktops[selmon->curr_dtop];
     if (d->mode != TILE) {
@@ -985,14 +983,14 @@ void switch_mode(const Arg *arg) {
     #endif
 }
 
-/* toggle visibility state of the panel */
+// toggle visibility state of the panel
 void togglepanel() {
     desktop *d = &desktops[selmon->curr_dtop];
     d->showpanel = !d->showpanel;
     retile(d, selmon);
 }
 
-/* UTILITIES */
+// UTILITIES 
 
 #if PRETTY_PRINT
 static void gettitle(client *c) {
@@ -1055,7 +1053,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
                         DEBUG("clientstouchingbottom: leaving, found direct match\n");
                         return true;
                     }
-                    else if (n->xp >= c->xp) { //part
+                    else if (n->xp >= c->xp) { // part
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
@@ -1085,7 +1083,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingleft: entering\n");
-    if(c->xp > 0) { //capable of having windows to the left?
+    if(c->xp > 0) { // capable of having windows to the left?
         float height;
         (*num) = 0;
         height = c->hp;
@@ -1094,13 +1092,13 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
             if ((c != n ) && !ISFT(n) && (c->xp == (n->xp + n->wp))) { // directly to the left
                 DEBUGP("clientstouchingleft: %f <= %f\n",n->yp + n->hp, c->yp + c->hp);
                 if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                    if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                    if ((n->yp == c->yp) && (n->hp == c->hp)) { // direct match?
                         list[(*num)] = n;
                         (*num)++;
                         DEBUG("clientstouchingleft: leaving found direct match\n");
                         return true;
                     }
-                    else if (n->yp >= c->yp) { //part
+                    else if (n->yp >= c->yp) { // part
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
@@ -1131,20 +1129,20 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingright: entering\n");
-    if((c->xp + c->wp) < 1) { //capable of having windows to the right?
+    if((c->xp + c->wp) < 1) { // capable of having windows to the right?
         float height;
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
-            if ((c != n ) && !ISFT(n) && (n->xp == (c->xp + c->wp))) { //directly to the right
+            if ((c != n ) && !ISFT(n) && (n->xp == (c->xp + c->wp))) { // directly to the right
                 if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
-                    if ((n->yp == c->yp) && (n->hp == c->hp)) { //direct match?
+                    if ((n->yp == c->yp) && (n->hp == c->hp)) { // direct match?
                         list[(*num)] = n;
                         (*num)++;
                         DEBUG("clientstouchingright: leaving, found direct match\n");
                         return true;
                     }
-                    else if (n->yp >= c->yp) { //part
+                    else if (n->yp >= c->yp) { // part
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
@@ -1216,7 +1214,7 @@ bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
 }
 
 
-/* close the window */
+// close the window
 void deletewindow(xcb_window_t w) {
     DEBUG("deletewindow: entering\n");
     xcb_client_message_event_t ev;
@@ -1232,19 +1230,14 @@ void deletewindow(xcb_window_t w) {
 }
 
 #if PRETTY_PRINT
-/* output info about the desktops on standard output stream
- *
- * the info is a list of ':' separated values for neach desktop
- * desktop to desktop info is separated by ' ' single spaces
- * the info values are
- *   the desktop number/id
- *   the desktop's client count
- *   the desktop's tiling layout mode/id
- *   whether the desktop is the current focused (1) or not (0)
- *   whether any client in that desktop has received an urgent hint
- *
- * once the info is collected, immediately flush the stream */
-// if a monitor is displaying a empty desktop go ahead and say it has a window
+// output info about the desktops on standard output stream
+// the info values are
+//   the desktop number/id
+//   the desktop's client count
+//   the desktop's tiling layout mode/id
+//   whether the desktop is the current focused (1) or not (0)
+//   whether any client in that desktop has received an urgent hint
+// once the info is collected, immediately flush the stream
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering\n"); 
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
@@ -1287,20 +1280,20 @@ void desktopinfo(void) {
 }
 #endif
 
-/* highlight borders and set active window and input focus
- * if given current is NULL then delete the active window property
- *
- * stack order by client properties, top to bottom:
- *  - current when floating or transient
- *  - floating or trancient windows
- *  - current when tiled
- *  - current when fullscreen
- *  - fullscreen windows
- *  - tiled windows
- *
- * a window should have borders in any case, except if
- *  - the window is the only window on screen
- *  - the mode is MONOCLE or VIDEO*/
+// highlight borders and set active window and input focus
+// if given current is NULL then delete the active window property
+//
+// stack order by client properties, top to bottom:
+//  - current when floating or transient
+//  - floating or trancient windows
+//  - current when tiled
+//  - current when fullscreen
+//  - fullscreen windows
+//  - tiled windows
+//
+// a window should have borders in any case, except if
+//  - the window is the only window on screen
+//  - the mode is MONOCLE or VIDEO
 void focus(client *c, desktop *d, const monitor *m) {
     DEBUG("focus: entering\n"); 
     
@@ -1341,7 +1334,7 @@ bool getrootptr(int *x, int *y) {
 }
 
 // TODO work on CLICK_TO_FOCUS
-/* set the given client to listen to button events (presses / releases) */
+// set the given client to listen to button events (presses / releases)
 void grabbuttons(client *c) {
     DEBUG("grabbuttons: entering\n");
     unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
@@ -1363,7 +1356,7 @@ void grabbuttons(client *c) {
     DEBUG("grabbuttons: leaving\n");
 }
 
-/* the wm should listen to key presses */
+// the wm should listen to key presses
 void grabkeys(void) {
     xcb_keycode_t *keycode;
     unsigned int modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
@@ -1384,8 +1377,8 @@ void* malloc_safe(size_t size) {
     return ret;
 }
 
-/* get the previous client from the given
- *  * if no such client, return NULL */
+// get the previous client from the given
+// if no such client, return NULL
 client* prev_client(client *c, desktop *d) {
     if (!c || !d->head->next)
         return NULL;
@@ -1401,7 +1394,7 @@ void setclientborders(desktop *d, client *c, const monitor *m) {
     int half;
     
     zero[0] = 0;
-    values[0] = BORDER_WIDTH; /* Set border width. */ 
+    values[0] = BORDER_WIDTH; // Set border width.
 
     // find n = number of windows with set borders
     int n = d->count;
@@ -1413,9 +1406,6 @@ void setclientborders(desktop *d, client *c, const monitor *m) {
     }
     else {
         xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
-        //if (c == d->head && c->next == NULL)
-            //half = -OUTER_BORDER;
-            //else
         half = OUTER_BORDER;
         const xcb_rectangle_t rect_inner[] = {
             { c->w,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
@@ -1444,7 +1434,7 @@ void setclientborders(desktop *d, client *c, const monitor *m) {
         xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current && m == selmon ? &win_focus:&win_unfocus));
         xcb_poly_fill_rectangle(dis, pmap, gc, 5, rect_inner);
         xcb_change_window_attributes(dis,c->win, XCB_CW_BORDER_PIXMAP, &pmap);
-        /* free the memory we allocated for the pixmap */
+        // free the memory we allocated for the pixmap
         xcb_free_pixmap(dis,pmap);
         xcb_free_gc(dis,gc);
     }
@@ -1460,7 +1450,7 @@ void setdesktopborders(desktop *d, const monitor *m) {
     DEBUG("setdesktopborders: leaving\n");
 }
 
-/* find which monitor the given window belongs to */
+// find which monitor the given window belongs to
 monitor *wintomon(xcb_window_t w) {
     DEBUG("wintomon: entering\n");
     int x, y;
@@ -1483,7 +1473,7 @@ monitor *wintomon(xcb_window_t w) {
     return NULL;
 }
 
-/* wrapper to get xcb keycodes from keysymbol */
+// wrapper to get xcb keycodes from keysymbol
 xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
     xcb_key_symbols_t *keysyms;
     xcb_keycode_t     *keycode;
@@ -1495,11 +1485,11 @@ xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
     return keycode;
 }
 
-/* EVENTS */
+// EVENTS
 
 #define CLEANMASK(mask) (mask & ~(numlockmask | XCB_MOD_MASK_LOCK))
 
-/* wrapper to get xcb keysymbol from keycode */
+// wrapper to get xcb keysymbol from keycode
 static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
     xcb_key_symbols_t *keysyms;
     xcb_keysym_t       keysym;
@@ -1511,16 +1501,15 @@ static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
     return keysym;
 }
 
-/* wrapper to window get attributes using xcb */
+// wrapper to window get attributes using xcb */
 static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_reply_t **reply, unsigned int count) {
     xcb_get_window_attributes_cookie_t cookies[count];
     for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_get_window_attributes(dis, windows[i]);
-    for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); /* TODO: Handle error */
+    for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); // TODO: Handle error
 }
 
-/* create a new client and add the new window
- * window should notify of property change events
- */
+// create a new client and add the new window
+// window should notify of property change events
 static client* addwindow(xcb_window_t w, desktop *d) {
     DEBUG("addwindow: entering\n");
     client *c, *t = prev_client(d->head, d);
@@ -1539,7 +1528,7 @@ static client* addwindow(xcb_window_t w, desktop *d) {
     return c;
 }
 
-/* find which client the given window belongs to */
+// find which client the given window belongs to
 static client *wintoclient(xcb_window_t w) {
     DEBUG("wintoclient: entering\n");
     client *c = NULL;
@@ -1572,12 +1561,12 @@ void initializedead(client *c, desktop *d, const monitor *m) {
     DEBUG("initializedead: leaving\n");
 }
 
-/* remove the specified client
- *
- * note, the removing client can be on any desktop,
- * we must return back to the current focused desktop.
- * if c was the previously focused, prevfocus must be updated
- * else if c was the current one, current must be updated. */
+// remove the specified client
+//
+// note, the removing client can be on any desktop,
+// we must return back to the current focused desktop.
+// if c was the previously focused, prevfocus must be updated
+// else if c was the current one, current must be updated.
 static void removeclient(client *c, desktop *d, const monitor *m) {
     DEBUG("removeclient: entering\n"); 
     client **p = NULL;
@@ -1606,9 +1595,9 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
 }
 
 
-/* on the press of a button check to see if there's a binded function to call 
- * TODO: if we make the mouse able to switch monitors we could eliminate a call
- *       to wintomon */
+// on the press of a button check to see if there's a binded function to call 
+// TODO: if we make the mouse able to switch monitors we could eliminate a call
+//       to wintomon
 void buttonpress(xcb_generic_event_t *e) {
     DEBUG("buttonpress: entering\n");
     xcb_button_press_event_t *ev = (xcb_button_press_event_t*)e; 
@@ -1641,16 +1630,16 @@ void buttonpress(xcb_generic_event_t *e) {
     DEBUG("buttonpress: leaving\n");
 }
 
-/* To change the state of a mapped window, a client MUST
- * send a _NET_WM_STATE client message to the root window
- * message_type must be _NET_WM_STATE
- *   data.l[0] is the action to be taken
- *   data.l[1] is the property to alter three actions:
- *   - remove/unset _NET_WM_STATE_REMOVE=0
- *   - add/set _NET_WM_STATE_ADD=1,
- *   - toggle _NET_WM_STATE_TOGGLE=2
- *
- * check if window requested fullscreen or activation */
+// To change the state of a mapped window, a client MUST
+// send a _NET_WM_STATE client message to the root window
+// message_type must be _NET_WM_STATE
+//   data.l[0] is the action to be taken
+//   data.l[1] is the property to alter three actions:
+//   - remove/unset _NET_WM_STATE_REMOVE=0
+//   - add/set _NET_WM_STATE_ADD=1,
+//   - toggle _NET_WM_STATE_TOGGLE=2
+//
+// check if window requested fullscreen or activation
 void clientmessage(xcb_generic_event_t *e) {
     DEBUG("clientmessage: entering\n");
 
@@ -1687,10 +1676,9 @@ desktop *clienttodesktop(client *c) {
     return NULL;
 }
 
-/* a configure request means that the window requested changes in its geometry
- * state. if the window doesnt have a client set the appropriate values as 
- * requested, else fake it.
- */
+// a configure request means that the window requested changes in its geometry
+// state. if the window doesnt have a client set the appropriate values as 
+// requested, else fake it.
 void configurerequest(xcb_generic_event_t *e) {
     DEBUG("configurerequest: entering\n");
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e; 
@@ -1757,9 +1745,8 @@ void configurerequest(xcb_generic_event_t *e) {
     DEBUG("configurerequest: leaving\n");
 }
 
-/* a destroy notification is received when a window is being closed
- * on receival, remove the appropriate client that held that window
- */
+// a destroy notification is received when a window is being closed
+// on receival, remove the appropriate client that held that window
 void destroynotify(xcb_generic_event_t *e) {
     DEBUG("destroynotify: entering\n");   
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
@@ -1775,9 +1762,9 @@ void destroynotify(xcb_generic_event_t *e) {
 }
 
 // TODO: we dont need this event for FOLLOW_MOUSE false
-/* when the mouse enters a window's borders
- * the window, if notifying of such events (EnterWindowMask)
- * will notify the wm and will get focus */
+// when the mouse enters a window's borders
+// the window, if notifying of such events (EnterWindowMask)
+// will notify the wm and will get focus
 void enternotify(xcb_generic_event_t *e) {
     DEBUG("enternotify: entering\n");
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;  
@@ -1819,14 +1806,14 @@ void expose(xcb_generic_event_t *e) {
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
 
     if(ev->count == 0 && (m = wintomon(ev->window))){
-        //redraw windoos - xcb_flush?
+        // redraw windows - xcb_flush?
         desktopinfo();
     }
 }    
 #endif
 
-//events which are generated by clients
-void focusin(xcb_generic_event_t *e) { /* there are some broken focus acquiring clients */
+// events which are generated by clients
+void focusin(xcb_generic_event_t *e) {
     DEBUG("focusin: entering\n");
     xcb_focus_in_event_t *ev = (xcb_focus_in_event_t*)e;
 
@@ -1847,7 +1834,7 @@ void focusin(xcb_generic_event_t *e) { /* there are some broken focus acquiring 
     DEBUG("focusin: leaving\n");
 }
 
-/* on the press of a key check to see if there's a binded function to call */
+// on the press of a key check to see if there's a binded function to call
 void keypress(xcb_generic_event_t *e) {
     DEBUG("keypress: entering\n");
     xcb_key_press_event_t *ev       = (xcb_key_press_event_t *)e;
@@ -1869,16 +1856,15 @@ void mappingnotify(xcb_generic_event_t *e) {
         grabkeys();
 }
 
-/* a map request is received when a window wants to display itself
- * if the window has override_redirect flag set then it should not be handled
- * by the wm. if the window already has a client then there is nothing to do.
- *
- * get the window class and name instance and try to match against an app rule.
- * create a client for the window, that client will always be current.
- * check for transient state, and fullscreen state and the appropriate values.
- * if the desktop in which the window was spawned is the current desktop then
- * display the window, else, if set, focus the new desktop.
- */
+// a map request is received when a window wants to display itself
+// if the window has override_redirect flag set then it should not be handled
+// by the wm. if the window already has a client then there is nothing to do.
+//
+// get the window class and name instance and try to match against an app rule.
+// create a client for the window, that client will always be current.
+// check for transient state, and fullscreen state and the appropriate values.
+// if the desktop in which the window was spawned is the current desktop then
+// display the window, else, if set, focus the new desktop.
 void maprequest(xcb_generic_event_t *e) {
     DEBUG("maprequest: entering\n");
     client *c = NULL; 
@@ -1896,7 +1882,7 @@ void maprequest(xcb_generic_event_t *e) {
 
     bool follow = false, floating = false;
     int cd = selmon->curr_dtop, newdsk = selmon->curr_dtop;
-    if (xcb_icccm_get_wm_class_reply(dis, xcb_icccm_get_wm_class(dis, ev->window), &ch, NULL)) { /* TODO: error handling */
+    if (xcb_icccm_get_wm_class_reply(dis, xcb_icccm_get_wm_class(dis, ev->window), &ch, NULL)) { // TODO: error handling
         DEBUGP("class: %s instance: %s\n", ch.class_name, ch.instance_name);
         for (unsigned int i=0; i<LENGTH(rules); i++)
             if (strstr(ch.class_name, rules[i].class) || strstr(ch.instance_name, rules[i].class)) {
@@ -1911,12 +1897,12 @@ void maprequest(xcb_generic_event_t *e) {
     if (cd != newdsk) selmon->curr_dtop = newdsk;
     c = addwindow(ev->window, &desktops[newdsk]);
 
-    xcb_icccm_get_wm_transient_for_reply(dis, xcb_icccm_get_wm_transient_for_unchecked(dis, ev->window), &transient, NULL); /* TODO: error handling */
+    xcb_icccm_get_wm_transient_for_reply(dis, xcb_icccm_get_wm_transient_for_unchecked(dis, ev->window), &transient, NULL); // TODO: error handling
     c->istransient = transient?true:false;
     c->isfloating  = floating || desktops[newdsk].mode == FLOAT || c->istransient;
 
     if (c->istransient || c->isfloating) {
-        if ((geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, ev->window), NULL))) { /* TODO: error handling */
+        if ((geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, ev->window), NULL))) { // TODO: error handling
             DEBUGP("geom: %ux%u+%d+%d\n", geometry->width, geometry->height, geometry->x, geometry->y);
             c->x = selmon->x + geometry->x;
             c->y = selmon->y + geometry->y;
@@ -1929,7 +1915,7 @@ void maprequest(xcb_generic_event_t *e) {
     if (!ISFT(c))
         desktops[newdsk].count += 1;
         
-    prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); /* TODO: error handling */
+    prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); // TODO: error handling
     if (prop_reply) { 
         free(prop_reply);
     } 
@@ -1952,9 +1938,8 @@ void maprequest(xcb_generic_event_t *e) {
     DEBUG("maprequest: leaving\n");
 }
 
-/* property notify is called when one of the window's properties
- * is changed, such as an urgent hint is received
- */
+// property notify is called when one of the window's properties
+// is changed, such as an urgent hint is received
 void propertynotify(xcb_generic_event_t *e) {
     DEBUG("propertynotify: entering\n");
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
@@ -1976,7 +1961,7 @@ void propertynotify(xcb_generic_event_t *e) {
         DEBUG("propertynotify: leaving, NULL client\n");
         return;
     } 
-    if (xcb_icccm_get_wm_hints_reply(dis, xcb_icccm_get_wm_hints(dis, ev->window), &wmh, NULL)) { /* TODO: error handling */
+    if (xcb_icccm_get_wm_hints_reply(dis, xcb_icccm_get_wm_hints(dis, ev->window), &wmh, NULL)) { // TODO: error handling
         c->isurgent = c != desktops[selmon->curr_dtop].current && (wmh.flags & XCB_ICCCM_WM_HINT_X_URGENCY);
         DEBUG("propertynotify: got hint!\n");
         return;
@@ -1985,9 +1970,8 @@ void propertynotify(xcb_generic_event_t *e) {
     DEBUG("propertynotify: leaving\n");
 }
 
-/* windows that request to unmap should lose their
- * client, so no invisible windows exist on screen
- */
+// windows that request to unmap should lose their
+// client, so no invisible windows exist on screen
 void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: entering\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
@@ -2000,7 +1984,7 @@ void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: leaving\n");
 }
 
-/* TILING */
+// TILING
 
 // wrapper to lower window
 inline void xcb_lower_window(xcb_connection_t *con, xcb_window_t win) {
@@ -2014,7 +1998,7 @@ inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
     xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
 
-/* each window should cover all the available screen space */
+// each window should cover all the available screen space
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: entering\n");
     int gap = d->gap; 
@@ -2336,14 +2320,14 @@ void tileremove(desktop *d, const monitor *m) {
     DEBUG("tileremove: leaving, nothing tiled\n");
 }
 
-/* 4WM */
+// 4WM 
 
 static char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
 static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
 
 #define USAGE           "usage: 4wm [-h] [-v]"
 
-/* get screen of display */
+// get screen of display
 static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
     xcb_screen_iterator_t iter;
     iter = xcb_setup_roots_iterator(xcb_get_setup(con));
@@ -2351,21 +2335,21 @@ static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
     return NULL;
 }
 
-/* retieve RGB color from hex (think of html) */
+// retieve RGB color from hex (think of html)
 static unsigned int xcb_get_colorpixel(char *hex) {
     char strgroups[3][3]  = {{hex[1], hex[2], '\0'}, {hex[3], hex[4], '\0'}, {hex[5], hex[6], '\0'}};
     unsigned int rgb16[3] = {(strtol(strgroups[0], NULL, 16)), (strtol(strgroups[1], NULL, 16)), (strtol(strgroups[2], NULL, 16))};
     return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
 }
 
-/* wrapper to get atoms using xcb */
+// wrapper to get atoms using xcb
 static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
     xcb_intern_atom_cookie_t cookies[count];
     xcb_intern_atom_reply_t  *reply;
 
     for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_intern_atom(dis, 0, strlen(names[i]), names[i]);
     for (unsigned int i = 0; i < count; i++) {
-        reply = xcb_intern_atom_reply(dis, cookies[i], NULL); /* TODO: Handle error */
+        reply = xcb_intern_atom_reply(dis, cookies[i], NULL); // TODO: Handle error
         if (reply) {
             DEBUGP("%s : %d\n", names[i], reply->atom);
             atoms[i] = reply->atom; free(reply);
@@ -2373,7 +2357,7 @@ static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
     }
 }
 
-/* check if other wm exists */
+// check if other wm exists
 static int xcb_checkotherwm(void) {
     xcb_generic_error_t *error;
     unsigned int values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT|XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY|
@@ -2385,7 +2369,7 @@ static int xcb_checkotherwm(void) {
 }
 
 
-/* remove all windows in all desktops by sending a delete message */
+// remove all windows in all desktops by sending a delete message
 static void cleanup(void) {
     DEBUG("cleanup: entering\n");
     xcb_query_tree_reply_t  *query;
@@ -2521,8 +2505,8 @@ static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int
     return m;
 }
 
-/* get a pixel with the requested color
- * to fill some window area - borders */
+// get a pixel with the requested color
+// to fill some window area - borders
 static unsigned int getcolor(char* color) {
     xcb_colormap_t map = screen->default_colormap;
     xcb_alloc_color_reply_t *c;
@@ -2715,7 +2699,7 @@ static void initializexresources() {
 }
 #endif
 
-/* main event loop - on receival of an event call the appropriate event handler */
+// main event loop - on receival of an event call the appropriate event handler
 static void run(void) {
     DEBUG("run: entered\n");
     xcb_generic_event_t *ev; 
@@ -2742,7 +2726,7 @@ static void run(void) {
     DEBUG("run: leaving\n");
 }
 
-/* get numlock modifier using xcb */
+// get numlock modifier using xcb
 static int setup_keyboard(void) {
     xcb_get_modifier_mapping_reply_t *reply;
     xcb_keycode_t                    *modmap;
@@ -2788,11 +2772,10 @@ static int setuprandr(void) { // Set up RANDR extension. Get the extension base 
     return base;
 }
 
-/* set initial values
- * root window - screen height/width - atoms - xerror handler
- * set masks for reporting events handled by the wm
- * and propagate the suported net atoms
- */
+// set initial values
+// root window - screen height/width - atoms - xerror handler
+// set masks for reporting events handled by the wm
+// and propagate the suported net atoms
 static int setup(int default_screen) {
     sigchld();
     screen = xcb_screen_of_display(dis, default_screen);
@@ -2919,7 +2902,7 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "error: cannot open display\n");
     if (setup(default_screen) != -1) {
       #if PRETTY_PRINT
-      desktopinfo(); /* zero out every desktop on (re)start */
+      desktopinfo(); // zero out every desktop on (re)start
       #endif
       run();
     }
