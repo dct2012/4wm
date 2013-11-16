@@ -68,7 +68,7 @@ typedef struct client {
     int gapx, gapy, gapw, gaph;                         // gap sizes
     bool isurgent, istransient, isfloating;             // property flags
     xcb_window_t win;                                   // the window this client is representing
-    char title[256];
+    char *title;
 } client;
 
 /* properties of each desktop
@@ -139,6 +139,13 @@ typedef struct Xresources {
     xcb_gcontext_t gc_color[12];
     xcb_gcontext_t font_gc[12];
 } Xresources;
+
+typedef struct pp_data {
+    char *ws;
+    char *mode;
+    char *dir;
+    char *title;
+} pp_data;
 
 // COMMANDS
 extern void change_desktop(const Arg *arg);

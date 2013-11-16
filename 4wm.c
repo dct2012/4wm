@@ -1010,7 +1010,8 @@ static void gettitle(client *c) {
     if(!reply.name || !reply.name_len)
         return;
 
-    strncpy(c->title, reply.name, (reply.name_len+1 < 256 ? reply.name_len+1:256));
+    c->title = (char *)realloc(c->title, reply.name_len+1);
+    strcpy(c->title, reply.name);
     c->title[(reply.name_len + 1 < 255 ? reply.name_len +1:255)] = '\0';
     xcb_icccm_get_text_property_reply_wipe(&reply);
 }
