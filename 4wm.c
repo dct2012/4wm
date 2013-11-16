@@ -15,6 +15,9 @@ static monitor *mons = NULL, *selmon = NULL;
 static Menu *menus = NULL;
 static Xresources xres;
 #endif
+#if PRETTY_PRINT
+pp_data pp;
+#endif
 
 // events array on receival of a new event, call the appropriate function to handle it
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
@@ -992,31 +995,6 @@ void togglepanel() {
 
 // UTILITIES 
 
-#if PRETTY_PRINT
-static void gettitle(client *c) {
-    xcb_icccm_get_text_property_reply_t reply;
-    xcb_generic_error_t *err = NULL;
-
-    if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, netatoms[NET_WM_NAME]), &reply, &err))
-        if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, XCB_ATOM_WM_NAME), &reply, &err))
-            return;
-
-    if(err) {
-        free(err);
-        return;
-    }
-
-    // TODO: encoding
-    if(!reply.name || !reply.name_len)
-        return;
-
-    c->title = (char *)realloc(c->title, reply.name_len+1);
-    strcpy(c->title, reply.name);
-    c->title[(reply.name_len + 1 < 255 ? reply.name_len +1:255)] = '\0';
-    xcb_icccm_get_text_property_reply_wipe(&reply);
-}
-#endif
-
 static monitor* ptrtomon(int x, int y) {
     monitor *m;
     int i;
@@ -1241,39 +1219,13 @@ void deletewindow(xcb_window_t w) {
 // once the info is collected, immediately flush the stream
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering\n"); 
-    desktop *d = NULL; client *c = NULL; monitor *m = NULL;
-    bool urgent = false; 
-    char *tags_ws[] = PP_TAGS_WS; 
-    char *tags_mode[] = PP_TAGS_MODE;
-    char *tags_dir[] = PP_TAGS_DIR;
-    //w = num of windows
     
-    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
-        for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
-        for (m = mons; m; m = m->next)
-            if (i == m->curr_dtop && w == 0)
-                w++;
-        
-        if (tags_ws[i])
-            printf("^fg(%s)%s ", 
-                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
-                    tags_ws[i]);
-        else 
-            printf("^fg(%s)%d ", 
-                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
-                    i + 1);
-    }
-    
-    d = &desktops[selmon->curr_dtop];
-    if (tags_mode[d->mode])
-        printf("^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
-    else
-        printf("^fg(%s)%d ", PP_COL_MODE, d->mode);
-    if (tags_dir[d->direction])
-        printf("^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
-    else 
-        printf("^fg(%s)%d ", PP_COL_DIR, d->direction);
-    if (d->current) gettitle(d->current);
+    updatews();
+    updatemode();
+    updatedir();
+
+    desktop *d = &desktops[selmon->curr_dtop];
+    if (d->current) updatetitle(d->current);
     printf("^fg(%s)%s\n", PP_COL_TITLE, d->current ? d->current->title :"");
     fflush(stdout);
 
@@ -1450,6 +1402,82 @@ void setdesktopborders(desktop *d, const monitor *m) {
         setclientborders(d, c, m);
     DEBUG("setdesktopborders: leaving\n");
 }
+
+#if PRETTY_PRINT
+void updatedir() {
+    DEBUG("updatedir: entering\n");
+    desktop *d = &desktops[selmon->curr_dtop];
+    char *tags_dir[] = PP_TAGS_DIR;
+     
+    if (tags_dir[d->direction])
+        printf("^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
+    else 
+        printf("^fg(%s)%d ", PP_COL_DIR, d->direction);
+    DEBUG("updatedir: leaving\n");
+}
+
+void updatemode() {
+    DEBUG("updatemode: entering\n");
+    desktop *d = &desktops[selmon->curr_dtop];
+    char *tags_mode[] = PP_TAGS_MODE;
+    
+    if (tags_mode[d->mode]) printf("^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
+    else printf("^fg(%s)%d ", PP_COL_MODE, d->mode);
+    DEBUG("updatemode: leaving\n");
+}
+
+void updatetitle(client *c) {
+    DEBUG("updatetitle: entering\n");
+    xcb_icccm_get_text_property_reply_t reply;
+    xcb_generic_error_t *err = NULL;
+
+    if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, netatoms[NET_WM_NAME]), &reply, &err))
+        if(!xcb_icccm_get_text_property_reply(dis, xcb_icccm_get_text_property(dis, c->win, XCB_ATOM_WM_NAME), &reply, &err))
+            return;
+
+    if(err) {
+        free(err);
+        return;
+    }
+
+    // TODO: encoding
+    if(!reply.name || !reply.name_len)
+        return;
+
+    c->title = (char *)realloc(c->title, reply.name_len+1);
+    strcpy(c->title, reply.name);
+    c->title[(reply.name_len + 1 < 255 ? reply.name_len +1:255)] = '\0';
+    xcb_icccm_get_text_property_reply_wipe(&reply);
+    DEBUG("updatetitle: leaving\n");
+}
+
+void updatews() {
+    DEBUG("updatews: entering\n");
+    desktop *d = NULL; client *c = NULL; monitor *m = NULL;
+    bool urgent = false; 
+    char *tags_ws[] = PP_TAGS_WS;
+    //w = num of windows
+    
+    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
+        for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
+        for (m = mons; m; m = m->next)
+            if (i == m->curr_dtop && w == 0)
+                w++;
+        
+        if (tags_ws[i])
+            printf("^fg(%s)%s ", 
+                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
+                    tags_ws[i]);
+        else 
+            printf("^fg(%s)%d ", 
+                    d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
+                    i + 1);
+    }
+
+    DEBUG("updatews: leaving\n");
+}
+#endif
+
 
 // find which monitor the given window belongs to
 monitor *wintomon(xcb_window_t w) {
