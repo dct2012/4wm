@@ -1226,7 +1226,7 @@ void desktopinfo(void) {
 
     desktop *d = &desktops[selmon->curr_dtop];
     if (d->current) updatetitle(d->current);
-    printf("^fg(%s)%s\n", PP_COL_TITLE, d->current ? d->current->title :"");
+    printf("%s %s ^fg(%s)%s\n", pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
     fflush(stdout);
 
     DEBUG("desktopinfo: leaving\n");
@@ -1408,11 +1408,17 @@ void updatedir() {
     DEBUG("updatedir: entering\n");
     desktop *d = &desktops[selmon->curr_dtop];
     char *tags_dir[] = PP_TAGS_DIR;
+    char temp[512];
      
-    if (tags_dir[d->direction])
-        printf("^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
-    else 
-        printf("^fg(%s)%d ", PP_COL_DIR, d->direction);
+    if (tags_dir[d->direction]) {
+        snprintf(temp, 512, "^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
+        pp.dir = (char *)realloc(pp.dir, strlen(temp));
+        sprintf(pp.dir, "^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
+    }else {
+        snprintf(temp, 512, "^fg(%s)%d ", PP_COL_DIR, d->direction);
+        pp.dir = (char *)realloc(pp.dir, strlen(temp));
+        sprintf(pp.dir, "^fg(%s)%d ", PP_COL_DIR, d->direction);
+    }
     DEBUG("updatedir: leaving\n");
 }
 
@@ -1420,9 +1426,17 @@ void updatemode() {
     DEBUG("updatemode: entering\n");
     desktop *d = &desktops[selmon->curr_dtop];
     char *tags_mode[] = PP_TAGS_MODE;
+    char temp[512];
     
-    if (tags_mode[d->mode]) printf("^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
-    else printf("^fg(%s)%d ", PP_COL_MODE, d->mode);
+    if (tags_mode[d->mode]) {
+        snprintf(temp, 512, "^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
+        pp.mode = (char *)realloc(pp.mode, strlen(temp));
+        sprintf(pp.mode, "^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
+    } else {
+        snprintf(temp, 512, "^fg(%s)%d ", PP_COL_MODE, d->mode);
+        pp.mode = (char *)realloc(pp.mode, strlen(temp));
+        sprintf(pp.mode, "^fg(%s)%d ", PP_COL_MODE, d->mode);
+    }
     DEBUG("updatemode: leaving\n");
 }
 
