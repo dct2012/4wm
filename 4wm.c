@@ -190,6 +190,9 @@ void change_desktop(const Arg *arg) {
     } 
     
     #if PRETTY_PRINT
+    updatews();
+    updatemode();
+    updatedir();
     desktopinfo();
     #endif
     DEBUG("change_desktop: leaving\n");
@@ -248,6 +251,7 @@ void client_to_desktop(const Arg *arg) {
         change_desktop(arg); 
     
     #if PRETTY_PRINT
+    updatews();
     desktopinfo();
     #endif
     DEBUG("client_to_desktop: leaving\n");
@@ -513,6 +517,9 @@ void mousemotion(const Arg *arg) {
                             focus(c, n, m); //readjust focus for new desktop
                             focus(d->prevfocus, d, mold); // readjust the focus from that desktop
                             d = &desktops[m->curr_dtop];
+                            updatews();
+                            updatemode();
+                            updatedir();
                             desktopinfo();
                         }
                     }
@@ -972,6 +979,7 @@ void switch_direction(const Arg *arg) {
     }
     if (d->direction != arg->i) d->direction = arg->i;
     #if PRETTY_PRINT
+    updatedir();
     desktopinfo();
     #endif
 }
@@ -982,6 +990,7 @@ void switch_mode(const Arg *arg) {
     if (d->mode != arg->i) d->mode = arg->i;
     retile(d, selmon); // we need to retile when switching from video/monocle to tile/float
     #if PRETTY_PRINT
+    updatemode();
     desktopinfo();
     #endif
 }
@@ -1210,25 +1219,12 @@ void deletewindow(xcb_window_t w) {
 
 #if PRETTY_PRINT
 // output info about the desktops on standard output stream
-// the info values are
-//   the desktop number/id
-//   the desktop's client count
-//   the desktop's tiling layout mode/id
-//   whether the desktop is the current focused (1) or not (0)
-//   whether any client in that desktop has received an urgent hint
-// once the info is collected, immediately flush the stream
+// once the info is printed, immediately flush the stream
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering\n"); 
-    
-    updatews();
-    updatemode();
-    updatedir();
-
     desktop *d = &desktops[selmon->curr_dtop];
-    if (d->current) updatetitle(d->current);
-    printf("%s %s ^fg(%s)%s\n", pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
+    printf("%s %s %s ^fg(%s)%s\n", pp.ws, pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
     fflush(stdout);
-
     DEBUG("desktopinfo: leaving\n");
 }
 #endif
@@ -1470,8 +1466,12 @@ void updatews() {
     desktop *d = NULL; client *c = NULL; monitor *m = NULL;
     bool urgent = false; 
     char *tags_ws[] = PP_TAGS_WS;
-    //w = num of windows
-    
+    char t1[512] = { "" };
+    char t2[512] = { "" };
+    #if DEBUG
+    int count = 0;
+    #endif
+
     for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
         for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
         for (m = mons; m; m = m->next)
@@ -1479,14 +1479,21 @@ void updatews() {
                 w++;
         
         if (tags_ws[i])
-            printf("^fg(%s)%s ", 
+            snprintf(t2, 512, "^fg(%s)%s ", 
                     d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
                     tags_ws[i]);
         else 
-            printf("^fg(%s)%d ", 
+            snprintf(t2, 512, "^fg(%s)%d ", 
                     d == &desktops[selmon->curr_dtop] ? PP_COL_CURRENT:urgent ? PP_COL_URGENT:w ? PP_COL_VISIBLE:PP_COL_HIDDEN, 
                     i + 1);
+        strncat(t1, t2, strlen(t2));
+        #if DEBUG
+        count += strlen(t2);
+        DEBUGP("updatews: count = %d\n", count);
+        #endif
     }
+    pp.ws = (char *)realloc(pp.ws, strlen(t1) + 1);
+    strncpy(pp.ws, t1, strlen(t1));
 
     DEBUG("updatews: leaving\n");
 }
@@ -1632,6 +1639,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         setclientborders(d, d->current, m);
     free(c); c = NULL; 
     #if PRETTY_PRINT
+    updatews();
     desktopinfo();
     #endif
     DEBUG("removeclient: leaving\n");
@@ -1652,6 +1660,11 @@ void buttonpress(xcb_generic_event_t *e) {
             monitor *mold = selmon;
             client *cold = desktops[selmon->curr_dtop].current;
             selmon = m;
+            #if PRETTY_PRINT
+            updatews();
+            updatemode();
+            updatedir();
+            #endif
             if (cold)
                 setclientborders(&desktops[mold->curr_dtop], cold, mold);
         }
@@ -1974,6 +1987,7 @@ void maprequest(xcb_generic_event_t *e) {
     grabbuttons(c);
     
     #if PRETTY_PRINT
+    updatetitle(c);
     if (!follow)
         desktopinfo();
     #endif
@@ -1989,19 +2003,21 @@ void propertynotify(xcb_generic_event_t *e) {
     xcb_icccm_wm_hints_t wmh;
     client *c;
 
+    c = wintoclient(ev->window);
+    if (!c) { 
+        DEBUG("propertynotify: leaving, NULL client\n");
+        return;
+    }
+
     #if PRETTY_PRINT
     if (ev->atom == XCB_ATOM_WM_NAME) {
         DEBUG("propertynotify: ev->atom == XCB_ATOM_WM_NAME\n");
+        updatetitle(c);
         desktopinfo(); 
     }
     #endif
     if (ev->atom != XCB_ICCCM_WM_ALL_HINTS) {
         DEBUG("propertynotify: leaving, ev->atom != XCB_ICCCM_WM_ALL_HINTS\n");
-        return;
-    }
-    c = wintoclient(ev->window);
-    if (!c) { 
-        DEBUG("propertynotify: leaving, NULL client\n");
         return;
     } 
     if (xcb_icccm_get_wm_hints_reply(dis, xcb_icccm_get_wm_hints(dis, ev->window), &wmh, NULL)) { // TODO: error handling
@@ -2897,6 +2913,10 @@ static int setup(int default_screen) {
     
     // new pipe to messenger, panel, dzen
     #if PRETTY_PRINT
+    updatews();
+    updatemode();
+    updatedir();
+    
     int pfds[2];
     pid_t pid;
 

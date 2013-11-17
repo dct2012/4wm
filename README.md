@@ -122,7 +122,6 @@ TODO
   * pretty print.
     * make sure it also works for messengers other than dzen2.
     * allow the user to control what is displayed and the order.
-    * maybe add a struct and only have certain parts updated when need be.
   * Add a command to invert the current windows color.
 
 ***MISC***
@@ -131,3 +130,4 @@ TODO
     * preprocessor conditions for function/variables/etc.
     * constantly impove readability.
   * Work on the man page.
+  * Double check memory handleage.
