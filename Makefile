@@ -19,7 +19,6 @@ LDFLAGS  += -s ${LIBS}
 EXEC = ${WMNAME}
 
 SRC = ${WMNAME}.c
-OBJS = 4wm.h config.h
 OBJ = ${SRC:.c=.o}
 
 ifeq (${DEBUG},0)
@@ -42,7 +41,7 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h
+${OBJ}: config.h ${WMNAME}.h
 
 config.h:
 	@echo creating $@ from config.def.h

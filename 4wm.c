@@ -506,10 +506,12 @@ void mousemotion(const Arg *arg) {
                             focus(c, n, m); //readjust focus for new desktop
                             focus(d->prevfocus, d, mold); // readjust the focus from that desktop
                             d = &desktops[m->curr_dtop];
+                            #if PRETTY_PRINT
                             updatews();
                             updatemode();
                             updatedir();
                             desktopinfo();
+                            #endif
                         }
                     }
                 }
