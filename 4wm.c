@@ -125,17 +125,6 @@ static void text_draw (xcb_gcontext_t gc, xcb_window_t window, int16_t x1, int16
         xcb_disconnect(dis);
         exit(-1);
     }
-
-    // TODO: make sure all these gc's are being cleaned up
-    /*
-    cookie_gc = xcb_free_gc(dis, gc);
-    error = xcb_request_check (dis, cookie_gc);
-    if (error) {
-        fprintf (stderr, "ERROR: can't free gc : %d\n", error->error_code);
-        xcb_disconnect (dis);
-        exit (-1);
-    }
-    */
 }
 #endif
 
@@ -1223,7 +1212,7 @@ void deletewindow(xcb_window_t w) {
 void desktopinfo(void) {
     DEBUG("desktopinfo: entering\n"); 
     desktop *d = &desktops[selmon->curr_dtop];
-    printf("%s %s %s ^fg(%s)%s\n", pp.ws, pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
+    PP_PRINTF;
     fflush(stdout);
     DEBUG("desktopinfo: leaving\n");
 }

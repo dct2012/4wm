@@ -81,6 +81,7 @@
 #define PP_TAGS_WS { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" }
 #define PP_TAGS_MODE { "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)" }
 #define PP_TAGS_DIR { "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)" } 
+#define PP_PRINTF printf("%s %s %s ^fg(%s)%s\n", pp.ws, pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
 #endif
 
 /**

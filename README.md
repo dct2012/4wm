@@ -121,7 +121,6 @@ TODO
     * add keyboard use.
   * pretty print.
     * make sure it also works for messengers other than dzen2.
-    * allow the user to control what is displayed and the order.
   * Add a command to invert the current windows color.
 
 ***MISC***
