@@ -127,5 +127,5 @@ TODO
   * Overall organization.
     * look for conditional statements that can be moved to preprocessor conditionals.
     * preprocessor conditions for function/variables/etc.
-    * constantly impove readability.
+    * constantly improve readability.
   * Work on the man page.
