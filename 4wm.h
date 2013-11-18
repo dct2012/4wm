@@ -140,13 +140,6 @@ typedef struct Xresources {
     xcb_gcontext_t font_gc[12];
 } Xresources;
 
-typedef struct pp_data {
-    char *ws;
-    char *mode;
-    char *dir;
-    char *title;
-} pp_data;
-
 // COMMANDS
 extern void change_desktop(const Arg *arg);
 extern void client_to_desktop(const Arg *arg);
@@ -180,6 +173,14 @@ extern void switch_direction(const Arg *arg);
 extern void togglepanel();
 
 #include "config.h"
+
+#if PRETTY_PRINT
+typedef struct pp_data {
+    char *ws;
+    char *mode;
+    char *dir;
+} pp_data;
+#endif
 
 // UTILITIES
 extern void adjustclientgaps(const int gap, client *c);

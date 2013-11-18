@@ -130,4 +130,3 @@ TODO
     * preprocessor conditions for function/variables/etc.
     * constantly impove readability.
   * Work on the man page.
-  * Double check memory handleage.

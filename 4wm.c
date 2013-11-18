@@ -2441,9 +2441,29 @@ static void cleanup(void) {
         free(query);
     }
     
-    free(mons);
+    // free each monitor
+    monitor *m, *t;
+    for (m = mons; m; m = t){
+        t = m->next;
+        free(m);
+    }
     #if MENU
-    free(menus);
+    // free each menu and each menuentry
+    Menu *men, *tmen;
+    Menu_Entry *ent, *tent;
+    for (men = menus; men; men = tmen) {
+        tmen = men->next;
+        for (ent = men->head; ent; ent = tent) {
+            tent = ent->next;
+            free(ent);
+        }
+        free(men);
+    }
+    #endif
+    #if PRETTY_PRINT
+    free(pp.ws);
+    free(pp.mode);
+    free(pp.dir);
     #endif
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
     xcb_flush(dis);
