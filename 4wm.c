@@ -970,6 +970,7 @@ void switch_direction(const Arg *arg) {
     }
     if (d->direction != arg->i) d->direction = arg->i;
     #if PRETTY_PRINT
+    updatemode();
     updatedir();
     desktopinfo();
     #endif
@@ -1399,11 +1400,11 @@ void updatedir() {
      
     if (tags_dir[d->direction]) {
         snprintf(temp, 512, "^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
-        pp.dir = (char *)realloc(pp.dir, strlen(temp));
+        pp.dir = realloc(pp.dir, strlen(temp));
         sprintf(pp.dir, "^fg(%s)%s ", PP_COL_DIR, tags_dir[d->direction]);
-    }else {
+    } else {
         snprintf(temp, 512, "^fg(%s)%d ", PP_COL_DIR, d->direction);
-        pp.dir = (char *)realloc(pp.dir, strlen(temp));
+        pp.dir = realloc(pp.dir, strlen(temp));
         sprintf(pp.dir, "^fg(%s)%d ", PP_COL_DIR, d->direction);
     }
     DEBUG("updatedir: leaving\n");
@@ -1417,11 +1418,11 @@ void updatemode() {
     
     if (tags_mode[d->mode]) {
         snprintf(temp, 512, "^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
-        pp.mode = (char *)realloc(pp.mode, strlen(temp));
+        pp.mode = realloc(pp.mode, strlen(temp));
         sprintf(pp.mode, "^fg(%s)%s ", PP_COL_MODE, tags_mode[d->mode]);
     } else {
         snprintf(temp, 512, "^fg(%s)%d ", PP_COL_MODE, d->mode);
-        pp.mode = (char *)realloc(pp.mode, strlen(temp));
+        pp.mode = realloc(pp.mode, strlen(temp));
         sprintf(pp.mode, "^fg(%s)%d ", PP_COL_MODE, d->mode);
     }
     DEBUG("updatemode: leaving\n");
@@ -1437,6 +1438,7 @@ void updatetitle(client *c) {
             return;
 
     if(err) {
+        DEBUG("updatetitle: leaving, error\n");
         free(err);
         return;
     }
@@ -1588,8 +1590,7 @@ static client *wintoclient(xcb_window_t w) {
 void initializedead(client *c, desktop *d, const monitor *m) {
     DEBUG("initializedead: entering\n");
     client *n = NULL, *dead = (client *)malloc_safe(sizeof(client));
-    *dead = *c;
-    dead->next = NULL;
+    dead->xp  = c->xp; dead->yp  = c->yp; dead->wp  = c->wp; dead->hp  = c->hp;
     if (!d->dead) {
         DEBUG("initializedead: d->dead == NULL\n");
         d->dead = dead;
@@ -1627,6 +1628,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
         initializedead(c, d, m); 
     } else if (d->current)
         setclientborders(d, d->current, m);
+    free(c->title);
     free(c); c = NULL; 
     #if PRETTY_PRINT
     updatews();
@@ -1831,6 +1833,11 @@ void enternotify(xcb_generic_event_t *e) {
         monitor *mold = selmon;
         client *cold = desktops[selmon->curr_dtop].current;
         selmon = m;
+        #if PRETTY_PRINT
+        updatews();
+        updatemode();
+        updatedir();
+        #endif
         if (cold)
             setclientborders(&desktops[mold->curr_dtop], cold, mold);
     
