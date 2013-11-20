@@ -1445,7 +1445,7 @@ void updatetitle(client *c) {
     if(!reply.name || !reply.name_len)
         return;
 
-    c->title = (char *)realloc(c->title, reply.name_len+1);
+    c->title = realloc(c->title, reply.name_len+1);
     strcpy(c->title, reply.name); 
     xcb_icccm_get_text_property_reply_wipe(&reply);
     DEBUG("updatetitle: leaving\n");
@@ -2788,7 +2788,8 @@ static void run(void) {
                 DEBUGP("run: entering event %d\n", ev->response_type & ~0x80);
                 events[ev->response_type & ~0x80](ev);
             }
-            else { DEBUGP("xcb: unimplented event: %d\n", ev->response_type & ~0x80); }
+            else
+                DEBUGP("xcb: unimplented event: %d\n", ev->response_type & ~0x80); 
             free(ev);
         }
     }
