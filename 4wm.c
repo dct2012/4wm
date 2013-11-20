@@ -1448,7 +1448,7 @@ void updatetitle(client *c) {
         return;
 
     c->title = realloc(c->title, reply.name_len+1);
-    strcpy(c->title, reply.name); 
+    strncpy(c->title, reply.name, reply.name_len); 
     xcb_icccm_get_text_property_reply_wipe(&reply);
     DEBUG("updatetitle: leaving\n");
 }
