@@ -2788,8 +2788,7 @@ static void run(void) {
                 DEBUGP("run: entering event %d\n", ev->response_type & ~0x80);
                 events[ev->response_type & ~0x80](ev);
             }
-            else
-                DEBUGP("xcb: unimplented event: %d\n", ev->response_type & ~0x80); 
+            else {DEBUGP("xcb: unimplented event: %d\n", ev->response_type & ~0x80);}
             free(ev);
         }
     }
