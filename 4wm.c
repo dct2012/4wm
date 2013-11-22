@@ -1446,8 +1446,9 @@ void updatetitle(client *c) {
     // TODO: encoding
     if(!reply.name || !reply.name_len)
         return;
-
-    c->title = realloc(c->title, reply.name_len+1);
+     
+    free(c->title);
+    c->title = malloc_safe(reply.name_len+1);  
     strncpy(c->title, reply.name, reply.name_len); 
     xcb_icccm_get_text_property_reply_wipe(&reply);
     DEBUG("updatetitle: leaving\n");
