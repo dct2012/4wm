@@ -1650,6 +1650,7 @@ void buttonpress(xcb_generic_event_t *e) {
             updatews();
             updatemode();
             updatedir();
+            desktopinfo();
             #endif
             if (cold)
                 setclientborders(&desktops[mold->curr_dtop], cold, mold);
