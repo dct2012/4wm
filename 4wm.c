@@ -1250,9 +1250,10 @@ void focus(client *c, desktop *d, const monitor *m) {
         d->current = c; 
     }
     setdesktopborders(d, m);
-    if (CLICK_TO_FOCUS) 
-        xcb_grab_button(dis, 1, c->win, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-                   XCB_WINDOW_NONE, XCB_NONE, XCB_BUTTON_INDEX_1, XCB_BUTTON_MASK_ANY);
+    #if CLICK_TO_FOCUS 
+    xcb_grab_button(dis, 1, c->win, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+                        XCB_WINDOW_NONE, XCB_NONE, XCB_BUTTON_INDEX_1, XCB_BUTTON_MASK_ANY);
+    #endif
 
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &c->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, c->win, XCB_CURRENT_TIME);
@@ -1275,7 +1276,6 @@ bool getrootptr(int *x, int *y) {
     return true;
 }
 
-// TODO work on CLICK_TO_FOCUS
 // set the given client to listen to button events (presses / releases)
 void grabbuttons(client *c) {
     DEBUG("grabbuttons: entering\n");
@@ -1640,7 +1640,8 @@ void buttonpress(xcb_generic_event_t *e) {
     monitor *m = wintomon(ev->event);
     client *c = wintoclient(ev->event);
 
-    if (CLICK_TO_FOCUS && ev->detail == XCB_BUTTON_INDEX_1) {
+    #if CLICK_TO_FOCUS 
+    if (ev->detail == XCB_BUTTON_INDEX_1) {
         if (m && m != selmon) {
             monitor *mold = selmon;
             client *cold = desktops[selmon->curr_dtop].current;
@@ -1657,6 +1658,7 @@ void buttonpress(xcb_generic_event_t *e) {
         if (c && c != desktops[m->curr_dtop].current)
             focus(c, &desktops[m->curr_dtop], m);
     }
+    #endif
     
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
