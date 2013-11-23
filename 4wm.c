@@ -1251,10 +1251,11 @@ void focus(client *c, desktop *d, const monitor *m) {
     }
     setdesktopborders(d, m);
     if (CLICK_TO_FOCUS) 
-        grabbuttons(c);
+        xcb_grab_button(dis, 1, c->win, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+                   XCB_WINDOW_NONE, XCB_NONE, XCB_BUTTON_INDEX_1, XCB_BUTTON_MASK_ANY);
 
-    xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &d->current->win);
-    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, d->current->win, XCB_CURRENT_TIME); 
+    xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &c->win);
+    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, c->win, XCB_CURRENT_TIME);
     xcb_flush(dis);
      
     #if PRETTY_PRINT
@@ -1278,22 +1279,13 @@ bool getrootptr(int *x, int *y) {
 // set the given client to listen to button events (presses / releases)
 void grabbuttons(client *c) {
     DEBUG("grabbuttons: entering\n");
-    unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK };
-    
+    unsigned int i, j, modifiers[] = { 0, XCB_MOD_MASK_LOCK, numlockmask, numlockmask|XCB_MOD_MASK_LOCK }; 
     xcb_ungrab_button(dis, XCB_BUTTON_INDEX_ANY, c->win, XCB_GRAB_ANY);
-    if(c == desktops[selmon->curr_dtop].current) {
-        for(i = 0; i < LENGTH(buttons); i++)
-            //if(buttons[i].click == ClkClientWin)
-                for(j = 0; j < LENGTH(modifiers); j++)
-                    xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
-                                    XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
-                                    buttons[i].button, buttons[i].mask | modifiers[j]);
-    }
-    else
-        xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_ASYNC,
-                        XCB_GRAB_MODE_SYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
-                        XCB_BUTTON_INDEX_ANY, XCB_BUTTON_MASK_ANY);
-
+    for(i = 0; i < LENGTH(buttons); i++)
+        for(j = 0; j < LENGTH(modifiers); j++)
+            xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
+                                XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
+                                buttons[i].button, buttons[i].mask|modifiers[j]);
     DEBUG("grabbuttons: leaving\n");
 }
 
@@ -1662,14 +1654,10 @@ void buttonpress(xcb_generic_event_t *e) {
                 setclientborders(&desktops[mold->curr_dtop], cold, mold);
         }
      
-        if (c && c != desktops[selmon->curr_dtop].current) 
+        if (c && c != desktops[m->curr_dtop].current)
             focus(c, &desktops[m->curr_dtop], m);
-
-        #if PRETTY_PRINT
-        desktopinfo();
-        #endif
     }
-
+    
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
             if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop], m);
@@ -1847,9 +1835,6 @@ void enternotify(xcb_generic_event_t *e) {
     desktop *d = &desktops[m->curr_dtop]; 
     DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp), (m->h * c->hp));
     focus(c, d, selmon);
-    #if PRETTY_PRINT
-    desktopinfo();
-    #endif
     DEBUG("enternotify: leaving\n");
 }
 
