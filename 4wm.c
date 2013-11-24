@@ -1661,8 +1661,6 @@ void buttonpress(xcb_generic_event_t *e) {
     }
     #endif
     
-
-
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
             if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop], m);
