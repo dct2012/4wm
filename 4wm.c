@@ -1285,7 +1285,7 @@ void grabbuttons(client *c) {
         for(j = 0; j < LENGTH(modifiers); j++)
             xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
                                 XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
-                                buttons[i].button, buttons[i].mask|modifiers[j]);
+                                XCB_BUTTON_INDEX_ANY, XCB_BUTTON_MASK_ANY);
     DEBUG("grabbuttons: leaving\n");
 }
 
@@ -1661,12 +1661,16 @@ void buttonpress(xcb_generic_event_t *e) {
     }
     #endif
     
+
+
     for (unsigned int i=0; i<LENGTH(buttons); i++)
         if (buttons[i].func && buttons[i].button == ev->detail && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
             if (desktops[m->curr_dtop].current != c) focus(c, &desktops[m->curr_dtop], m);
             buttons[i].func(&(buttons[i].arg));
         }
 
+    xcb_allow_events(dis, XCB_ALLOW_REPLAY_POINTER, ev->time);
+    xcb_flush(dis);
     DEBUG("buttonpress: leaving\n");
 }
 
