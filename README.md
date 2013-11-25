@@ -129,5 +129,4 @@ TODO
     * preprocessor conditions for function/variables/etc.
     * constantly improve readability.
   * Work on the man page.
-  * CLICK_TO_FOCUS not working correctly.
-    * double check all options.
+  * Double check all options.
