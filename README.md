@@ -130,3 +130,4 @@ TODO
     * constantly improve readability.
   * Work on the man page.
   * Double check all options.
+  * Add conditional compilation for click to focus.
