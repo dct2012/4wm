@@ -1667,8 +1667,10 @@ void buttonpress(xcb_generic_event_t *e) {
             buttons[i].func(&(buttons[i].arg));
         }
 
+    #if CLICK_TO_FOCUS
     xcb_allow_events(dis, XCB_ALLOW_REPLAY_POINTER, ev->time);
     xcb_flush(dis);
+    #endif
     DEBUG("buttonpress: leaving\n");
 }
 
