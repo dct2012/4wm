@@ -1283,9 +1283,16 @@ void grabbuttons(client *c) {
     xcb_ungrab_button(dis, XCB_BUTTON_INDEX_ANY, c->win, XCB_GRAB_ANY);
     for(i = 0; i < LENGTH(buttons); i++)
         for(j = 0; j < LENGTH(modifiers); j++)
+            #if CLICK_TO_FOCUS
             xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
                                 XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
                                 XCB_BUTTON_INDEX_ANY, XCB_BUTTON_MASK_ANY);
+    
+            #else
+            xcb_grab_button(dis, false, c->win, BUTTONMASK, XCB_GRAB_MODE_SYNC,
+                                XCB_GRAB_MODE_ASYNC, XCB_WINDOW_NONE, XCB_CURSOR_NONE,
+                                buttons[i].button, buttons[i].mask | modifiers[j]);
+            #endif
     DEBUG("grabbuttons: leaving\n");
 }
 
