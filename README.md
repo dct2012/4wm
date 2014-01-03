@@ -113,7 +113,10 @@ TODO
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa.
-  * There is a issue with transient windows, and scrolling through many options.
+  * chromium's file explorer wants to configure itself to draw certain images and is
+    unresponsive when unable to configure itself. firefox's works fine. calling it a 
+    chromium issue.
+  * stdin issue.
 
 ***New Features***
   * Menu.
@@ -122,7 +125,7 @@ TODO
     * add keyboard use.
   * pretty print.
     * make sure it also works for messengers other than dzen2.
-  * Add a command to invert the current windows color.
+  * add a command to invert the current windows color.
 
 ***MISC***
   * Overall organization.
