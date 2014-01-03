@@ -1846,8 +1846,9 @@ void enternotify(xcb_generic_event_t *e) {
     
     }
 
-    desktop *d = &desktops[m->curr_dtop]; 
-    DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp), (m->h * c->hp));
+    desktop *d = &desktops[selmon->curr_dtop]; 
+    DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", 
+            (selmon->w * c->xp), (selmon->h * c->yp), (selmon->w * c->wp), (selmon->h * c->hp));
     focus(c, d, selmon);
     DEBUG("enternotify: leaving\n");
 }
@@ -2461,6 +2462,8 @@ static void cleanup(void) {
     free(pp.ws);
     free(pp.mode);
     free(pp.dir);
+    //fclose(pp_in);
+    //fclose(pp_out);
     #endif
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
     xcb_flush(dis);
@@ -2948,9 +2951,9 @@ static int setup(int default_screen) {
         return EXIT_FAILURE;
     } else if (pid == 0) { // child
         close(pfds[0]); // close unused read end
-
         // set write end of pipe as stdout for this child process
         dup2(pfds[1], STDOUT_FILENO);
+        //pp_out = fdopen(pfds[1], "w");
         close(pfds[1]);
 
         desktopinfo();
@@ -2959,6 +2962,7 @@ static int setup(int default_screen) {
         close(pfds[1]); // close unused write end
         // set read end of pipe as stdin for this process
         dup2(pfds[0], STDIN_FILENO);
+        //pp_in = fdopen(pfds[0], "r");
         close(pfds[0]); // already redirected to stdin
 
         execvp(args[0], args);

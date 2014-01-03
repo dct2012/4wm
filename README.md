@@ -113,7 +113,6 @@ TODO
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa.
-  * There may be a error with getoutputs, and trying to switch desktops.
   * There is a issue with transient windows, and scrolling through many options.
 
 ***New Features***
