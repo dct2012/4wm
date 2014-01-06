@@ -117,6 +117,11 @@ TODO
     unresponsive when unable to configure itself. firefox's works fine. calling it a 
     chromium issue.
   * stdin issue.
+  * found some wierd issues. pulling something to float, had it stacked behind 
+    tiled. then switching to floating mode caused it to move to the bottom of 
+    the screen and stacked above (the one thing correct). moving the floating 
+    window to a empty desktop, then pushing it to tile, didnt remove borders.
+    then tiling new didnt treat it as a second window.
 
 ***New Features***
   * Menu.
