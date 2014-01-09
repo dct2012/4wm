@@ -53,6 +53,18 @@ static inline void xcb_resize(xcb_connection_t *con, xcb_window_t win, int w, in
     xcb_configure_window(con, win, XCB_RESIZE, pos);
 }
 
+// wrapper to lower window
+static inline void xcb_lower_window(xcb_connection_t *con, xcb_window_t win) {
+    unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
+    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
+}
+
+// wrapper to raise window
+static inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
+    unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
+    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
+}
+
 static void growbyh(client *match, const float size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? (match->yp - c->yp):(c->hp + size);
     xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
@@ -709,6 +721,7 @@ void pulltofloat() {
     
         // move it to the center of the screen
         xcb_move_resize(dis, c->win, (c->x = selmon->w/2 - c->w/2), (c->y = selmon->h/2 - c->h/2), c->w, c->h);
+        xcb_raise_window(dis, c->win);
     }
     DEBUG("pulltofloat: leaving\n");
 }
@@ -735,6 +748,7 @@ void pushtotiling() {
                             (n->y = m->y + n->gapy), 
                             (n->w = m->w - 2*n->gapw), 
                             (n->h = m->h - 2*n->gaph));
+        setclientborders(d, n, selmon);
         DEBUG("pushtotiling: leaving, tiled only client on desktop\n");
         return;
     } else if (d->prevfocus)
@@ -2042,18 +2056,6 @@ void unmapnotify(xcb_generic_event_t *e) {
 }
 
 // TILING
-
-// wrapper to lower window
-inline void xcb_lower_window(xcb_connection_t *con, xcb_window_t win) {
-    unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
-    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
-}
-
-// wrapper to raise window
-inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
-    unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
-    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
-}
 
 // each window should cover all the available screen space
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
