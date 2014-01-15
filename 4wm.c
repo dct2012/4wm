@@ -2724,7 +2724,7 @@ static void initializexresources() {
     strcat(xdefaults, "/.Xdefaults");
 
     // initialize font
-    // TODO: get font, XrmGetResouce
+    // TODO: user font
     font = xcb_generate_id (dis);
     cookie_font = xcb_open_font_checked (dis, font, strlen ("7x13"), "7x13");
     error = xcb_request_check (dis, cookie_font);
@@ -2745,6 +2745,7 @@ static void initializexresources() {
     XrmInitialize();
     XrmDatabase dbase = XrmGetFileDatabase(xdefaults);
 
+    //TODO: uclibc color allocation?
     for(int i = 0; i < 12; i++) {
         // now get all the colors from xresources and make the gc's
         if (XrmGetResource(dbase, names[i], class[i], str_type, &value)) {

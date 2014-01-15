@@ -117,6 +117,7 @@ TODO
     unresponsive when unable to configure itself. firefox's works fine. calling it a 
     chromium issue.
   * stdin issue.
+  * handle issues with uclibc.
 
 ***New Features***
   * Menu.
