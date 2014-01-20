@@ -2745,7 +2745,6 @@ static void initializexresources() {
     XrmInitialize();
     XrmDatabase dbase = XrmGetFileDatabase(xdefaults);
 
-    //TODO: uclibc color allocation?
     for(int i = 0; i < 12; i++) {
         // now get all the colors from xresources and make the gc's
         if (XrmGetResource(dbase, names[i], class[i], str_type, &value)) {
