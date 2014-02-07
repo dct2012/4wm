@@ -81,9 +81,9 @@ Licensed under MIT/X Consortium License, see [LICENSE][law] file for more copyri
 Donate
 ------
 
-Bitcoin: 1EqURvUkiP4BtZBxY6X8uUSe6F2zPtqGEB
-Litecoin: LWeBjVZHsR5KnV4t89x7ESHVgyvwDSjZZP
-Dogecoin: DDrqVPBkC2e3c9Z56oWRnJxssdNFncUbSQ
+Bitcoin: 1EqURvUkiP4BtZBxY6X8uUSe6F2zPtqGEB  
+Litecoin: LWeBjVZHsR5KnV4t89x7ESHVgyvwDSjZZP  
+Dogecoin: DDrqVPBkC2e3c9Z56oWRnJxssdNFncUbSQ  
 
 Thanks
 ------
