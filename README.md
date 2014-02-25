@@ -132,6 +132,9 @@ TODO
     * add keyboard use.
   * pretty print.
     * make sure it also works for messengers other than dzen2.
+  * make a "placeholder"
+    * I sometimes make use xterm (a window) just to manipulate how windows
+      will be tiled.
   * add a command to invert the current windows color.
 
 ***MISC***
