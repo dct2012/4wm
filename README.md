@@ -115,6 +115,9 @@ TODO
 ----
 
 ***BUGS*** 
+  * transient windows seem to not be popping op on their own, switching tiling modes makes them pop up.
+  * killing a chrome window, causes snafu
+  * 
   * steam
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
@@ -126,6 +129,9 @@ TODO
   * stdin issue.
 
 ***New Features***
+  * add its own pager like dzen2
+  * steal form kde's android notification system
+  * maybe add three finger scroll through workspaces like OSX
   * Menu.
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
