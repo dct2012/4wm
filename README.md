@@ -116,8 +116,7 @@ TODO
 
 ***BUGS*** 
   * transient windows seem to not be popping op on their own, switching tiling modes makes them pop up.
-  * killing a chrome window, causes snafu
-  * 
+  * killing a chrome window, causes snafu 
   * steam
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
