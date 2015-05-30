@@ -22,7 +22,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -84,7 +84,7 @@ typedef struct client {
  */
 typedef struct {
     int mode, gap, direction, count;
-    client *head, *current, *prevfocus, *dead;
+    client *head, *current, *prevfocus;
     bool showpanel;
 } desktop;
 
@@ -196,7 +196,6 @@ extern void focus(client *c, desktop *d, const monitor *m);
 extern bool getrootptr(int *x, int *y);
 extern void grabbuttons(client *c);
 extern void grabkeys(void);
-extern void initializedead(client *c, desktop *d, const monitor *m);
 extern void* malloc_safe(size_t size);
 extern client* prev_client(client *c, desktop *d);
 extern void setclientborders(desktop *d, client *c, const monitor *m);
@@ -232,6 +231,6 @@ extern void tilenewbottom(client *n, client *c);
 extern void tilenewleft(client *n, client *c);
 extern void tilenewright(client *n, client *c);
 extern void tilenewtop(client *n, client *c);
-extern void tileremove(desktop *d, const monitor *m);
+extern void tileremove(client *dead, desktop *d, const monitor *m);
 
 /* vim: set ts=4 sw=4 :*/
