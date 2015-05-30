@@ -22,7 +22,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 1
+#if 0
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
