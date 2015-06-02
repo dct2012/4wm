@@ -226,8 +226,8 @@ void client_to_desktop(const Arg *arg) {
         p->next = c->next;
     c->next = NULL;
     if (!ISFT(c)) {
-        d->count -= 1;
-        n->count += 1;
+        d->count--;
+        n->count++;
         tileremove(c, d, selmon);
     }
     DEBUGP("client_to_desktop: d->count = %d\nclient_to_desktop: n->count = %d\n", d->count, n->count);
@@ -716,7 +716,7 @@ void pulltofloat() {
 
     if (!c->isfloating) {
         c->isfloating = true;
-        d->count -= 1;
+        d->count--;
         tileremove(c, d, selmon);
     
         // move it to the center of the screen
@@ -742,7 +742,7 @@ void pushtotiling() {
     if (d->count == 0) { // no tiled clients
         n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
         adjustclientgaps(gap, n);
-        d->count += 1;
+        d->count++;
         xcb_move_resize(dis, n->win, 
                             (n->x = m->x + n->gapx), 
                             (n->y = m->y + n->gapy), 
@@ -776,7 +776,7 @@ void pushtotiling() {
 
     tiledirection[d->direction](n, c); 
         
-    d->count += 1;
+    d->count++;
 
     adjustclientgaps(gap, c);
     adjustclientgaps(gap, n);
@@ -1623,7 +1623,7 @@ static void removeclient(client *c, desktop *d, const monitor *m) {
     }
 
     if (!c->isfloating) {
-        d->count -= 1;
+        d->count--;
         tileremove(c, d, m);
     } else if (d->current)
         setclientborders(d, d->current, m);
@@ -1966,7 +1966,7 @@ void maprequest(xcb_generic_event_t *e) {
     }
 
     if (!ISFT(c))
-        desktops[newdsk].count += 1;
+        desktops[newdsk].count++;
         
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); // TODO: error handling
     if (prop_reply) { 
