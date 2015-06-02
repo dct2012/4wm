@@ -116,6 +116,7 @@ TODO
 
 ***BUGS*** 
   * transient windows seem to not be popping op on their own, switching tiling modes makes them pop up.
+    this only seems to be the case with three monitors.
   * killing a chrome window, causes snafu 
   * steam
     * games 
