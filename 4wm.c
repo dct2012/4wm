@@ -1800,11 +1800,14 @@ void configurerequest(xcb_generic_event_t *e) {
 void destroynotify(xcb_generic_event_t *e) {
     DEBUG("destroynotify: entering\n");   
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
-    client *c = wintoclient(ev->window);
-    desktop *d = clienttodesktop(c);
-    monitor *m = wintomon(ev->window);
-    if (c) 
-        removeclient(c, d, m); 
+    
+    client *c = wintoclient(ev->window); 
+    if (c){
+        desktop *d = clienttodesktop(c);
+        monitor *m = wintomon(ev->window);
+        removeclient(c, d, m);
+    }
+    
     #if PRETTY_PRINT
     desktopinfo();
     #endif
