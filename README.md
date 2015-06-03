@@ -117,8 +117,11 @@ TODO
 ***BUGS*** 
   * transient windows seem to not be popping op on their own, switching tiling modes makes them pop up.
     this only seems to be the case with three monitors.
-  * killing a chrome window, causes snafu 
-  * steam
+  * killing a chrome window, causes snafu (wtf)
+  * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
+    So the window will disapear and the client will still be there. steam and drracket are known to do
+    this.
+  * steam (I don't think I'm having this problem anymore)
     * games 
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
         killing these pulseaudio processes allow the game to resume. alternatively you can
@@ -126,7 +129,11 @@ TODO
   * chromium's file explorer wants to configure itself to draw certain images and is
     unresponsive when unable to configure itself. firefox's works fine. calling it a 
     chromium issue.
-  * stdin issue.
+    (we can try looking at propertynotify or configure request and make a special exception for 
+    floating windows)
+  * stdin issue. I think this is when other programs print to the same stream we're reading from with
+    pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
+    we be somehow making out pipe more private.
 
 ***New Features***
   * add its own pager like dzen2
