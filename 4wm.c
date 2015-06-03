@@ -2034,9 +2034,11 @@ void propertynotify(xcb_generic_event_t *e) {
 void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: entering\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
-    client *c = wintoclient(ev->window);
-    monitor *m = wintomon(ev->window);
-    if (c && ev->event != screen->root) removeclient(c, &desktops[selmon->curr_dtop], m);
+    client *c = wintoclient(ev->window); 
+    if (c && ev->event != screen->root){ 
+        monitor *m = wintomon(ev->window);
+        removeclient(c, &desktops[m->curr_dtop], m);
+    }
     #if PRETTY_PRINT
     desktopinfo();
     #endif
