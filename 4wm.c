@@ -1732,7 +1732,7 @@ void configurerequest(xcb_generic_event_t *e) {
     unsigned int i = 0;
     monitor *m; client *c; 
    
-    if (!(c = wintoclient(ev->window))) { // if it has no client, configure it
+    if ((!(c = wintoclient(ev->window)) || c->istransient)) { // if it has no client, configure it or if it's transient let it configure itself
         if ((m = wintomon(ev->window))) {
             DEBUGP("configurerequest: x: %d y: %d w: %d h: %d\n", ev->x, ev->y, ev->width, ev->height);
 
@@ -1783,8 +1783,8 @@ void configurerequest(xcb_generic_event_t *e) {
             v[i++] = ev->stack_mode;
         }
         xcb_configure_window_checked(dis, ev->window, ev->value_mask, v);
-    }
-    else { // has a client, fake configure it
+
+    } else { // has a client, fake configure it
         xcb_send_event(dis, false, c->win, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
     }
     xcb_flush(dis);

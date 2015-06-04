@@ -115,7 +115,8 @@ TODO
 ----
 
 ***BUGS***
-  * killing a chrome window, causes snafu (wtf)
+  * killing a chrome window, causes snafu (wtf). You can exit chrome through it's menu and all will be
+    fine. But we need to fix this.
   * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
     So the window will disapear and the client will still be there. steam and drracket are known to do
     this.
@@ -124,11 +125,9 @@ TODO
       * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
         killing these pulseaudio processes allow the game to resume. alternatively you can
         launch steam or the game with SDL_AUDIODRIVER=alsa.
-  * chromium's file explorer wants to configure itself to draw certain images and is
-    unresponsive when unable to configure itself. firefox's works fine. calling it a 
-    chromium issue.
-    (we can try looking at propertynotify or configure request and make a special exception for 
-    floating windows)
+  * Allowing chrome's file explorer configure itself causes its borders to bot be redrawn after configuring
+    itself. I'm either going to find a way to redraw them or remove borders on transient windows (not sure
+    how I feel about that.)
   * stdin issue. I think this is when other programs print to the same stream we're reading from with
     pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
     we be somehow making out pipe more private.
