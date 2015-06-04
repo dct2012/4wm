@@ -120,10 +120,8 @@ TODO
   * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
     So the window will disapear and the client will still be there. steam and drracket are known to do
     this.
-  * Add the launch option -window to steam games.
-  * Allowing chrome's file explorer configure itself causes its borders to bot be redrawn after configuring
-    itself. I'm either going to find a way to redraw them or remove borders on transient windows (not sure
-    how I feel about that.)
+  * Add the launch option -window to steam games. (I'll probably move this outside of bugs, make a notes
+    section or something.)
   * stdin issue. I think this is when other programs print to the same stream we're reading from with
     pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
     we be somehow making out pipe more private.

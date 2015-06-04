@@ -5,7 +5,7 @@
 // variables
 static bool running = true;
 static int randrbase, retval = 0, nmons = 0;
-static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent, win_trn, win_flt;
+static unsigned int numlockmask = 0, win_unfocus, win_focus, win_outer, win_urgent, win_flt;
 static xcb_connection_t *dis;
 static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
@@ -1351,7 +1351,7 @@ void setclientborders(desktop *d, client *c, const monitor *m) {
     DEBUGP("setclientborders: d->count = %d\n", d->count);
 
     // rules for no border
-    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
+    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO) || c->istransient) {
         xcb_configure_window(dis, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
     }
     else {
@@ -1378,7 +1378,7 @@ void setclientborders(desktop *d, client *c, const monitor *m) {
         xcb_create_gc(dis, gc, pmap, 0, NULL);
         
         xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, 
-                        (c->isurgent ? &win_urgent:c->istransient ? &win_trn:c->isfloating ? &win_flt:&win_outer));
+                        (c->isurgent ? &win_urgent:c->isfloating ? &win_flt:&win_outer));
         xcb_poly_fill_rectangle(dis, pmap, gc, 4, rect_outer);
 
         xcb_change_gc(dis, gc, XCB_GC_FOREGROUND, (c == d->current && m == selmon ? &win_focus:&win_unfocus));
@@ -2807,7 +2807,6 @@ static int setup(int default_screen) {
     win_outer   = getcolor(OTRBRDRCOL);
     win_urgent  = getcolor(URGNBRDRCOL);
     win_flt     = getcolor(FLTBRDCOL);
-    win_trn     = getcolor(TRNBDRCOL);
 
     #if MENU
     // initialize the menu 
