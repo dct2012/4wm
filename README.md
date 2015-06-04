@@ -120,11 +120,7 @@ TODO
   * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
     So the window will disapear and the client will still be there. steam and drracket are known to do
     this.
-  * steam (I don't think I'm having this problem anymore)
-    * games 
-      * launch instances of pulseaudio which hang; leaving the window black or unresponsive.
-        killing these pulseaudio processes allow the game to resume. alternatively you can
-        launch steam or the game with SDL_AUDIODRIVER=alsa.
+  * Add the launch option -window to steam games.
   * Allowing chrome's file explorer configure itself causes its borders to bot be redrawn after configuring
     itself. I'm either going to find a way to redraw them or remove borders on transient windows (not sure
     how I feel about that.)
