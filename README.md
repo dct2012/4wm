@@ -114,9 +114,7 @@ Thanks
 TODO
 ----
 
-***BUGS*** 
-  * transient windows seem to not be popping op on their own, switching tiling modes makes them pop up.
-    this only seems to be the case with three monitors.
+***BUGS***
   * killing a chrome window, causes snafu (wtf)
   * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
     So the window will disapear and the client will still be there. steam and drracket are known to do

@@ -1264,11 +1264,7 @@ void focus(client *c, desktop *d, const monitor *m) {
         d->current = c; 
     }
     setdesktopborders(d, m);
-    //#if CLICK_TO_FOCUS 
-    //xcb_grab_button(dis, 1, c->win, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-    //                    XCB_WINDOW_NONE, XCB_NONE, XCB_BUTTON_INDEX_1, XCB_BUTTON_MASK_ANY);
-    //#endif
-
+        
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_ACTIVE], XCB_ATOM_WINDOW, 32, 1, &c->win);
     xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, c->win, XCB_CURRENT_TIME);
     xcb_flush(dis);
@@ -1976,14 +1972,15 @@ void maprequest(xcb_generic_event_t *e) {
         free(prop_reply);
     } 
 
-    monitor *m = wintomon(c->win);
     if (cd == newdsk) {
         tilenew(&desktops[selmon->curr_dtop], selmon); 
-        xcb_map_window(dis, c->win);  
+        xcb_map_window(dis, c->win);
+        if(c->istransient)
+            retile(&desktops[selmon->curr_dtop], selmon);
     }
     else if (follow)
         change_desktop(&(Arg){.i = newdsk}); 
-    focus(c, &desktops[m->curr_dtop], m);
+    focus(c, &desktops[selmon->curr_dtop], selmon);
     grabbuttons(c);
     
     #if PRETTY_PRINT
@@ -2114,28 +2111,11 @@ void tilenew(desktop *d, const monitor *m) {
     if (!d->head) {
         DEBUG("tilenew: leaving, nothing to arrange\n");
         return; // nothing to arange
-    }
-    if (c && c->isfloating) {
-        // try to find the first one behind the pointer
-        xcb_query_pointer_reply_t *pointer = xcb_query_pointer_reply(dis, xcb_query_pointer(dis, screen->root), 0);
-        if (!pointer) return;
-        int mx = pointer->root_x; int my = pointer->root_y;
-        for (c = d->head; c; c = c->next)
-            if(!ISFT(c) && INRECT(mx, my, c->x, c->y, c->w, c->h))
-                break;
-        // just find the first tiled client.
-        if (!c)
-            for (c = d->head; c; c = c->next)
-                if(!ISFT(c))
-                    break;
-    }
+    } 
 
     for (n = d->head; n && n->next; n = n->next);
     if (ISFT(n)) {
-        if (!m || n->istransient)
-            xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);
-        else // move floaters to the center of the screen
-            xcb_move_resize(dis, n->win, (n->x = m->x + (m->w/2 - n->w/2)), (n->y = m->y + (m->h/2 - n->h/2)), n->w, n->h);
+        xcb_move_resize(dis, n->win, n->x, n->y, n->w, n->h);
         xcb_raise_window(dis, n->win);
     } else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor\n");
@@ -2149,8 +2129,7 @@ void tilenew(desktop *d, const monitor *m) {
                 xcb_lower_window(dis, n->win);
             }
         } 
-    }
-    else {
+    } else {
         tiledirection[d->direction](n, c);
         adjustclientgaps(gap, c);
         adjustclientgaps(gap, n);
