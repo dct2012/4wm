@@ -115,7 +115,7 @@ TODO
 ----
 
 ***BUGS***
-  * killing a chrome window, causes snafu (wtf). You can exit chrome through it's menu and all will be
+  * killing a chrome window, causes snafu (wtf). You can exit chrome through its menu and all will be
     fine. But we need to fix this.
   * Add the launch option -window to steam games. (I'll probably move this outside of bugs, make a notes
     section or something.)
@@ -124,6 +124,7 @@ TODO
     we be somehow making out pipe more private.
 
 ***New Features***
+  * maybe add commands to adjust the borders
   * add its own pager like dzen2
   * steal form kde's android notification system
   * maybe add three finger scroll through workspaces like OSX
