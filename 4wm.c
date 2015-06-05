@@ -2390,7 +2390,12 @@ static void cleanup(void) {
         for (unsigned int i = 0; i != query->children_len; ++i) deletewindow(c[i]);
         free(query);
     }
+    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
     
+    xcb_ewmh_connection_wipe(ewmh);
+    if(ewmh)
+        free(ewmh);
+
     // free each monitor
     monitor *m, *t;
     for (m = mons; m; m = t){
@@ -2416,9 +2421,7 @@ static void cleanup(void) {
     free(pp.dir);
     //fclose(pp_in);
     //fclose(pp_out);
-    #endif
-    xcb_set_input_focus(dis, XCB_INPUT_FOCUS_POINTER_ROOT, screen->root, XCB_CURRENT_TIME);
-    xcb_flush(dis);
+    #endif 
     DEBUG("cleanup: leaving\n");
 }
 
