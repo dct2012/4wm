@@ -18,6 +18,7 @@
 #include <xcb/xcb_atom.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xcb_ewmh.h>
 
 /* TODO: Reduce SLOC */
 

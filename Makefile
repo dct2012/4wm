@@ -8,7 +8,7 @@ BINDIR ?= ${PREFIX}/bin
 MANPREFIX = ${PREFIX}/share/man
 
 INCS = -I.
-LIBS = -lc `pkg-config --libs xcb xcb-randr xcb-icccm xcb-keysyms x11`
+LIBS = -lc `pkg-config --libs xcb xcb-randr xcb-icccm xcb-keysyms x11 xcb-ewmh`
 
 CPPFLAGS += -DVERSION=\"${VERSION}\" -DWMNAME=\"${WMNAME}\"
 

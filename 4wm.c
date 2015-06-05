@@ -11,6 +11,7 @@ static xcb_screen_t *screen;
 static xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
 static monitor *mons = NULL, *selmon = NULL;
+static xcb_ewmh_connection_t *ewmh;
 #if MENU
 static Menu *menus = NULL;
 static Xresources xres;
@@ -1926,6 +1927,7 @@ void maprequest(xcb_generic_event_t *e) {
     xcb_icccm_get_wm_class_reply_t     ch;
     xcb_get_geometry_reply_t           *geometry;
     xcb_get_property_reply_t           *prop_reply;
+    xcb_ewmh_get_atoms_reply_t         type;
 
     xcb_get_attributes(windows, attr, 1);
     if (!attr[0] || attr[0]->override_redirect) return;
@@ -1944,13 +1946,27 @@ void maprequest(xcb_generic_event_t *e) {
                 break;
             }
         xcb_icccm_get_wm_class_reply_wipe(&ch);
-    } 
+    }  
      
     if (cd != newdsk) selmon->curr_dtop = newdsk;
     c = addwindow(ev->window, &desktops[newdsk]);
 
     xcb_icccm_get_wm_transient_for_reply(dis, xcb_icccm_get_wm_transient_for_unchecked(dis, ev->window), &transient, NULL); // TODO: error handling
     c->istransient = transient?true:false;
+    if (xcb_ewmh_get_wm_window_type_reply(ewmh, xcb_ewmh_get_wm_window_type(ewmh, ev->window), &type, NULL) == 1) {
+        for (unsigned int i = 0; i < type.atoms_len; i++) {
+            xcb_atom_t a = type.atoms[i];
+            if (a == ewmh->_NET_WM_WINDOW_TYPE_SPLASH
+                || a == ewmh->_NET_WM_WINDOW_TYPE_DIALOG
+                || a == ewmh->_NET_WM_WINDOW_TYPE_DROPDOWN_MENU
+                || a == ewmh->_NET_WM_WINDOW_TYPE_POPUP_MENU
+                || a == ewmh->_NET_WM_WINDOW_TYPE_TOOLTIP
+                || a == ewmh->_NET_WM_WINDOW_TYPE_NOTIFICATION) {
+                c->istransient = true;
+            }
+        }
+        xcb_ewmh_get_atoms_reply_wipe(&type);
+    }
     c->isfloating  = floating || desktops[newdsk].mode == FLOAT || c->istransient;
 
     if (c->istransient || c->isfloating) {
@@ -2032,7 +2048,7 @@ void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: entering\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     client *c = wintoclient(ev->window); 
-    if (c && ev->event != screen->root){ 
+    if (c){ 
         monitor *m = wintomon(ev->window);
         removeclient(c, &desktops[m->curr_dtop], m);
     }
@@ -2838,8 +2854,13 @@ static int setup(int default_screen) {
     if (xcb_checkotherwm())
         err(EXIT_FAILURE, "error: other wm is running\n");
 
+    /* initialize EWMH */
+    ewmh = malloc_safe(sizeof(xcb_ewmh_connection_t));
+    if (!ewmh)
+        err(EXIT_FAILURE, "error: failed to set ewmh atoms\n");
+    xcb_ewmh_init_atoms_replies(ewmh, xcb_ewmh_init_atoms(dis, ewmh), (void *)0);
+
     xcb_change_property(dis, XCB_PROP_MODE_REPLACE, screen->root, netatoms[NET_SUPPORTED], XCB_ATOM_ATOM, 32, NET_COUNT, netatoms);
-    xcb_flush(dis);
     grabkeys();
 
     /* set events */
