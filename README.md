@@ -115,6 +115,7 @@ TODO
 ----
 
 ***BUGS***
+  * launching dolphin causes a hang
   * killing a chrome window, causes snafu (wtf). You can exit chrome through it's menu and all will be
     fine. But we need to fix this.
   * Add the launch option -window to steam games. (I'll probably move this outside of bugs, make a notes
