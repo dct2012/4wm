@@ -2048,9 +2048,10 @@ void unmapnotify(xcb_generic_event_t *e) {
     DEBUG("unmapnotify: entering\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     client *c = wintoclient(ev->window); 
-    if (c){ 
+    if (c){
         monitor *m = wintomon(ev->window);
-        removeclient(c, &desktops[m->curr_dtop], m);
+        if(m)
+            removeclient(c, &desktops[m->curr_dtop], m);
     }
     #if PRETTY_PRINT
     desktopinfo();
