@@ -117,9 +117,6 @@ TODO
 ***BUGS***
   * killing a chrome window, causes snafu (wtf). You can exit chrome through it's menu and all will be
     fine. But we need to fix this.
-  * some programs have windows that don't get unmapped, like they dont send a unmapnotify or something. 
-    So the window will disapear and the client will still be there. steam and drracket are known to do
-    this.
   * Add the launch option -window to steam games. (I'll probably move this outside of bugs, make a notes
     section or something.)
   * stdin issue. I think this is when other programs print to the same stream we're reading from with
