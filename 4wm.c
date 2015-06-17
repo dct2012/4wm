@@ -66,59 +66,59 @@ static inline void xcb_raise_window(xcb_connection_t *con, xcb_window_t win) {
     xcb_configure_window(con, win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
 
-static void growbyh(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void growbyh(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? (match->yp - c->yp):(c->hp + size);
-    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
     setclientborders(d, c, m);
 }
 
-static void growbyw(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void growbyw(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? (match->xp - c->xp):(c->wp + size);
-    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
     setclientborders(d, c, m);
 }
 
-static void growbyx(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void growbyx(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
     c->xp = match ? (match->xp + match->wp):(c->xp - size);
-    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
-                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), c->y, 
+                    (c->w  = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
     setclientborders(d, c, m);
 }
 
-static void growbyy(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void growbyy(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
     c->yp = match ? (match->yp + match->hp):(c->yp - size);
-    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                    c->w, (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
     setclientborders(d, c, m);
 }
 
-static void shrinkbyh(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void shrinkbyh(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? (match->yp - c->yp):(c->hp - size);
-    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+    xcb_move_resize(dis, c->win, c->x, c->y, c->w, (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
     setclientborders(d, c, m);
 }
 
-static void shrinkbyw(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void shrinkbyw(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? (match->xp - c->xp):(c->wp - size);
-    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+    xcb_move_resize(dis, c->win, c->x, c->y, (c->w  = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
     setclientborders(d, c, m);
 }
 
-static void shrinkbyx(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void shrinkbyx(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
     c->xp = match ? (match->xp + match->wp):(c->xp + size);
-    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * c->xp) + c->gapx), c->y, 
-                    (c->w  = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
+    xcb_move_resize(dis, c->win, (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), c->y, 
+                    (c->w  = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), c->h);
     setclientborders(d, c, m);
 }
 
-static void shrinkbyy(client *match, const float size, client *c, const monitor *m, desktop *d) {
+static void shrinkbyy(client *match, const int size, client *c, const monitor *m, desktop *d) {
     c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
     c->yp = match ? (match->yp + match->hp):(c->yp + size);
-    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                    c->w, (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+    xcb_move_resize(dis, c->win, c->x, (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                    c->w, (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
     setclientborders(d, c, m);
 }
 
@@ -576,15 +576,15 @@ void moveclientdown(int *num, client *c, client **list, desktop *d) {
         adjustclientgaps(d->gap, list[0]);
         // move stuff
         xcb_move_resize(dis, list[0]->win, 
-                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+                        (list[0]->x = selmon->x + (selmon->w * (double)list[0]->xp / 100) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * (double)list[0]->yp / 100) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * (double)list[0]->wp / 100) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * (double)list[0]->hp / 100) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
         xcb_move_resize(dis, c->win, 
-                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+                        (c->x = selmon->x + (selmon->w * (double)c->xp / 100) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * (double)c->yp / 100) + c->gapy), 
+                        (c->w = (selmon->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
         setclientborders(d, list[0], selmon);
         setclientborders(d, c, selmon);
     }
@@ -605,15 +605,15 @@ void moveclientleft(int *num, client *c, client **list, desktop *d) {
         adjustclientgaps(d->gap, list[0]);
         // move stuff
         xcb_move_resize(dis, list[0]->win, 
-                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+                        (list[0]->x = selmon->x + (selmon->w * (double)list[0]->xp / 100) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * (double)list[0]->yp / 100) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * (double)list[0]->wp / 100) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * (double)list[0]->hp / 100) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
         xcb_move_resize(dis, c->win, 
-                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                        (c->x = selmon->x + (selmon->w * (double)c->xp / 100) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * (double)c->yp / 100) + c->gapy), 
+                        (c->w = (selmon->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
         setclientborders(d, list[0], selmon);
         setclientborders(d, c, selmon);
     }
@@ -634,15 +634,15 @@ void moveclientright(int *num, client *c, client **list, desktop *d) {
         adjustclientgaps(d->gap, list[0]);
         // move stuff
         xcb_move_resize(dis, list[0]->win, 
-                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+                        (list[0]->x = selmon->x + (selmon->w * (double)list[0]->xp / 100) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * (double)list[0]->yp / 100) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * (double)list[0]->wp / 100) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * (double)list[0]->hp / 100) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
         xcb_move_resize(dis, c->win, 
-                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                        (c->x = selmon->x + (selmon->w * (double)c->xp / 100) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * (double)c->yp / 100) + c->gapy), 
+                        (c->w = (selmon->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
         setclientborders(d, list[0], selmon);
         setclientborders(d, c, selmon);
     }
@@ -664,15 +664,15 @@ void moveclientup(int *num, client *c, client **list, desktop *d) {
         adjustclientgaps(d->gap, list[0]);
         // move stuff
         xcb_move_resize(dis, list[0]->win, 
-                        (list[0]->x = selmon->x + (selmon->w * list[0]->xp) + list[0]->gapx), 
-                        (list[0]->y = selmon->y + (selmon->h * list[0]->yp) + list[0]->gapy), 
-                        (list[0]->w = (selmon->w * list[0]->wp) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
-                        (list[0]->h = (selmon->h * list[0]->hp) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
+                        (list[0]->x = selmon->x + (selmon->w * (double)list[0]->xp / 100) + list[0]->gapx), 
+                        (list[0]->y = selmon->y + (selmon->h * (double)list[0]->yp / 100) + list[0]->gapy), 
+                        (list[0]->w = (selmon->w * (double)list[0]->wp / 100) - 2*BORDER_WIDTH - list[0]->gapx - list[0]->gapw), 
+                        (list[0]->h = (selmon->h * (double)list[0]->hp / 100) - 2*BORDER_WIDTH - list[0]->gapy - list[0]->gaph));
         xcb_move_resize(dis, c->win, 
-                        (c->x = selmon->x + (selmon->w * c->xp) + c->gapx), 
-                        (c->y = selmon->y + (selmon->h * c->yp) + c->gapy), 
-                        (c->w = (selmon->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                        (c->h = (selmon->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
+                        (c->x = selmon->x + (selmon->w * (double)c->xp / 100) + c->gapx), 
+                        (c->y = selmon->y + (selmon->h * (double)c->yp / 100) + c->gapy), 
+                        (c->w = (selmon->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                        (c->h = (selmon->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph)); 
         setclientborders(d, list[0], selmon);
         setclientborders(d, c, selmon);
     }
@@ -741,7 +741,7 @@ void pushtotiling() {
     n->istransient = false;
  
     if (d->count == 0) { // no tiled clients
-        n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
+        n->xp = 0; n->yp = 0; n->wp = 100; n->hp = 100;
         adjustclientgaps(gap, n);
         d->count++;
         xcb_move_resize(dis, n->win, 
@@ -784,18 +784,20 @@ void pushtotiling() {
     
     if (d->mode == TILE || d->mode == FLOAT) {
         xcb_move_resize(dis, c->win,
-                        (c->x = m->x + (m->w * c->xp) + c->gapx), 
-                        (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                        (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
-                        (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-        DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
+                        (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), 
+                        (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                        (c->w = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                        (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+        DEBUGP("pushtotiling: tiling current x:%f y:%f w:%f h:%f\n", 
+                (m->w * (double)c->xp / 100), (m->h * (double)c->yp / 100), (m->w * (double)c->wp / 100) , (m->h * (double)c->hp / 100));
 
         xcb_move_resize(dis, n->win, 
-                        (n->x = m->x + (m->w * n->xp) + n->gapx), 
-                        (n->y = m->y + (m->h * n->yp) + n->gapy), 
-                        (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                        (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
-        DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+                        (n->x = m->x + (m->w * (double)n->xp / 100) + n->gapx), 
+                        (n->y = m->y + (m->h * (double)n->yp / 100) + n->gapy), 
+                        (n->w = (m->w * (double)n->wp / 100) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                        (n->h = (m->h * (double)n->hp / 100) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+        DEBUGP("pushtotiling: tiling new x:%f y:%f w:%f h:%f\n", 
+                (m->w * (double)n->xp / 100), (m->h * (double)n->yp / 100), (m->w * (double)n->wp / 100), (m->h * (double)n->hp / 100));
     
         setclientborders(d, c, selmon);
         setclientborders(d, n, selmon);
@@ -828,7 +830,7 @@ void resizeclient(const Arg *arg) {
     DEBUGP("resizeclient: d->count = %d\n", d->count);
     list = (client**)malloc_safe(n * sizeof(client*)); 
 
-    (arg->r)(d, arg->i, &n, arg->d, c, m, list);
+    (arg->r)(d, arg->i, &n, arg->p, c, m, list);
     free(list);
     DEBUG("resizeclient: leaving\n");
 } 
@@ -1026,16 +1028,16 @@ void adjustclientgaps(const int gap, client *c) {
         else c->gapx = gap/2;
         if (c->yp == 0) c->gapy = gap;
         else c->gapy = gap/2;
-        if ((c->xp + c->wp) > 0.99999) c->gapw = gap;
+        if ((c->xp + c->wp) == 100) c->gapw = gap;
         else c->gapw = gap/2;
-        if ((c->yp + c->hp) > 0.99999) c->gaph = gap;
+        if ((c->yp + c->hp) == 100) c->gaph = gap;
         else c->gaph = gap/2;
 }
 
 bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingbottom: entering\n");
-    if((c->yp + c->hp) < 1) { //capable of having windows below?
-        float width;
+    if((c->yp + c->hp) < 100) { //capable of having windows below?
+        int width;
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
@@ -1052,7 +1054,7 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width < 0.00001) {
+                        if (width == 0) {
                             DEBUG("clientstouchingbottom: leaving true\n");
                             return true;
                         }
@@ -1079,13 +1081,13 @@ bool clientstouchingbottom(desktop *d, client *c, client **list, int *num) {
 bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingleft: entering\n");
     if(c->xp > 0) { // capable of having windows to the left?
-        float height;
+        int height;
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
-            DEBUGP("clientstouchingleft: %f == %f\n", c->xp, n->xp + n->wp);
+            DEBUGP("clientstouchingleft: %d == %d\n", c->xp, n->xp + n->wp);
             if ((c != n ) && !ISFT(n) && (c->xp == (n->xp + n->wp))) { // directly to the left
-                DEBUGP("clientstouchingleft: %f <= %f\n",n->yp + n->hp, c->yp + c->hp);
+                DEBUGP("clientstouchingleft: %d <= %d\n",n->yp + n->hp, c->yp + c->hp);
                 if ((n->yp + n->hp) <= (c->yp + c->hp)) { // height equivalent or less than
                     if ((n->yp == c->yp) && (n->hp == c->hp)) { // direct match?
                         list[(*num)] = n;
@@ -1097,8 +1099,8 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
-                        DEBUGP("clientstouchingleft: height = %f\n", height);
-                        if (height < 0.00001) {
+                        DEBUGP("clientstouchingleft: height = %d\n", height);
+                        if (height == 0) {
                             DEBUG("clientstouchingleft: leaving true\n");
                             return true;
                         }
@@ -1124,8 +1126,8 @@ bool clientstouchingleft(desktop *d, client *c, client **list, int *num) {
 
 bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingright: entering\n");
-    if((c->xp + c->wp) < 1) { // capable of having windows to the right?
-        float height;
+    if((c->xp + c->wp) < 100) { // capable of having windows to the right?
+        int height;
         (*num) = 0;
         height = c->hp;
         for (client *n = d->head; n; n = n->next) {
@@ -1141,7 +1143,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
                         height -= n->hp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (height < 0.00001) {
+                        if (height == 0) {
                             DEBUG("clientstouchingright: leaving true\n");
                             return true;
                         }
@@ -1168,7 +1170,7 @@ bool clientstouchingright(desktop *d, client *c, client **list, int *num) {
 bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
     DEBUG("clientstouchingtop: entering\n");
     if(c->yp > 0) { //capable of having windows above?
-        float width;
+        int width;
         (*num) = 0;
         width = c->wp;
         for (client *n = d->head; n; n = n->next) {
@@ -1184,7 +1186,7 @@ bool clientstouchingtop(desktop *d, client *c, client **list, int *num) {
                         width -= n->wp;
                         list[(*num)] = n;
                         (*num)++;
-                        if (width < 0.00001) {
+                        if (width == 0) {
                             DEBUG("clientstouchingtop: leaving true\n");
                             return true;
                         }
@@ -1847,7 +1849,7 @@ void enternotify(xcb_generic_event_t *e) {
 
     desktop *d = &desktops[selmon->curr_dtop]; 
     DEBUGP("enternotify: c->xp: %f c->yp: %f c->wp: %f c->hp: %f\n", 
-            (selmon->w * c->xp), (selmon->h * c->yp), (selmon->w * c->wp), (selmon->h * c->hp));
+            (selmon->w * (double)c->xp / 100), (selmon->h * (double)c->yp / 100), (selmon->w * (double)c->wp / 100), (selmon->h * (double)c->hp / 100));
     focus(c, d, selmon);
     DEBUG("enternotify: leaving\n");
 }
@@ -2089,17 +2091,17 @@ void retile(desktop *d, const monitor *m) {
                 if (n == 1) {
                     c->gapx = c->gapy = c->gapw = c->gaph = gap;
                     xcb_move_resize(dis, c->win, 
-                                    (c->x = m->x + (m->w * c->xp) + gap), 
-                                    (c->y = m->y + (m->h * c->yp) + gap), 
-                                    (c->w = (m->w * c->wp) - 2*gap), 
-                                    (c->h = (m->h * c->hp) - 2*gap));
+                                    (c->x = m->x + (m->w * (double)c->xp / 100) + gap), 
+                                    (c->y = m->y + (m->h * (double)c->yp / 100) + gap), 
+                                    (c->w = (m->w * (double)c->wp / 100) - 2*gap), 
+                                    (c->h = (m->h * (double)c->hp / 100) - 2*gap));
                 }
                 else { 
                     xcb_move_resize(dis, c->win, 
-                                    (c->x = m->x + (m->w * c->xp) + c->gapx), 
-                                    (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                                    (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
-                                    (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                                    (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), 
+                                    (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                                    (c->w = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw), 
+                                    (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
                 }
             } else {
                 for ( ; c->x > m->x + m->w; c->x -= m->w);
@@ -2136,7 +2138,7 @@ void tilenew(desktop *d, const monitor *m) {
         xcb_raise_window(dis, n->win);
     } else if (d->count == 1) {
         DEBUG("tilenew: tiling empty monitor\n");
-        n->xp = 0; n->yp = 0; n->wp = 1; n->hp = 1;
+        n->xp = 0; n->yp = 0; n->wp = 100; n->hp = 100;
         if (m != NULL) {
             if (d->mode == VIDEO) {
                 xcb_move_resize(dis, n->win, m->x, (m->y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), m->w, (m->h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
@@ -2154,18 +2156,20 @@ void tilenew(desktop *d, const monitor *m) {
         if (m != NULL) { 
             if (d->mode != MONOCLE && d->mode != VIDEO) {
                 xcb_move_resize(dis, c->win,
-                                (c->x = m->x + (m->w * c->xp) + c->gapx), 
-                                (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                                (c->w = (m->w * c->wp) - 2*BORDER_WIDTH - c->gapx - c->gapw),
-                                (c->h = (m->h * c->hp) - 2*BORDER_WIDTH - c->gapy - c->gaph));
-                DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", (m->w * c->xp), (m->h * c->yp), (m->w * c->wp) , (m->h * c->hp));
+                                (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), 
+                                (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                                (c->w = (m->w * (double)c->wp / 100) - 2*BORDER_WIDTH - c->gapx - c->gapw),
+                                (c->h = (m->h * (double)c->hp / 100) - 2*BORDER_WIDTH - c->gapy - c->gaph));
+                DEBUGP("tilenew: tiling current x:%f y:%f w:%f h:%f\n", 
+                        (m->w * (double)c->xp / 100), (m->h * (double)c->yp / 100), (m->w * (double)c->wp / 100) , (m->h * (double)c->hp / 100));
                 xcb_lower_window(dis, c->win);
                 xcb_move_resize(dis, n->win, 
-                                (n->x = m->x + (m->w * n->xp) + n->gapx), 
-                                (n->y = m->y + (m->h * n->yp) + n->gapy), 
-                                (n->w = (m->w * n->wp) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
-                                (n->h = (m->h * n->hp) - 2*BORDER_WIDTH - n->gapy - n->gaph));
-                DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", (m->w * n->xp), (m->h * n->yp), (m->w * n->wp), (m->h * n->hp));
+                                (n->x = m->x + (m->w * (double)n->xp / 100) + n->gapx), 
+                                (n->y = m->y + (m->h * (double)n->yp / 100) + n->gapy), 
+                                (n->w = (m->w * (double)n->wp / 100) - 2*BORDER_WIDTH - n->gapx - n->gapw), 
+                                (n->h = (m->h * (double)n->hp / 100) - 2*BORDER_WIDTH - n->gapy - n->gaph));
+                DEBUGP("tilenew: tiling new x:%f y:%f w:%f h:%f\n", 
+                        (m->w * (double)n->xp / 100), (m->h * (double)n->yp / 100), (m->w * (double)n->wp / 100), (m->h * (double)n->hp / 100));
                 xcb_lower_window(dis, n->win);
             }
             else
@@ -2179,7 +2183,7 @@ void tilenew(desktop *d, const monitor *m) {
 void tilenewbottom(client *n, client *c) {
     DEBUG("tilenewbottom: entering\n"); 
     n->xp = c->xp;
-    n->yp = c->yp + (c->hp/2);
+    n->yp = c->yp + (c->hp / 2);
     n->wp = c->wp;
     n->hp = (c->yp + c->hp) - n->yp;
     c->hp = n->yp - c->yp;
@@ -2190,7 +2194,7 @@ void tilenewleft(client *n, client *c) {
     DEBUG("tilenewleft: entering\n");
     n->xp = c->xp;
     n->yp = c->yp;
-    n->wp = c->wp/2;
+    n->wp = c->wp / 2;
     n->hp = c->hp;
     c->xp = n->xp + n->wp;
     c->wp = (n->xp + c->wp) - c->xp;
@@ -2199,7 +2203,7 @@ void tilenewleft(client *n, client *c) {
 
 void tilenewright(client *n, client *c) {
     DEBUG("tilenewright: entering\n");
-    n->xp = c->xp + (c->wp/2);
+    n->xp = c->xp + (c->wp / 2);
     n->yp = c->yp;
     n->wp = (c->xp + c->wp) - n->xp;
     n->hp = c->hp;
@@ -2212,7 +2216,7 @@ void tilenewtop(client *n, client *c) {
     n->xp = c->xp;
     n->yp = c->yp;
     n->wp = c->wp;
-    n->hp = c->hp/2;
+    n->hp = c->hp / 2;
     c->yp = n->yp + n->hp;
     c->hp = (n->yp + c->hp) - c->yp;
     DEBUG("tilenewtop: leaving\n");
@@ -2230,15 +2234,15 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
         DEBUG("tileremove: only one client; fitting screen\n");
         client *c = NULL;
         for (c = d->head; c && c->isfloating; c = c->next); //find the first non-floating
-        c->xp = 0; c->yp = 0; c->wp = 1; c->hp = 1;
+        c->xp = 0; c->yp = 0; c->wp = 100; c->hp = 100;
 
         if ((m != NULL) && (d->mode == TILE || d->mode == FLOAT)) {
             adjustclientgaps(gap, c);
             xcb_move_resize(dis, c->win, 
-                            (c->x = m->x + (m->w * c->xp) + c->gapx), 
-                            (c->y = m->y + (m->h * c->yp) + c->gapy), 
-                            (c->w = (m->w * c->wp) - 2*c->gapw), 
-                            (c->h = (m->h * c->hp) - 2*c->gaph));
+                            (c->x = m->x + (m->w * (double)c->xp / 100) + c->gapx), 
+                            (c->y = m->y + (m->h * (double)c->yp / 100) + c->gapy), 
+                            (c->w = (m->w * (double)c->wp / 100) - 2*c->gapw), 
+                            (c->h = (m->h * (double)c->hp / 100) - 2*c->gaph));
             setclientborders(d, c, m);
         }
         DEBUG("tileremove: leaving\n");
@@ -2257,7 +2261,7 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
                                 list[i]->x, 
                                 list[i]->y, 
                                 list[i]->w, 
-                                (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                                (list[i]->h = (m->h * (double)list[i]->hp / 100) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
                 setclientborders(d, list[i], m);
             }
         }
@@ -2275,7 +2279,7 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
                 xcb_move_resize(dis, list[i]->win, 
                                 list[i]->x, 
                                 list[i]->y, 
-                                (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                (list[i]->w = (m->w * (double)list[i]->wp / 100) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
                 setclientborders(d, list[i], m);
             }
@@ -2294,9 +2298,9 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
                                 list[i]->x, 
-                                (list[i]->y = m->y + (m->h * list[i]->yp) + list[i]->gapy), 
+                                (list[i]->y = m->y + (m->h * (double)list[i]->yp / 100) + list[i]->gapy), 
                                 list[i]->w, 
-                                (list[i]->h = (m->h * list[i]->hp) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
+                                (list[i]->h = (m->h * (double)list[i]->hp / 100) - 2*BORDER_WIDTH - list[i]->gapy - list[i]->gaph));
                 setclientborders(d, list[i], m);
             }
         }
@@ -2313,9 +2317,9 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
             if (m != NULL && (d->mode == TILE || d->mode == FLOAT)) {
                 adjustclientgaps(gap, list[i]);
                 xcb_move_resize(dis, list[i]->win, 
-                                (list[i]->x = m->x + (m->w * list[i]->xp) + list[i]->gapx), 
+                                (list[i]->x = m->x + (m->w * (double)list[i]->xp / 100) + list[i]->gapx), 
                                 list[i]->y, 
-                                (list[i]->w = (m->w * list[i]->wp) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
+                                (list[i]->w = (m->w * (double)list[i]->wp / 100) - 2*BORDER_WIDTH - list[i]->gapx - list[i]->gapw), 
                                 list[i]->h);
                 setclientborders(d, list[i], m);
             }

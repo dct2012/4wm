@@ -126,7 +126,7 @@ TODO
 ***New Features***
   * maybe add commands to adjust the borders
   * add its own pager like dzen2
-  * steal form kde's android notification system
+  * steal from kde's android notification system
   * maybe add three finger scroll through workspaces like OSX
   * Menu.
     * limit string length to rectangle/tile width.

@@ -23,7 +23,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 0
+#if 1
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -65,7 +65,7 @@ typedef struct {
 typedef struct client {
     struct client *next;                                // the client after this one, or NULL if the current is the last client
     int x, y, w, h;                                     // actual window size
-    float xp, yp, wp, hp;                               // percent of monitor, before adjustment
+    int xp, yp, wp, hp;                                 // percent of monitor, before adjustment (percent is a int from 0-100)
     int gapx, gapy, gapw, gaph;                         // gap sizes
     bool isurgent, istransient, isfloating;             // property flags
     xcb_window_t win;                                   // the window this client is representing
@@ -101,7 +101,7 @@ typedef struct monitor {
 typedef struct {
     const char** com;                                                               // a command to run
     const int i;                                                                    // an integer to indicate different states
-    const float d;                                                                  // a float to do stuff with
+    const int p;                                                                    // represents a percentage for resizing
     void (*m)(int*, client*, client**, desktop*);                                   // for the move client command
     void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**); // for the resize client command
     char **list;                                                                    // list for menus
