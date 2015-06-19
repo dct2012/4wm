@@ -685,12 +685,29 @@ void movefocus(const Arg *arg) {
 
     if((d->mode == TILE || d->mode == FLOAT) && !c->isfloating) { //capable of having windows to the right?
         int n = d->count;
-        DEBUGP("movefocusdown: d->count = %d\n", d->count);
-        c = d->current;
+        DEBUGP("movefocus: d->count = %d\n", n);
         list = (client**)malloc_safe(n * sizeof(client*)); 
         findtouchingclients[arg->i](d, c, list, &n);
         if (list[0] != NULL) focus(list[0], d, selmon);
         free(list);
+    }
+    else if (d->mode == MONOCLE || d->mode == VIDEO) {
+        DEBUG("movefocus: monocle or video\n"); 
+        
+        if(arg->i == TTOP || arg->i == TRIGHT){
+            if(c->next)
+                focus(c->next, d, selmon);
+            else {
+                focus(d->head, d, selmon);
+            }
+        }
+        else {
+            client *n;
+            for(n = d->head; n->next && n->next != c; n = n->next);
+            focus(n, d, selmon);
+        }
+
+        retile(d, selmon);
     }
 }
 
@@ -698,16 +715,28 @@ void movefocus(const Arg *arg) {
 // if the window is the last on stack, focus head
 void next_win() {
     desktop *d = &desktops[selmon->curr_dtop];
-    if (!d->current || !d->head->next) return;
+    
+    if (!d->current || !d->head->next) 
+        return;
+    
     focus(d->current->next ? d->current->next:d->head, d, selmon);
+    
+    if(d->mode == VIDEO || d->mode == MONOCLE)
+        retile(d, selmon);
 }
 
 // cyclic focus the previous window
 // if the window is the head, focus the last stack window
 void prev_win() {
     desktop *d = &desktops[selmon->curr_dtop];
-    if (!d->current || !d->head->next) return;
+    
+    if (!d->current || !d->head->next) 
+        return;
+    
     focus(prev_client(d->prevfocus = d->current, d), d, selmon);
+
+    if(d->mode == VIDEO || d->mode == MONOCLE)
+        retile(d, selmon);
 }
 
 void pulltofloat() {
@@ -818,20 +847,23 @@ void resizeclient(const Arg *arg) {
     DEBUG("resizeclient: entering\n"); 
     desktop *d = &desktops[selmon->curr_dtop];
     client *c, **list;
+    
+    if(d->mode != VIDEO || d->mode != MONOCLE) {
+        c = d->current;
+        if (!c) {
+            DEBUG("resizeclient: leaving, no d->current\n");
+            return;
+        }
+        monitor *m = wintomon(c->win);
 
-    c = d->current;
-    if (!c) {
-        DEBUG("resizeclient: leaving, no d->current\n");
-        return;
+        int n = d->count;
+        DEBUGP("resizeclient: d->count = %d\n", d->count);
+        list = (client**)malloc_safe(n * sizeof(client*)); 
+
+        (arg->r)(d, arg->i, &n, arg->p, c, m, list);
+        free(list);
     }
-    monitor *m = wintomon(c->win);
 
-    int n = d->count;
-    DEBUGP("resizeclient: d->count = %d\n", d->count);
-    list = (client**)malloc_safe(n * sizeof(client*)); 
-
-    (arg->r)(d, arg->i, &n, arg->p, c, m, list);
-    free(list);
     DEBUG("resizeclient: leaving\n");
 } 
 
@@ -1989,16 +2021,22 @@ void maprequest(xcb_generic_event_t *e) {
     if (prop_reply) { 
         free(prop_reply);
     } 
-
+ 
+    desktop *d = &desktops[selmon->curr_dtop];
     if (cd == newdsk) {
-        tilenew(&desktops[selmon->curr_dtop], selmon); 
+        if(d->mode == VIDEO || d->mode == MONOCLE)
+            focus(c, d, selmon);
+        
+        tilenew(d, selmon); 
         xcb_map_window(dis, c->win);
+        
         if(c->istransient)
-            retile(&desktops[selmon->curr_dtop], selmon);
+            retile(d, selmon);
     }
     else if (follow)
-        change_desktop(&(Arg){.i = newdsk}); 
-    focus(c, &desktops[selmon->curr_dtop], selmon);
+        change_desktop(&(Arg){.i = newdsk});  
+    if(d->mode != VIDEO || d->mode != MONOCLE)
+        focus(c, d, selmon);
     grabbuttons(c);
     
     #if PRETTY_PRINT
@@ -2063,17 +2101,30 @@ void unmapnotify(xcb_generic_event_t *e) {
 
 // TILING
 
+void fullscreen(client *c, int x, int y, int w, int h, const desktop *d, const monitor *m) {
+    xcb_raise_window(dis, c->win);
+    if (d->mode == VIDEO)
+        xcb_move_resize(dis, c->win, x, (y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
+    else
+        xcb_move_resize(dis, c->win, (x + d->gap), (y + d->gap), (w - 2*d->gap), (h - 2*d->gap));
+}
+
 // each window should cover all the available screen space
 void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m) {
     DEBUG("monocle: entering\n");
-    int gap = d->gap; 
-    for (client *c = d->head; c; c = c->next) {
-        xcb_raise_window(dis, c->win);
-        if (d->mode == VIDEO)
-            xcb_move_resize(dis, c->win, x, (y - ((m->haspanel && TOP_PANEL) ? PANEL_HEIGHT:0)), w, (h + ((m->haspanel && !TOP_PANEL) ? PANEL_HEIGHT:0)));
-        else
-            xcb_move_resize(dis, c->win, (x + gap), (y + gap), (w - 2*gap), (h - 2*gap));
+    
+    if(d->head){
+        client *c;
+        for (c = d->head; c; c = c->next) {
+            if(c != d->current){
+                fullscreen(c, x, y, w, h, d, m);
+            }
+        }
+        
+        c = d->current; 
+        fullscreen(c, x, y, w, h, d, m);
     }
+
     DEBUG("monocle: leaving\n");
 }
 

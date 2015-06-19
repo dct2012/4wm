@@ -60,6 +60,10 @@ Build and install.
     $ make
     # make clean install
 
+Notes
+-----
+    * Add the launch option -window to steam games.
+
 Bugs
 ----
 
@@ -117,13 +121,12 @@ TODO
 ***BUGS***
   * killing a chrome window, causes snafu (wtf). You can exit chrome through its menu and all will be
     fine. But we need to fix this.
-  * Add the launch option -window to steam games. (I'll probably move this outside of bugs, make a notes
-    section or something.)
-  * stdin issue. I think this is when other programs print to the same stream we're reading from with
-    pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
-    we be somehow making out pipe more private.
+  * prevent clients from resizing or mapping when not enough room.
 
 ***New Features***
+  * the stdin issue. This is when another program prints to the same stream we're reading from with
+    pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
+    we be somehow making our pipe more private.
   * maybe add commands to adjust the borders
   * add its own pager like dzen2
   * steal from kde's android notification system
@@ -133,7 +136,7 @@ TODO
     * add user defined fonts in Xdefaults.
     * add keyboard use.
   * pretty print.
-    * make sure it also works for messengers other than dzen2.
+    * make sure it also works for messengers other than dzen2. (I don't think X is capable of this)
   * make a "placeholder"
     * I sometimes make use xterm (a window) just to manipulate how windows
       will be tiled.
