@@ -23,7 +23,7 @@
 /* TODO: Reduce SLOC */
 
 /* set this to 1 to enable debug prints */
-#if 1
+#if 0
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -103,7 +103,7 @@ typedef struct {
     const int i;                                                                    // an integer to indicate different states
     const int p;                                                                    // represents a percentage for resizing
     void (*m)(int*, client*, client**, desktop*);                                   // for the move client command
-    void (*r)(desktop*, const int, int*, const float, client*, monitor*, client**); // for the resize client command
+    void (*r)(desktop*, const int, int*, const int, client*, monitor*, client**);   // for the resize client command
     char **list;                                                                    // list for menus
 } Arg;
 
@@ -162,10 +162,10 @@ extern void pulltofloat();
 extern void pushtotiling();
 extern void quit(const Arg *arg);
 extern void resizeclient(const Arg *arg);
-extern void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-extern void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-extern void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
-extern void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list);
+extern void resizeclientbottom(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+extern void resizeclientleft(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+extern void resizeclientright(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+extern void resizeclienttop(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
 extern void rotate(const Arg *arg);
 extern void rotate_filled(const Arg *arg);
 extern void spawn(const Arg *arg);

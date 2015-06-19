@@ -867,7 +867,7 @@ void resizeclient(const Arg *arg) {
     DEBUG("resizeclient: leaving\n");
 } 
 
-void resizeclientbottom(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+void resizeclientbottom(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list) {
     DEBUG("resizeclientbottom: entering\n"); 
     if (findtouchingclients[TBOTTOM](d, c, list, n)) {
         if (grow) {
@@ -897,7 +897,7 @@ void resizeclientbottom(desktop *d, const int grow, int *n, const float size, cl
     DEBUG("resizeclientbottom: leaving\n");
 }
 
-void resizeclientleft(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+void resizeclientleft(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list) {
     DEBUG("resizeclientleft: entering\n"); 
     if (findtouchingclients[TLEFT](d, c, list, n)) {
         if (grow) {
@@ -927,7 +927,7 @@ void resizeclientleft(desktop *d, const int grow, int *n, const float size, clie
     DEBUG("resizeclientleft: leaving\n");
 }
 
-void resizeclientright(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+void resizeclientright(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list) {
     DEBUG("resizeclientright: entering\n");
     if (findtouchingclients[TRIGHT](d, c, list, n)) { 
         if (grow) {
@@ -957,7 +957,7 @@ void resizeclientright(desktop *d, const int grow, int *n, const float size, cli
     DEBUG("resizeclientright: leaving\n");
 }
 
-void resizeclienttop(desktop *d, const int grow, int *n, const float size, client *c, monitor *m, client **list) {
+void resizeclienttop(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list) {
     DEBUG("resizeclienttop: entering\n"); 
     if (findtouchingclients[TTOP](d, c, list, n)) {
         if (grow) {
