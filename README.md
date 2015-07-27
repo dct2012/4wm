@@ -119,6 +119,8 @@ TODO
 ----
 
 ***BUGS***
+  * in monocle or fullscreen, pulling windows or new windows from chrome (pdf's appearing in thier own window)
+    causes it to not be tiled right
   * killing a chrome window, causes snafu (wtf). You can exit chrome through its menu and all will be
     fine. But we need to fix this.
   * prevent clients from resizing or mapping when not enough room.
