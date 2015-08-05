@@ -2034,9 +2034,10 @@ void maprequest(xcb_generic_event_t *e) {
             retile(d, selmon);
     }
     else if (follow)
-        change_desktop(&(Arg){.i = newdsk});  
-    if(d->mode != VIDEO || d->mode != MONOCLE)
+        change_desktop(&(Arg){.i = newdsk});
+    if(d->mode != VIDEO && d->mode != MONOCLE)
         focus(c, d, selmon);
+     
     grabbuttons(c);
     
     #if PRETTY_PRINT
@@ -2133,13 +2134,12 @@ void retile(desktop *d, const monitor *m) {
     int gap = d->gap;
 
     if (d->mode == TILE || d->mode == FLOAT) {
-        int n = d->count;
         DEBUGP("retile: d->count = %d\n", d->count);
        
         for (client *c = d->head; c; c=c->next) {
             if (!c->isfloating) {
                 xcb_lower_window(dis, c->win);
-                if (n == 1) {
+                if (d->count == 1) {
                     c->gapx = c->gapy = c->gapw = c->gaph = gap;
                     xcb_move_resize(dis, c->win, 
                                     (c->x = m->x + (m->w * (double)c->xp / 100) + gap), 
@@ -2254,6 +2254,7 @@ void tilenewleft(client *n, client *c) {
 
 void tilenewright(client *n, client *c) {
     DEBUG("tilenewright: entering\n");
+    DEBUGP("tilenewright: c->xp: %d c->yp: %d c->wp: %d c->hp: %d\n", c->xp, c->yp, c->wp, c->hp);
     n->xp = c->xp + (c->wp / 2);
     n->yp = c->yp;
     n->wp = (c->xp + c->wp) - n->xp;
