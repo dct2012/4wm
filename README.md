@@ -117,7 +117,7 @@ Thanks
 
 TODO
 ----
-* remove excess DEBUG(P) calls
+* remove DEBUG(P) start using gdb
 
 * restructure (organize)
   * get rid of globals
