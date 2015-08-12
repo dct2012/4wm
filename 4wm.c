@@ -2023,10 +2023,7 @@ void maprequest(xcb_generic_event_t *e) {
     } 
  
     desktop *d = &desktops[selmon->curr_dtop];
-    if (cd == newdsk) {
-        if(d->mode == VIDEO || d->mode == MONOCLE)
-            focus(c, d, selmon);
-        
+    if (cd == newdsk) { 
         tilenew(d, selmon); 
         xcb_map_window(dis, c->win);
         
@@ -2200,7 +2197,7 @@ void tilenew(desktop *d, const monitor *m) {
             }
         } 
     } else {
-        tiledirection[d->direction](n, c);
+        tiledirection[d->direction](n, c); 
         adjustclientgaps(gap, c);
         adjustclientgaps(gap, n);
 
@@ -2223,8 +2220,10 @@ void tilenew(desktop *d, const monitor *m) {
                         (m->w * (double)n->xp / 100), (m->h * (double)n->yp / 100), (m->w * (double)n->wp / 100), (m->h * (double)n->hp / 100));
                 xcb_lower_window(dis, n->win);
             }
-            else
+            else {
+                focus(n, d, m);
                 monocle(m->x, m->y, m->w, m->h, d, m);
+            }
         }
     }
 
