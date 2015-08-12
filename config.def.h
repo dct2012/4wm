@@ -28,8 +28,6 @@
 #define DEFAULT_MODE            TILE
 // initial tiling direction: TBOTTOM, TLEFT, TRIGHT, TTOP
 #define DEFAULT_DIRECTION       TRIGHT
-// follow the window when moved to a different desktop
-#define FOLLOW_WINDOW           false
 // focus the window the mouse just entered
 #define FOLLOW_MOUSE            true
 // focus an unfocused window when clicked
@@ -81,16 +79,6 @@
 #define PP_TAGS_DIR { "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)", "^i(/path/to/bitmap)" } 
 #define PP_PRINTF printf("%s %s %s ^fg(%s)%s\n", pp.ws, pp.mode, pp.dir, PP_COL_TITLE, d->current ? d->current->title :"");
 #endif
-
-/**
- * open applications to specified desktop with specified mode.
- * if desktop is negative, then current is assumed
- */
-static const AppRule rules[] = { \
-    /*  class     desktop  follow  float */
-    { "MPlayer",     3,    false,   false },
-    //{ "Gimp",        0,    false,  true  },
-};
 
 // helper for spawning shell commands
 #define SHCMD(cmd) {.com = (const char*[]){"/bin/sh", "-c", cmd, NULL}}

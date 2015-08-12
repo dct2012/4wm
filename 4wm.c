@@ -249,9 +249,6 @@ void client_to_desktop(const Arg *arg) {
     tilenew(n, m); // itll be ok if m == NULL 
     focus(c, n, m);
 
-    if (FOLLOW_WINDOW) 
-        change_desktop(arg); 
-    
     #if PRETTY_PRINT
     updatews();
     desktopinfo();
@@ -1968,22 +1965,14 @@ void maprequest(xcb_generic_event_t *e) {
     c = wintoclient(ev->window);
     if (c) return; 
 
-    bool follow = false, floating = false;
-    int cd = selmon->curr_dtop, newdsk = selmon->curr_dtop;
+    bool floating = false;
+    int cd = selmon->curr_dtop;
     if (xcb_icccm_get_wm_class_reply(dis, xcb_icccm_get_wm_class(dis, ev->window), &ch, NULL)) { // TODO: error handling
-        DEBUGP("class: %s instance: %s\n", ch.class_name, ch.instance_name);
-        for (unsigned int i=0; i<LENGTH(rules); i++)
-            if (strstr(ch.class_name, rules[i].class) || strstr(ch.instance_name, rules[i].class)) {
-                follow = rules[i].follow;
-                newdsk = (rules[i].desktop < 0) ? selmon->curr_dtop:rules[i].desktop;
-                floating = rules[i].floating;
-                break;
-            }
+        DEBUGP("class: %s instance: %s\n", ch.class_name, ch.instance_name); 
         xcb_icccm_get_wm_class_reply_wipe(&ch);
     }  
      
-    if (cd != newdsk) selmon->curr_dtop = newdsk;
-    c = addwindow(ev->window, &desktops[newdsk]);
+    c = addwindow(ev->window, &desktops[cd]);
 
     xcb_icccm_get_wm_transient_for_reply(dis, xcb_icccm_get_wm_transient_for_unchecked(dis, ev->window), &transient, NULL); // TODO: error handling
     c->istransient = transient?true:false;
@@ -2001,7 +1990,7 @@ void maprequest(xcb_generic_event_t *e) {
         }
         xcb_ewmh_get_atoms_reply_wipe(&type);
     }
-    c->isfloating  = floating || desktops[newdsk].mode == FLOAT || c->istransient;
+    c->isfloating  = floating || desktops[cd].mode == FLOAT || c->istransient;
 
     if (c->istransient || c->isfloating) {
         if ((geometry = xcb_get_geometry_reply(dis, xcb_get_geometry(dis, ev->window), NULL))) { // TODO: error handling
@@ -2015,23 +2004,20 @@ void maprequest(xcb_generic_event_t *e) {
     }
 
     if (!ISFT(c))
-        desktops[newdsk].count++;
+        desktops[cd].count++;
         
     prop_reply  = xcb_get_property_reply(dis, xcb_get_property_unchecked(dis, 0, ev->window, netatoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 1), NULL); // TODO: error handling
     if (prop_reply) { 
         free(prop_reply);
     } 
  
-    desktop *d = &desktops[selmon->curr_dtop];
-    if (cd == newdsk) { 
-        tilenew(d, selmon); 
-        xcb_map_window(dis, c->win);
+    desktop *d = &desktops[cd];
+    tilenew(d, selmon); 
+    xcb_map_window(dis, c->win);
         
-        if(c->istransient)
-            retile(d, selmon);
-    }
-    else if (follow)
-        change_desktop(&(Arg){.i = newdsk});
+    if(c->istransient)
+        retile(d, selmon);
+
     if(d->mode != VIDEO && d->mode != MONOCLE)
         focus(c, d, selmon);
      
@@ -2039,8 +2025,7 @@ void maprequest(xcb_generic_event_t *e) {
     
     #if PRETTY_PRINT
     updatetitle(c);
-    if (!follow)
-        desktopinfo();
+    desktopinfo();
     #endif
 
     DEBUG("maprequest: leaving\n");

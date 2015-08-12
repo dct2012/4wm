@@ -45,13 +45,6 @@ enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
 enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
-// define behavior of certain applications
-typedef struct {
-    const char *class;              // the class or name of the instance
-    const int desktop;              // what desktop it should be spawned at
-    const bool follow, floating;    // whether to change desktop focus to the specified desktop
-} AppRule;
-
 /* a client is a wrapper to a window that additionally
  * holds some properties for that window
  *

@@ -118,13 +118,14 @@ Thanks
 TODO
 ----
 
+* restructure (organize)
+
 * Better floating support
   * add title bar to be able to move by
   * resize with mouse on edges
   * fix laggy move
-* start removing features (do less)
-  * follow_window
-  * app rules
+
+* start removing features (do less!)
 
 
 ***BUGS***
