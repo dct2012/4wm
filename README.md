@@ -117,8 +117,21 @@ Thanks
 
 TODO
 ----
+* remove excess DEBUG(P) calls
 
 * restructure (organize)
+  * get rid of globals
+  * split into files
+    * events
+    * commands
+    * tiling
+    * floating
+    * window/client
+    * desktop
+    * monitor
+    * menu
+    * pretty print (come up with a better name too)
+    * etc
 
 * Better floating support
   * add title bar to be able to move by
