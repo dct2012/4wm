@@ -119,26 +119,13 @@ TODO
 ----
 * remove DEBUG(P) start using gdb
 
-* restructure (organize)
-  * get rid of globals
-  * split into files
-    * events
-    * commands
-    * tiling
-    * floating
-    * window/client
-    * desktop
-    * monitor
-    * menu
-    * pretty print (come up with a better name too)
-    * etc
-
 * Better floating support
   * add title bar to be able to move by
   * resize with mouse on edges
   * fix laggy move
 
 * start removing features (do less!)
+* readability
 
 
 ***BUGS***
