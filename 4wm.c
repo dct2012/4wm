@@ -213,9 +213,10 @@ void configurerequest(xcb_generic_event_t *e)
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e;
 
     window *w;
-    if (!(w = wintowin(ev->window)))
-        xcb_configure_window_checked(con, ev->window, ev->value_mask, NULL);
-    else
+    if (!(w = wintowin(ev->window))) {
+        const uint32_t v[] = { selmon->x, selmon->y, selmon->w, selmon->h };
+        xcb_configure_window_checked(con, ev->window, ev->value_mask, v);
+    } else
         xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
 }
 
