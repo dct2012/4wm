@@ -239,7 +239,15 @@ void configurerequest(xcb_generic_event_t *e)
 
     window *w;
     if (!(w = wintowin(ev->window))) {
-        
+        unsigned int v[7];
+        unsigned int i = 0;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_X)              v[i++] = ev->x;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_Y)              v[i++] = ev->y;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_WIDTH)          v[i++] = ev->width;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_HEIGHT)         v[i++] = ev->height;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH)   v[i++] = ev->border_width;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_SIBLING)        v[i++] = ev->sibling;
+        if (ev->value_mask & XCB_CONFIG_WINDOW_STACK_MODE)     v[i++] = ev->stack_mode;
         xcb_configure_window_checked(con, ev->window, ev->value_mask, v);
     } else
         xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
