@@ -212,7 +212,11 @@ void configurerequest(xcb_generic_event_t *e)
 {
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e;
 
-    xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
+    window *w;
+    if (!(w = wintowin(ev->window)))
+        xcb_configure_window_checked(con, ev->window, ev->value_mask, NULL);
+    else
+        xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
 }
 
 monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop)
@@ -531,14 +535,14 @@ void tilenew(window *n)
     desktop *d = &desktops[selmon->curr_dtop];
     
     if(!d->prevfocus) { // it's the first
-        n->xp = 1;
-        n->yp = 1;
+        n->xp = 100;
+        n->yp = 100;
         n->wp = 100;
         n->hp = 100;
-        n->x = n->xp * selmon->x;
-        n->y = n->yp * selmon->y;
-        n->w = n->wp * selmon->w;
-        n->h = n->hp * selmon->h;
+        n->x = n->xp/100 * selmon->x;
+        n->y = n->yp/100 * selmon->y;
+        n->w = n->wp/100 * selmon->w;
+        n->h = n->hp/100 * selmon->h;
 
         xcb_move_resize(con, n);
         xcb_raise_window(con, n);
@@ -546,13 +550,13 @@ void tilenew(window *n)
         d->prevfocus->wp /= 2;
 
         n->xp = d->prevfocus->wp;
-        n->yp = 1;
+        n->yp = 100;
         n->wp = d->prevfocus->wp;
         n->hp = 100;
-        n->x = n->xp * selmon->x;
-        n->y = n->yp * selmon->y;
-        n->w = n->wp * selmon->w;
-        n->h = n->hp * selmon->h;
+        n->x = n->xp/100 * selmon->x;
+        n->y = n->yp/100 * selmon->y;
+        n->w = n->wp/100 * selmon->w;
+        n->h = n->hp/100 * selmon->h;
 
         xcb_move_resize(con, n);
         xcb_raise_window(con, n);
