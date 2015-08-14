@@ -12,7 +12,7 @@
 
 
 // MACROS
-#if 0
+#if 1
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -234,11 +234,12 @@ void clientmessage(xcb_generic_event_t *e)
 //  so we'll fake it.
 void configurerequest(xcb_generic_event_t *e)
 {
+    puts("configurerequest");
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e;
 
     window *w;
     if (!(w = wintowin(ev->window))) {
-        const uint32_t v[] = { selmon->x, selmon->y, selmon->w, selmon->h };
+        
         xcb_configure_window_checked(con, ev->window, ev->value_mask, v);
     } else
         xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
@@ -288,6 +289,7 @@ void deletewindow(window *r, desktop *d) {
 //  we should delete it
 void destroynotify(xcb_generic_event_t *e)
 {
+    puts("destroynotify");
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
 
     //find window
@@ -298,12 +300,14 @@ void destroynotify(xcb_generic_event_t *e)
 //      if follow mouse is selected and change focused window
 void enternotify(xcb_generic_event_t *e)
 {
+    puts("enternotify");
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
 }
 
 // window thinks it needs to be redrawn (repainted)
 void expose(xcb_generic_event_t *e)
 {
+    puts("expose");
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
 }
 
@@ -311,6 +315,7 @@ void expose(xcb_generic_event_t *e)
 //      ignore for now
 void focusin(xcb_generic_event_t *e)
 {
+    puts("focusin");
     xcb_focus_in_event_t *ev = (xcb_focus_in_event_t*)e;
 }
 
@@ -400,6 +405,7 @@ void keypress(xcb_generic_event_t *e)
 // else call xb_kill_client
 void killwindow()
 {
+    puts("killwindow");
     desktop *d = &desktops[selmon->curr_dtop];
 
     if (!d->current) 
@@ -420,6 +426,7 @@ void* malloc_safe(size_t size)
 // ignore for now
 void mappingnotify(xcb_generic_event_t *e)
 {
+    puts("mappingnotify");
     xcb_mapping_notify_event_t *ev = (xcb_mapping_notify_event_t*)e;
 }
 
@@ -429,6 +436,7 @@ void mappingnotify(xcb_generic_event_t *e)
 //      else create a new window and tile or float it
 void maprequest(xcb_generic_event_t *e)
 {
+    puts("maprequest");
     xcb_map_request_event_t *ev = (xcb_map_request_event_t*)e;
 
     window *w = wintowin(ev->window);
@@ -453,6 +461,7 @@ window* prev_window(window *w, desktop *d)
 //      likely just change desktop info
 void propertynotify(xcb_generic_event_t *e)
 {
+    puts("propertynotify");
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
 }
 
@@ -545,6 +554,7 @@ void setup_monitors()
 
 void spawn(const Arg *arg)
 {
+    puts("spawn");
     if (fork()) 
         return;
 
@@ -560,6 +570,7 @@ void spawn(const Arg *arg)
 
 void tilenew(window *n)
 {
+    puts("tilenew");
     desktop *d = &desktops[selmon->curr_dtop];
     
     if(!d->prevfocus) { // it's the first
@@ -598,6 +609,7 @@ void tilenew(window *n)
 //window is being unmapped. we should delete it
 void unmapnotify(xcb_generic_event_t *e)
 {
+    puts("unmapnotify");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
 }
 
