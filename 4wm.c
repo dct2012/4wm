@@ -330,6 +330,17 @@ void getrandr() // Get RANDR resources and figure out how many outputs there are
     free(res);
 }
 
+void grabkeys() 
+{
+    xcb_keycode_t *keycode;
+    xcb_ungrab_key(con, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+    for (unsigned int i = 0; i < LENGTH(keys); i++) {
+        keycode = xcb_get_keycodes(keys[i].keysym);
+        for (unsigned int k = 0; keycode[k] != XCB_NO_SYMBOL; k++)
+            xcb_grab_key(con, 1, screen->root, keys[i].mod, keycode[k], XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    }
+}
+
 // keys are being pressed. we need to check for
 //      a command associated with that key press
 void keypress(xcb_generic_event_t *e)
@@ -431,6 +442,8 @@ bool setup()
     if (xcb_checkotherwm())
         return false;
 
+    grabkeys();
+
     setup_events();
 
     setup_monitors();
@@ -526,6 +539,12 @@ void tilenew(window *n)
         n->y = n->yp * selmon->y;
         n->w = n->wp * selmon->w;
         n->h = n->hp * selmon->h;
+
+        xcb_move_resize(con, n);
+        xcb_raise_window(con, n);
+
+        xcb_move_resize(con, d->prevfocus);
+        xcb_raise_window(con, d->prevfocus);
     }
 
 }
