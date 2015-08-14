@@ -104,6 +104,20 @@ void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 
 // WRAPPERS
+// wrapper to get xcb keycodes from keysymbol
+xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) 
+{
+    xcb_key_symbols_t *keysyms;
+    xcb_keycode_t     *keycode;
+
+    if (!(keysyms = xcb_key_symbols_alloc(con)))
+        return NULL;
+    keycode = xcb_key_symbols_get_keycode(keysyms, keysym);
+    xcb_key_symbols_free(keysyms);
+
+    return keycode;
+}
+
 xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) 
 {
     xcb_key_symbols_t *keysyms;
