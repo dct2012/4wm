@@ -28,6 +28,8 @@
 // ENUMS
 enum { TILE, MONOCLE, VIDEO, FLOAT };
 enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
+enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
+enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
 
 // TYPES
@@ -98,12 +100,34 @@ int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
+xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 desktop desktops[DESKTOPS];
 monitor *mons = NULL, *selmon = NULL;
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
+char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
+char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
+
 
 // WRAPPERS
+// wrapper to get atoms using xcb
+void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
+{
+    xcb_intern_atom_cookie_t cookies[count];
+    xcb_intern_atom_reply_t  *reply;
+
+    for (unsigned int i = 0; i < count; i++) 
+        cookies[i] = xcb_intern_atom(con, 0, strlen(names[i]), names[i]);
+    
+    for (unsigned int i = 0; i < count; i++) {
+        reply = xcb_intern_atom_reply(con, cookies[i], NULL); // TODO: Handle error
+        if (reply) {
+            DEBUGP("%s : %d\n", names[i], reply->atom);
+            atoms[i] = reply->atom; free(reply);
+        } else puts("WARN: 4wm failed to register %s atom.\nThings might not work right.");
+    }
+}
+
 // wrapper to get xcb keycodes from keysymbol
 xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) 
 {
@@ -457,6 +481,9 @@ bool setup()
 
     if(!setup_keyboard())
         return false;
+
+    xcb_get_atoms(WM_ATOM_NAME, wmatoms, WM_COUNT);
+    xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
 
     if (xcb_checkotherwm())
         return false;
