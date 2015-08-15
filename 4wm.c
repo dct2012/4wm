@@ -91,7 +91,6 @@ void setup_monitors();
 void sigchld();
 void spawn(const Arg *arg);
 void tilenew(window *n);
-void tilenewright(window *n, window *o);
 void unmapnotify(xcb_generic_event_t *e);
 window *wintowin(xcb_window_t w);
 int xcb_checkotherwm();
@@ -195,11 +194,11 @@ void addwindow(xcb_window_t w, desktop *d)
     if(!d->head)
         d->head = d->current = c;
     else {
-        for(window *l = d->head; l; l = l->next) {
-            l = c;
-            d->prevfocus = d->current;
-            d->current = c;
-        }
+        window *l;
+        for(l = d->head; l; l = l->next);
+        l = c;
+        d->prevfocus = d->current;
+        d->current = c;
     } 
 
     DEBUGP("addwindow: d->count = %d\n", d->count);
@@ -624,6 +623,63 @@ void spawn(const Arg *arg)
     exit(EXIT_SUCCESS);
 }
 
+void splitwindows(window *n, window *o, desktop *d)
+{
+    switch(d->mode) {
+        case TBOTTOM:
+            n->xp = o->xp;
+            n->yp = o->yp + (o->hp / 2);
+            n->wp = o->wp;
+            n->hp = (o->yp + o->hp) - n->yp;
+
+            o->hp = n->yp - o->yp;
+            o->h = (float)o->hp/100 * selmon->h;
+            break;
+
+        case TLEFT:
+            n->xp = o->xp;
+            n->yp = o->yp;
+            n->wp = o->wp / 2;
+            n->hp = o->hp;
+
+            o->xp = n->xp + n->wp;
+            o->x = selmon->x + (float)o->xp/100 * selmon->w;
+            o->wp = (n->xp + o->wp) - o->xp;
+            o->w = (float)o->wp/100 * selmon->w;
+            break;
+
+        case TRIGHT:
+            n->xp = o->xp + (o->wp / 2);
+            n->yp = o->yp;
+            n->wp = (o->xp + o->wp) - n->xp;
+            n->hp = o->hp;
+            
+            o->wp = n->xp - o->xp;
+            o->w = (float)o->wp/100 * selmon->w;
+            break;
+
+        case TTOP:
+            n->xp = o->xp;
+            n->yp = o->yp;
+            n->wp = o->wp;
+            n->hp = o->hp / 2;
+
+            o->yp = n->yp + n->hp;
+            o->y = selmon->y + (float)o->yp/100 * selmon->h;
+            o->hp = (n->yp + o->hp) - o->yp;
+            o->h = (float)o->hp/100 * selmon->h;
+            break;
+
+        default:
+            break;
+    }
+
+    n->x = selmon->x + (float)n->xp/100 * selmon->w;
+    n->y = selmon->y + (float)n->yp/100 * selmon->h;
+    n->w = (float)n->wp/100 * selmon->w;
+    n->h = (float)n->hp/100 * selmon->h;
+}
+
 void tilenew(window *n)
 { 
     desktop *d = &desktops[selmon->curr_dtop];
@@ -642,7 +698,7 @@ void tilenew(window *n)
         xcb_move_resize(con, n);
         //xcb_raise_window(con, n);
     } else {
-        tilenewright(n, d->prevfocus);
+        splitwindows(n, d->prevfocus, d);
 
         xcb_move_resize(con, n);
         //xcb_raise_window(con, n);
@@ -652,21 +708,6 @@ void tilenew(window *n)
     }
 
     xcb_map_window(con, n->win);
-}
-
-void tilenewright(window *n, window *o)
-{
-    n->xp = o->xp + (o->wp / 2);
-    n->x = selmon->x + (float)n->xp/100 * selmon->w;
-    n->yp = o->yp;
-    n->y = selmon ->y + (float)n->yp/100 * selmon->h;
-    n->wp = (o->xp + o->wp) - n->xp;
-    n->w = (float)n->wp/100 * selmon->w;
-    n->hp = o->hp;
-    n->h = (float)n->hp/100 * selmon->h;
-    
-    o->wp = n->xp - o->xp;
-    o->w = (float)o->wp/100 * selmon->w;
 }
 
 //window is being unmapped. we should delete it
@@ -725,4 +766,6 @@ int main(void)
     if(setup())
         run();
     clean();
+    xcb_disconnect(con);
+    return 0;
 }
