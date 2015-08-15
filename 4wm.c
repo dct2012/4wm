@@ -14,7 +14,7 @@
 
 
 // MACROS
-#if 0
+#if 1
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -90,7 +90,7 @@ bool setup_keyboard();
 void setup_monitors();
 void sigchld();
 void spawn(const Arg *arg);
-void tilenew(window *n);
+void tilenew(window *n, desktop *d, monitor *m);
 void unmapnotify(xcb_generic_event_t *e);
 window *wintowin(xcb_window_t w);
 int xcb_checkotherwm();
@@ -185,7 +185,7 @@ inline void xcb_raise_window(xcb_connection_t *con, window *w)
 // FUNCTION DEFINITIONS
 
 
-void addwindow(xcb_window_t w, desktop *d) 
+void addwindow(xcb_window_t w, desktop *d, monitor *m) 
 {
     window *c;
     if (!(c = (window *)malloc_safe(sizeof(window))))
@@ -207,7 +207,7 @@ void addwindow(xcb_window_t w, desktop *d)
     xcb_change_window_attributes_checked(con, (c->win = w), XCB_CW_EVENT_MASK, values);
     
     if(d->mode == TILE)
-        tilenew(c);
+        tilenew(c, d, m);
 }
 
 // on press of a button we should check if 
@@ -248,7 +248,7 @@ void clientmessage(xcb_generic_event_t *e)
 //  so we'll fake it.
 void configurerequest(xcb_generic_event_t *e)
 {
-    puts("configurerequest");
+    DEBUG("configurerequest");
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e;
 
     window *w;
@@ -327,7 +327,7 @@ void deletewindow(window *r, desktop *d)
 //  we should delete it
 void destroynotify(xcb_generic_event_t *e)
 {
-    puts("destroynotify");
+    DEBUG("destroynotify");
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
 
     //find window
@@ -338,14 +338,14 @@ void destroynotify(xcb_generic_event_t *e)
 //      if follow mouse is selected and change focused window
 void enternotify(xcb_generic_event_t *e)
 {
-    puts("enternotify");
+    DEBUG("enternotify");
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
 }
 
 // window thinks it needs to be redrawn (repainted)
 void expose(xcb_generic_event_t *e)
 {
-    puts("expose");
+    DEBUG("expose");
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
 }
 
@@ -353,7 +353,7 @@ void expose(xcb_generic_event_t *e)
 //      ignore for now
 void focusin(xcb_generic_event_t *e)
 {
-    puts("focusin");
+    DEBUG("focusin");
     xcb_focus_in_event_t *ev = (xcb_focus_in_event_t*)e;
 }
 
@@ -443,7 +443,7 @@ void keypress(xcb_generic_event_t *e)
 // else call xb_kill_client
 void killwindow()
 {
-    puts("killwindow");
+    DEBUG("killwindow");
     desktop *d = &desktops[selmon->curr_dtop];
 
     if (!d->current) 
@@ -464,7 +464,7 @@ void* malloc_safe(size_t size)
 // ignore for now
 void mappingnotify(xcb_generic_event_t *e)
 {
-    puts("mappingnotify");
+    DEBUG("mappingnotify");
     xcb_mapping_notify_event_t *ev = (xcb_mapping_notify_event_t*)e;
 }
 
@@ -474,14 +474,14 @@ void mappingnotify(xcb_generic_event_t *e)
 //      else create a new window and tile or float it
 void maprequest(xcb_generic_event_t *e)
 {
-    puts("maprequest");
+    DEBUG("maprequest");
     xcb_map_request_event_t *ev = (xcb_map_request_event_t*)e;
 
     window *w = wintowin(ev->window);
     if(w)
         return;
 
-    addwindow(ev->window, &desktops[selmon->curr_dtop]);
+    addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
 }
 
 // get the previous window from the given
@@ -499,7 +499,7 @@ window* prev_window(window *w, desktop *d)
 //      likely just change desktop info
 void propertynotify(xcb_generic_event_t *e)
 {
-    puts("propertynotify");
+    DEBUG("propertynotify");
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
 }
 
@@ -609,7 +609,7 @@ void setup_monitors()
 
 void spawn(const Arg *arg)
 {
-    puts("spawn");
+    DEBUG("spawn");
     if (fork()) 
         return;
 
@@ -623,9 +623,9 @@ void spawn(const Arg *arg)
     exit(EXIT_SUCCESS);
 }
 
-void splitwindows(window *n, window *o, desktop *d)
+void splitwindows(window *n, window *o, desktop *d, monitor *m)
 {
-    switch(d->mode) {
+    switch(d->direction) {
         case TBOTTOM:
             n->xp = o->xp;
             n->yp = o->yp + (o->hp / 2);
@@ -633,7 +633,7 @@ void splitwindows(window *n, window *o, desktop *d)
             n->hp = (o->yp + o->hp) - n->yp;
 
             o->hp = n->yp - o->yp;
-            o->h = (float)o->hp/100 * selmon->h;
+            o->h = (float)o->hp/100 * m->h;
             break;
 
         case TLEFT:
@@ -643,9 +643,9 @@ void splitwindows(window *n, window *o, desktop *d)
             n->hp = o->hp;
 
             o->xp = n->xp + n->wp;
-            o->x = selmon->x + (float)o->xp/100 * selmon->w;
+            o->x = m->x + (float)o->xp/100 * m->w;
             o->wp = (n->xp + o->wp) - o->xp;
-            o->w = (float)o->wp/100 * selmon->w;
+            o->w = (float)o->wp/100 * m->w;
             break;
 
         case TRIGHT:
@@ -655,7 +655,7 @@ void splitwindows(window *n, window *o, desktop *d)
             n->hp = o->hp;
             
             o->wp = n->xp - o->xp;
-            o->w = (float)o->wp/100 * selmon->w;
+            o->w = (float)o->wp/100 * m->w;
             break;
 
         case TTOP:
@@ -665,40 +665,38 @@ void splitwindows(window *n, window *o, desktop *d)
             n->hp = o->hp / 2;
 
             o->yp = n->yp + n->hp;
-            o->y = selmon->y + (float)o->yp/100 * selmon->h;
+            o->y = m->y + (float)o->yp/100 * m->h;
             o->hp = (n->yp + o->hp) - o->yp;
-            o->h = (float)o->hp/100 * selmon->h;
+            o->h = (float)o->hp/100 * m->h;
             break;
 
         default:
             break;
     }
 
-    n->x = selmon->x + (float)n->xp/100 * selmon->w;
-    n->y = selmon->y + (float)n->yp/100 * selmon->h;
-    n->w = (float)n->wp/100 * selmon->w;
-    n->h = (float)n->hp/100 * selmon->h;
+    n->x = m->x + (float)n->xp/100 * m->w;
+    n->y = m->y + (float)n->yp/100 * m->h;
+    n->w = (float)n->wp/100 * m->w;
+    n->h = (float)n->hp/100 * m->h;
 }
 
-void tilenew(window *n)
+void tilenew(window *n, desktop *d, monitor *m)
 { 
-    desktop *d = &desktops[selmon->curr_dtop];
-    
     if(!d->prevfocus) { // it's the first
-        puts("tilenew first");
+        DEBUG("tilenew first");
         n->xp = 0;
         n->yp = 0;
         n->wp = 100;
         n->hp = 100;
-        n->x = selmon->x + n->xp/100 * selmon->w;
-        n->y = selmon->y + n->yp/100 * selmon->h;
-        n->w = n->wp/100 * selmon->w;
-        n->h = n->hp/100 * selmon->h;
+        n->x = m->x + n->xp/100 * m->w;
+        n->y = m->y + n->yp/100 * m->h;
+        n->w = n->wp/100 * m->w;
+        n->h = n->hp/100 * m->h;
 
         xcb_move_resize(con, n);
         //xcb_raise_window(con, n);
     } else {
-        splitwindows(n, d->prevfocus, d);
+        splitwindows(n, d->prevfocus, d, m);
 
         xcb_move_resize(con, n);
         //xcb_raise_window(con, n);
@@ -713,7 +711,7 @@ void tilenew(window *n)
 //window is being unmapped. we should delete it
 void unmapnotify(xcb_generic_event_t *e)
 {
-    puts("unmapnotify");
+    DEBUG("unmapnotify");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     
     window *w;
