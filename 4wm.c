@@ -31,7 +31,7 @@
 enum { TILE, MONOCLE, VIDEO, FLOAT };
 enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
-enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
+//enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
 
 // TYPES
@@ -105,14 +105,14 @@ int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
-xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
+xcb_atom_t wmatoms[WM_COUNT]/*, netatoms[NET_COUNT]*/;
 desktop desktops[DESKTOPS];
 monitor *mons = NULL, *selmon = NULL;
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 // WRAPPERS
 // wrapper to get atoms using xcb
-static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
+void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
 {
     xcb_intern_atom_cookie_t cookies[count];
     xcb_intern_atom_reply_t  *reply;
@@ -128,6 +128,14 @@ static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count)
             free(reply);
         } else puts("WARN: 4wm failed to register %s atom.\nThings might not work right.");
     }
+}
+
+// wrapper to window get attributes using xcb */
+xcb_get_window_attributes_reply_t* xcb_get_attributes(xcb_window_t w) 
+{
+    xcb_get_window_attributes_cookie_t cookie;
+    cookie = xcb_get_window_attributes(con, w);
+    return xcb_get_window_attributes_reply(con, cookie, NULL); // TODO: Handle error
 }
 
 // wrapper to get xcb keycodes from keysymbol
@@ -480,18 +488,16 @@ void maprequest(xcb_generic_event_t *e)
     DEBUG("maprequest\n");
     xcb_map_request_event_t *ev = (xcb_map_request_event_t*)e;
 
+    xcb_get_window_attributes_reply_t *attr = NULL;
+    attr = xcb_get_attributes(ev->window);
+    if (!attr || attr->override_redirect) 
+        return;
+
     window *w = wintowin(ev->window);
     if(w)
         return;
 
     addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
-
-    xcb_get_property_reply_t *prop_reply = 
-        xcb_get_property_reply(con, xcb_get_property_unchecked(con, 0, ev->window, netatoms[NET_WM_STATE], 
-                                                               XCB_ATOM_ATOM, 0, 1), NULL); // TODO: error handling
-    if (prop_reply) { 
-        free(prop_reply);
-    }
 }
 
 // get the previous window from the given
@@ -550,10 +556,10 @@ bool setup()
         return false;
 
     char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-    char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
-                               "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
+    //char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
+    //                           "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
     xcb_get_atoms(WM_ATOM_NAME, wmatoms, WM_COUNT);
-    xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
+    //xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
 
     if (xcb_checkotherwm())
         return false;
