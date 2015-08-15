@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
@@ -12,7 +14,7 @@
 
 
 // MACROS
-#if 1
+#if 0
 #  define DEBUG(x)      fputs(x, stderr);
 #  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
 #else
@@ -77,15 +79,19 @@ typedef struct {
 
 
 // FOWARD DECLARATIONS
+void deletewindow(window *r, desktop *d);
 void killwindow();
 void* malloc_safe(size_t size);
 window* prev_window(window *w, desktop *d);
+void quit();
 void setup_desktops();
 void setup_events();
 bool setup_keyboard();
 void setup_monitors();
+void sigchld();
 void spawn(const Arg *arg);
 void tilenew(window *n);
+void tilenewright(window *n, window *o);
 void unmapnotify(xcb_generic_event_t *e);
 window *wintowin(xcb_window_t w);
 int xcb_checkotherwm();
@@ -100,18 +106,17 @@ int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
-xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
+xcb_atom_t wmatoms[WM_COUNT];
 desktop desktops[DESKTOPS];
 monitor *mons = NULL, *selmon = NULL;
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
-char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
+char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
 
 
 // WRAPPERS
 // wrapper to get atoms using xcb
-void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
+static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
 {
     xcb_intern_atom_cookie_t cookies[count];
     xcb_intern_atom_reply_t  *reply;
@@ -123,7 +128,8 @@ void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count)
         reply = xcb_intern_atom_reply(con, cookies[i], NULL); // TODO: Handle error
         if (reply) {
             DEBUGP("%s : %d\n", names[i], reply->atom);
-            atoms[i] = reply->atom; free(reply);
+            atoms[i] = reply->atom; 
+            free(reply);
         } else puts("WARN: 4wm failed to register %s atom.\nThings might not work right.");
     }
 }
@@ -158,18 +164,21 @@ xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode)
 /* wrapper to move and resize window */
 inline void xcb_move_resize(xcb_connection_t *con, window *w) 
 {
+    printf("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
     xcb_configure_window(con, w->win, XCB_MOVE_RESIZE, pos);
 }
 
 // wrapper to lower window
-inline void xcb_lower_window(xcb_connection_t *con, window *w) {
+inline void xcb_lower_window(xcb_connection_t *con, window *w) 
+{
     unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
 
 // wrapper to raise window
-inline void xcb_raise_window(xcb_connection_t *con, window *w) {
+inline void xcb_raise_window(xcb_connection_t *con, window *w) 
+{
     unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
@@ -177,16 +186,17 @@ inline void xcb_raise_window(xcb_connection_t *con, window *w) {
 // FUNCTION DEFINITIONS
 
 
-void addwindow(xcb_window_t w, desktop *d) {
+void addwindow(xcb_window_t w, desktop *d) 
+{
     window *c;
     if (!(c = (window *)malloc_safe(sizeof(window))))
         return;
 
-    for(window *l = d->head; l && l->next; l = l->next) {
-        if(!l)
-            l = c; //should be the same as d->head = c
-        else {
-            l->next = c;
+    if(!d->head)
+        d->head = d->current = c;
+    else {
+        for(window *l = d->head; l; l = l->next) {
+            l = c;
             d->prevfocus = d->current;
             d->current = c;
         }
@@ -221,6 +231,11 @@ void clean()
         t = m->next;
         free(m);
     }
+
+    window *w;
+    for (int i = 0; i < DESKTOPS; i++)
+        for (w = desktops[i].head; w; w = w->next)
+            deletewindow(w, &desktops[i]);
 }
 
 // we'll ignore this for now
@@ -249,8 +264,10 @@ void configurerequest(xcb_generic_event_t *e)
         if (ev->value_mask & XCB_CONFIG_WINDOW_SIBLING)        v[i++] = ev->sibling;
         if (ev->value_mask & XCB_CONFIG_WINDOW_STACK_MODE)     v[i++] = ev->stack_mode;
         xcb_configure_window_checked(con, ev->window, ev->value_mask, v);
-    } else
+    } else 
         xcb_send_event(con, false, ev->window, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char*)ev);
+
+    xcb_flush(con);
 }
 
 monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop)
@@ -269,7 +286,9 @@ monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop)
     return m;
 }
 
-void deletewindow(window *r, desktop *d) {
+//TODO: finish this, make it less complicated
+void deletewindow(window *r, desktop *d) 
+{
     window **p = NULL;
     for (p = &d->head; *p && (*p != r); p = &(*p)->next);
     if (!p) 
@@ -287,7 +306,19 @@ void deletewindow(window *r, desktop *d) {
     // handle retile
     // since we're only doing tiling right now
     // whichever window is next to it will gain its space
-    
+  
+    xcb_client_message_event_t ev;
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.window = r->win;
+    ev.format = 32;
+    ev.sequence = 0;
+    ev.type = wmatoms[WM_PROTOCOLS];
+    ev.data.data32[0] = wmatoms[WM_DELETE_WINDOW];
+    ev.data.data32[1] = XCB_CURRENT_TIME;
+    xcb_send_event(con, 0, r->win, XCB_EVENT_MASK_NO_EVENT, (char*)&ev);
+
+    xcb_unmap_window(con, r->win);
+
     free(r->title);
     free(r); 
     r = NULL; 
@@ -473,11 +504,19 @@ void propertynotify(xcb_generic_event_t *e)
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
 }
 
+void quit()
+{
+    running = false;
+}
+
 void run()
 {
     xcb_generic_event_t *e;
 
     while(running) {
+        xcb_flush(con);
+        if(xcb_connection_has_error(con))
+            return;
         if((e = xcb_wait_for_event(con))) {
             if(events[e->response_type & ~0x08])
                 events[e->response_type & ~0x08](e);
@@ -489,6 +528,8 @@ void run()
 
 bool setup()
 {   
+    sigchld();
+    
     int default_screen;
     if(xcb_connection_has_error((con = xcb_connect(NULL, &default_screen))))
         return false;
@@ -500,7 +541,6 @@ bool setup()
         return false;
 
     xcb_get_atoms(WM_ATOM_NAME, wmatoms, WM_COUNT);
-    xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
 
     if (xcb_checkotherwm())
         return false;
@@ -510,6 +550,8 @@ bool setup()
     setup_events();
 
     setup_monitors();
+    selmon->curr_dtop = 0;
+
     setup_desktops();
 
     return true;
@@ -547,6 +589,12 @@ bool setup_keyboard()
     return true;
 }
 
+void sigchld()
+{
+    signal(SIGCHLD, sigchld);
+    while(0 < waitpid(-1, NULL, WNOHANG));
+}
+
 void setup_monitors()
 {
     const xcb_query_extension_reply_t *extension = xcb_get_extension_data(con, &xcb_randr_id);
@@ -557,7 +605,7 @@ void setup_monitors()
             XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE | XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
             XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    selmon = mons;
+    selmon = mons; 
 }
 
 void spawn(const Arg *arg)
@@ -577,41 +625,48 @@ void spawn(const Arg *arg)
 }
 
 void tilenew(window *n)
-{
-    puts("tilenew");
+{ 
     desktop *d = &desktops[selmon->curr_dtop];
     
     if(!d->prevfocus) { // it's the first
-        n->xp = 100;
-        n->yp = 100;
+        puts("tilenew first");
+        n->xp = 0;
+        n->yp = 0;
         n->wp = 100;
         n->hp = 100;
-        n->x = n->xp/100 * selmon->x;
-        n->y = n->yp/100 * selmon->y;
+        n->x = selmon->x + n->xp/100 * selmon->w;
+        n->y = selmon->y + n->yp/100 * selmon->h;
         n->w = n->wp/100 * selmon->w;
         n->h = n->hp/100 * selmon->h;
 
         xcb_move_resize(con, n);
-        xcb_raise_window(con, n);
+        //xcb_raise_window(con, n);
     } else {
-        d->prevfocus->wp /= 2;
-
-        n->xp = d->prevfocus->wp;
-        n->yp = 100;
-        n->wp = d->prevfocus->wp;
-        n->hp = 100;
-        n->x = n->xp/100 * selmon->x;
-        n->y = n->yp/100 * selmon->y;
-        n->w = n->wp/100 * selmon->w;
-        n->h = n->hp/100 * selmon->h;
+        tilenewright(n, d->prevfocus);
 
         xcb_move_resize(con, n);
-        xcb_raise_window(con, n);
+        //xcb_raise_window(con, n);
 
         xcb_move_resize(con, d->prevfocus);
-        xcb_raise_window(con, d->prevfocus);
+        //xcb_raise_window(con, d->prevfocus);
     }
 
+    xcb_map_window(con, n->win);
+}
+
+void tilenewright(window *n, window *o)
+{
+    n->xp = o->xp + (o->wp / 2);
+    n->x = selmon->x + (float)n->xp/100 * selmon->w;
+    n->yp = o->yp;
+    n->y = selmon ->y + (float)n->yp/100 * selmon->h;
+    n->wp = (o->xp + o->wp) - n->xp;
+    n->w = (float)n->wp/100 * selmon->w;
+    n->hp = o->hp;
+    n->h = (float)n->hp/100 * selmon->h;
+    
+    o->wp = n->xp - o->xp;
+    o->w = (float)o->wp/100 * selmon->w;
 }
 
 //window is being unmapped. we should delete it
@@ -619,14 +674,19 @@ void unmapnotify(xcb_generic_event_t *e)
 {
     puts("unmapnotify");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
+    
+    window *w;
+    for (int i = 0; i < DESKTOPS; i++)
+        for (w = desktops[i].head; w; w = w->next)
+            if(w->win == ev->window)
+                deletewindow(w, &desktops[i]);
 }
 
 window *wintowin(xcb_window_t w) 
 {
     window *c = NULL;
-    int i;
  
-    for (i = 0; i < DESKTOPS; i++)
+    for (int i = 0; i < DESKTOPS; i++)
         for (c = desktops[i].head; c; c = c->next)
             if(c->win == w) {
                 DEBUG("wintoclient: leaving, returning found client\n");
