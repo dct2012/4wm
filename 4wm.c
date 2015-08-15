@@ -79,7 +79,7 @@ typedef struct {
 
 
 // FOWARD DECLARATIONS
-void deletewindow(window *r, desktop *d);
+void deletewindow(xcb_window_t w);
 void killwindow();
 void* malloc_safe(size_t size);
 window* prev_window(window *w, desktop *d);
@@ -231,7 +231,7 @@ void clean()
     window *w;
     for (int i = 0; i < DESKTOPS; i++)
         for (w = desktops[i].head; w; w = w->next)
-            deletewindow(w, &desktops[i]);
+            deletewindow(w->win);
 }
 
 // we'll ignore this for now
@@ -283,8 +283,17 @@ monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop)
 }
 
 //TODO: finish this, make it less complicated
-void deletewindow(window *r, desktop *d) 
+void deletewindow(xcb_window_t w) 
 {
+    window *r;
+    desktop *d = NULL;
+    for (int i = 0; i < DESKTOPS; i++)
+        for (r = desktops[i].head; r; r = r->next)
+            if(r->win == w) {
+                d = &desktops[i];
+                break;
+            }
+
     window **p = NULL;
     for (p = &d->head; *p && (*p != r); p = &(*p)->next);
     if (!p) 
@@ -327,8 +336,7 @@ void destroynotify(xcb_generic_event_t *e)
     DEBUG("destroynotify\n");
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
 
-    //find window
-    //  delete window
+    deletewindow(ev->window);
 }
 
 // mouse has entered a different window, we should check
@@ -446,7 +454,7 @@ void killwindow()
     if (!d->current) 
         return;
 
-    deletewindow(d->current, d);
+    deletewindow(d->current->win);
 }
 
 void* malloc_safe(size_t size) 
@@ -722,11 +730,7 @@ void unmapnotify(xcb_generic_event_t *e)
     DEBUG("unmapnotify\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     
-    window *w;
-    for (int i = 0; i < DESKTOPS; i++)
-        for (w = desktops[i].head; w; w = w->next)
-            if(w->win == ev->window)
-                deletewindow(w, &desktops[i]);
+    deletewindow(ev->window);
 }
 
 window *wintowin(xcb_window_t w) 
