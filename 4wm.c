@@ -190,16 +190,16 @@ void addwindow(xcb_window_t w, desktop *d)
     window *c;
     if (!(c = (window *)malloc_safe(sizeof(window))))
         return;
-
-    if(!d->head)
+    
+    window *l;
+    for(l = d->head; l && l->next; l = l->next);
+    if(!l)
         d->head = d->current = c;
     else {
-        window *l;
-        for(l = d->head; l; l = l->next);
-        l = c;
+        l->next = c;
         d->prevfocus = d->current;
         d->current = c;
-    } 
+    }
 
     DEBUGP("addwindow: d->count = %d\n", d->count);
 
