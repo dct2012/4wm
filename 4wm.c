@@ -105,13 +105,10 @@ int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
-xcb_atom_t wmatoms[WM_COUNT];
+xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 desktop desktops[DESKTOPS];
 monitor *mons = NULL, *selmon = NULL;
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
-
-char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-
 
 // WRAPPERS
 // wrapper to get atoms using xcb
@@ -248,7 +245,7 @@ void clientmessage(xcb_generic_event_t *e)
 //  so we'll fake it.
 void configurerequest(xcb_generic_event_t *e)
 {
-    DEBUG("configurerequest");
+    DEBUG("configurerequest\n");
     xcb_configure_request_event_t *ev = (xcb_configure_request_event_t*)e;
 
     window *w;
@@ -327,7 +324,7 @@ void deletewindow(window *r, desktop *d)
 //  we should delete it
 void destroynotify(xcb_generic_event_t *e)
 {
-    DEBUG("destroynotify");
+    DEBUG("destroynotify\n");
     xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t*)e;
 
     //find window
@@ -338,14 +335,14 @@ void destroynotify(xcb_generic_event_t *e)
 //      if follow mouse is selected and change focused window
 void enternotify(xcb_generic_event_t *e)
 {
-    DEBUG("enternotify");
+    DEBUG("enternotify\n");
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
 }
 
 // window thinks it needs to be redrawn (repainted)
 void expose(xcb_generic_event_t *e)
 {
-    DEBUG("expose");
+    DEBUG("expose\n");
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
 }
 
@@ -353,7 +350,7 @@ void expose(xcb_generic_event_t *e)
 //      ignore for now
 void focusin(xcb_generic_event_t *e)
 {
-    DEBUG("focusin");
+    DEBUG("focusin\n");
     xcb_focus_in_event_t *ev = (xcb_focus_in_event_t*)e;
 }
 
@@ -443,7 +440,7 @@ void keypress(xcb_generic_event_t *e)
 // else call xb_kill_client
 void killwindow()
 {
-    DEBUG("killwindow");
+    DEBUG("killwindow\n");
     desktop *d = &desktops[selmon->curr_dtop];
 
     if (!d->current) 
@@ -464,7 +461,7 @@ void* malloc_safe(size_t size)
 // ignore for now
 void mappingnotify(xcb_generic_event_t *e)
 {
-    DEBUG("mappingnotify");
+    DEBUG("mappingnotify\n");
     xcb_mapping_notify_event_t *ev = (xcb_mapping_notify_event_t*)e;
 }
 
@@ -474,7 +471,7 @@ void mappingnotify(xcb_generic_event_t *e)
 //      else create a new window and tile or float it
 void maprequest(xcb_generic_event_t *e)
 {
-    DEBUG("maprequest");
+    DEBUG("maprequest\n");
     xcb_map_request_event_t *ev = (xcb_map_request_event_t*)e;
 
     window *w = wintowin(ev->window);
@@ -482,6 +479,13 @@ void maprequest(xcb_generic_event_t *e)
         return;
 
     addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
+
+    xcb_get_property_reply_t *prop_reply = 
+        xcb_get_property_reply(con, xcb_get_property_unchecked(con, 0, ev->window, netatoms[NET_WM_STATE], 
+                                                               XCB_ATOM_ATOM, 0, 1), NULL); // TODO: error handling
+    if (prop_reply) { 
+        free(prop_reply);
+    }
 }
 
 // get the previous window from the given
@@ -499,7 +503,7 @@ window* prev_window(window *w, desktop *d)
 //      likely just change desktop info
 void propertynotify(xcb_generic_event_t *e)
 {
-    DEBUG("propertynotify");
+    DEBUG("propertynotify\n");
     xcb_property_notify_event_t *ev = (xcb_property_notify_event_t*)e;
 }
 
@@ -539,7 +543,11 @@ bool setup()
     if(!setup_keyboard())
         return false;
 
+    char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
+    char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
+                               "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
     xcb_get_atoms(WM_ATOM_NAME, wmatoms, WM_COUNT);
+    xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
 
     if (xcb_checkotherwm())
         return false;
@@ -609,7 +617,7 @@ void setup_monitors()
 
 void spawn(const Arg *arg)
 {
-    DEBUG("spawn");
+    DEBUG("spawn\n");
     if (fork()) 
         return;
 
@@ -683,7 +691,7 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
 void tilenew(window *n, desktop *d, monitor *m)
 { 
     if(!d->prevfocus) { // it's the first
-        DEBUG("tilenew first");
+        DEBUG("tilenew first\n");
         n->xp = 0;
         n->yp = 0;
         n->wp = 100;
@@ -711,7 +719,7 @@ void tilenew(window *n, desktop *d, monitor *m)
 //window is being unmapped. we should delete it
 void unmapnotify(xcb_generic_event_t *e)
 {
-    DEBUG("unmapnotify");
+    DEBUG("unmapnotify\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
     
     window *w;
