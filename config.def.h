@@ -23,6 +23,22 @@
 #define FOLLOW_MOUSE            true
 // focus an unfocused window when clicked
 #define CLICK_TO_FOCUS          true
+// outer window border width
+#define OUTER_BORDER            4
+// inner window border width
+#define INNER_BORDER            2
+// window border width
+#define BORDER_WIDTH            (OUTER_BORDER + INNER_BORDER)
+// focused window border color
+#define FOCUS           "#005FFF"
+// unfocused window border color
+#define UNFOCUS         "#262626"
+// outer border color
+#define OTRBRDRCOL      "#626262"
+// urgent color for border
+#define URGNBRDRCOL     "#FFFF5F"
+// floating outer border color
+#define FLTBRDCOL       "#00FF5F"
 
 static const char *termcmd[] = { "xterm", NULL };
 static const char *webcmd[] = { "google-chrome-beta", NULL };

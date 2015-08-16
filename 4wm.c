@@ -25,16 +25,25 @@
 #define XCB_MOVE_RESIZE XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x))
+#define ISFT(c) (c->isfloating || c->istransient)
+#define NOBORDER(d) ((d.count == 1 && !ISFT(d.head)) || d.mode == MONOCLE || d.mode == VIDEO)
 
 #define SETWINDOWX(s, m) s->x = m->x + (float)s->xp/100 * m->w;
 #define SETWINDOWY(s, m) s->y = m->y + (float)s->yp/100 * m->h;
-#define SETWINDOWW(s, m) s->w = (float)s->wp/100 * m->w;
-#define SETWINDOWH(s, m) s->h = (float)s->hp/100 * m->h;
+#define SETWINDOWW(s, m) if(NOBORDER(desktops[m->curr_dtop])) \
+                            s->w = (float)s->wp/100 * m->w; \
+                         else \
+                            s->w = (float)s->wp/100 * m->w - 2*BORDER_WIDTH;
+#define SETWINDOWH(s, m) if(NOBORDER(desktops[m->curr_dtop])) \
+                            s->h = (float)s->hp/100 * m->h; \
+                         else \
+                            s->h = (float)s->hp/100 * m->h - 2*BORDER_WIDTH;
 #define SETWINDOW(w, m) \
     SETWINDOWX(w, m); \
     SETWINDOWY(w, m); \
     SETWINDOWW(w, m); \
     SETWINDOWH(w, m);
+
 
 // ENUMS
 enum { TILE, MONOCLE, VIDEO, FLOAT };
@@ -94,6 +103,7 @@ void focus(window *n, desktop *d);
 void killwindow();
 void* malloc_safe(size_t size);
 void quit();
+void setclientborders(desktop *d, window *c, const monitor *m);
 void setup_desktops();
 void setup_events();
 bool setup_keyboard();
@@ -117,6 +127,7 @@ xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen);
 
 
 // VARIABLES
+unsigned int win_unfocus, win_focus, win_outer, win_urgent, win_flt;
 int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
@@ -183,10 +194,11 @@ xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode)
 }
 
 /* wrapper to move and resize window */
-/*inline*/ void xcb_move_resize(window *w) 
+/*inline*/ void xcb_move_resize(window *w, desktop *d, monitor *m) 
 {
     printf("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
+    setclientborders(d, w, m);
     xcb_configure_window(con, w->win, XCB_MOVE_RESIZE, pos);
 }
 
@@ -262,13 +274,13 @@ void change_desktop(const Arg *arg)
             while(n || o) {
                 if(n) {
                     SETWINDOW(n, selmon);
-                    xcb_move_resize(n);
+                    xcb_move_resize(n, &desktops[selmon->curr_dtop], selmon);
                     n = n->next;
                 }
 
                 if(o) {
                     SETWINDOW(o, m);
-                    xcb_move_resize(o);
+                    xcb_move_resize(o, &desktops[m->curr_dtop], m);
                     o = o->next;
                 }
             }
@@ -283,7 +295,7 @@ void change_desktop(const Arg *arg)
     while(n || o) {
         if (n) {
             SETWINDOW(n, selmon);
-            xcb_move_resize(n);
+            xcb_move_resize(n, &desktops[selmon->curr_dtop], selmon);
             xcb_map_window(con, n->win);
             n = n->next;
         }
@@ -450,6 +462,32 @@ void focusin(xcb_generic_event_t *e)
     xcb_focus_in_event_t *ev = (xcb_focus_in_event_t*)e;
 }
 
+// retieve RGB color from hex (think of html)
+unsigned int xcb_get_colorpixel(char *hex) {
+    char strgroups[3][3]  = {{hex[1], hex[2], '\0'}, {hex[3], hex[4], '\0'}, {hex[5], hex[6], '\0'}};
+    unsigned int rgb16[3] = {(strtol(strgroups[0], NULL, 16)), (strtol(strgroups[1], NULL, 16)), 
+                             (strtol(strgroups[2], NULL, 16))};
+    return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
+}
+
+// get a pixel with the requested color
+// to fill some window area - borders
+unsigned int getcolor(char* color) {
+    xcb_colormap_t map = screen->default_colormap;
+    xcb_alloc_color_reply_t *c;
+    unsigned int r, g, b, rgb, pixel;
+
+    rgb = xcb_get_colorpixel(color);
+    r = rgb >> 16; g = rgb >> 8 & 0xFF; b = rgb & 0xFF;
+    c = xcb_alloc_color_reply(con, xcb_alloc_color(con, map, r * 257, g * 257, b * 257), NULL);
+    if (!c)
+        return 0;
+
+    pixel = c->pixel; 
+    free(c);
+    return pixel;
+}
+
 void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp) 
 {
     // Walk through all the RANDR outputs (number of outputs == len) there
@@ -612,6 +650,59 @@ void run()
     }
 }
 
+void setclientborders(desktop *d, window *c, const monitor *m) {
+    unsigned int values[1];  /* this is the color maintainer */
+    unsigned int zero[1];
+    int half;
+    
+    zero[0] = 0;
+    values[0] = BORDER_WIDTH; // Set border width.
+
+    // find n = number of windows with set borders
+    int n = d->count;
+    DEBUGP("setclientborders: d->count = %d\n", d->count);
+
+    // rules for no border
+    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO) || c->istransient) {
+        xcb_configure_window(con, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
+    }
+    else {
+        xcb_configure_window(con, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
+        half = OUTER_BORDER;
+        const xcb_rectangle_t rect_inner[] = {
+            { c->w,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
+            { c->w+BORDER_WIDTH+half,0, BORDER_WIDTH-half,c->h+BORDER_WIDTH-half},
+            { 0,c->h,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
+            { 0, c->h+BORDER_WIDTH+half,c->w+BORDER_WIDTH-half,BORDER_WIDTH-half},
+            { c->w+BORDER_WIDTH+half,BORDER_WIDTH+c->h+half,BORDER_WIDTH,BORDER_WIDTH }
+        };
+        const xcb_rectangle_t rect_outer[] = {
+            {c->w+BORDER_WIDTH-half,0,half,c->h+BORDER_WIDTH*2},
+            {c->w+BORDER_WIDTH,0,half,c->h+BORDER_WIDTH*2},
+            {0,c->h+BORDER_WIDTH-half,c->w+BORDER_WIDTH*2,half},
+            {0,c->h+BORDER_WIDTH,c->w+BORDER_WIDTH*2,half}
+        };
+        xcb_pixmap_t pmap = xcb_generate_id(con);
+        // 2bwm test have shown that drawing the pixmap directly on the root 
+        // window is faster then drawing it on the window directly
+        xcb_create_pixmap(con, screen->root_depth, pmap, c->win, c->w+(BORDER_WIDTH*2), c->h+(BORDER_WIDTH*2));
+        xcb_gcontext_t gc = xcb_generate_id(con);
+        xcb_create_gc(con, gc, pmap, 0, NULL);
+        
+        xcb_change_gc(con, gc, XCB_GC_FOREGROUND, 
+                        (c->isurgent ? &win_urgent:c->isfloating ? &win_flt:&win_outer));
+        xcb_poly_fill_rectangle(con, pmap, gc, 4, rect_outer);
+
+        xcb_change_gc(con, gc, XCB_GC_FOREGROUND, (c == d->current && m == selmon ? &win_focus:&win_unfocus));
+        xcb_poly_fill_rectangle(con, pmap, gc, 5, rect_inner);
+        xcb_change_window_attributes(con, c->win, XCB_CW_BORDER_PIXMAP, &pmap);
+        // free the memory we allocated for the pixmap
+        xcb_free_pixmap(con, pmap);
+        xcb_free_gc(con, gc);
+    }
+    //xcb_flush(con);
+}
+
 bool setup()
 {    
     sigchld();
@@ -630,6 +721,12 @@ bool setup()
     
     if(!setup_keyboard())
         return false;
+
+    win_focus   = getcolor(FOCUS);
+    win_unfocus = getcolor(UNFOCUS);
+    win_outer   = getcolor(OTRBRDRCOL);
+    win_urgent  = getcolor(URGNBRDRCOL);
+    win_flt     = getcolor(FLTBRDCOL);
 
     char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
     //char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
@@ -679,12 +776,6 @@ bool setup_keyboard()
     return true;
 }
 
-void sigchld()
-{
-    signal(SIGCHLD, sigchld);
-    while(0 < waitpid(-1, NULL, WNOHANG));
-}
-
 void setup_monitors()
 {
     const xcb_query_extension_reply_t *extension = xcb_get_extension_data(con, &xcb_randr_id);
@@ -696,6 +787,12 @@ void setup_monitors()
             XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
     selmon = mons; 
+}
+
+void sigchld()
+{
+    signal(SIGCHLD, sigchld);
+    while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
 void spawn(const Arg *arg)
@@ -783,15 +880,15 @@ void tilenew(window *n, desktop *d, monitor *m)
         n->hp = 100;
         SETWINDOW(n, m);
 
-        xcb_move_resize(n);
+        xcb_move_resize(n, d, m);
         //xcb_raise_window(con, n);
     } else {
         splitwindows(n, d->prevfocus, d, m);
 
-        xcb_move_resize(n);
+        xcb_move_resize(n, d, m);
         //xcb_raise_window(con, n);
 
-        xcb_move_resize(d->prevfocus);
+        xcb_move_resize(d->prevfocus, d, m);
         //xcb_raise_window(con, d->prevfocus);
     }
 
@@ -812,7 +909,7 @@ void tileremove(window *r, desktop *d)
             l[i]->wp += r->wp;
             if(m) {
                 SETWINDOWW(l[i], m);
-                xcb_move_resize(l[i]);
+                xcb_move_resize(l[i], d, m);
             }
         }
     else if((l = windowstothetop(r, d)))
@@ -820,7 +917,7 @@ void tileremove(window *r, desktop *d)
             l[i]->hp += r->hp;
             if(m) {
                 SETWINDOWH(l[i], m);
-                xcb_move_resize(l[i]);
+                xcb_move_resize(l[i], d, m);
             }
         }
     else if((l = windowstotheright(r, d)))
@@ -830,7 +927,7 @@ void tileremove(window *r, desktop *d)
             if(m) {
                 SETWINDOWX(l[i], m);
                 SETWINDOWW(l[i], m);
-                xcb_move_resize(l[i]);
+                xcb_move_resize(l[i], d, m);
             }
         }
     else if((l = windowstothebottom(r, d)))
@@ -840,7 +937,7 @@ void tileremove(window *r, desktop *d)
             if(m) {
                 SETWINDOWY(l[i], m);
                 SETWINDOWH(l[i], m);
-                xcb_move_resize(l[i]);
+                xcb_move_resize(l[i], d, m);
             }
         }
 
