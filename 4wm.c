@@ -190,14 +190,14 @@ inline void xcb_move_resize(window *w)
 }
 
 // wrapper to lower window
-inline void xcb_lower_window(xcb_connection_t *con, window *w) 
+inline void xcb_lower_window(window *w) 
 {
     unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
 
 // wrapper to raise window
-inline void xcb_raise_window(xcb_connection_t *con, window *w) 
+inline void xcb_raise_window(window *w) 
 {
     unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
