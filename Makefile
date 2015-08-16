@@ -1,7 +1,7 @@
 CFLAGS += -std=c99 -pedantic -Wall -Wextra
 LDFLAGS += -lxcb -lxcb-keysyms -lxcb-randr
 
-DEBUG = 0
+DEBUG = 1
 ifeq (${DEBUG},0)
    CFLAGS  += -Os
 else

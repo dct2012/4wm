@@ -93,7 +93,6 @@ void deletewindow(window *r, desktop *d);
 void focus(window *n, desktop *d);
 void killwindow();
 void* malloc_safe(size_t size);
-window* prev_window(window *w, desktop *d);
 void quit();
 void setup_desktops();
 void setup_events();
@@ -184,7 +183,7 @@ xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode)
 }
 
 /* wrapper to move and resize window */
-inline void xcb_move_resize(window *w) 
+/*inline*/ void xcb_move_resize(window *w) 
 {
     printf("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
@@ -192,14 +191,14 @@ inline void xcb_move_resize(window *w)
 }
 
 // wrapper to lower window
-inline void xcb_lower_window(window *w) 
+/*inline*/ void xcb_lower_window(window *w) 
 {
     unsigned int arg[1] = { XCB_STACK_MODE_BELOW };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
 }
 
 // wrapper to raise window
-inline void xcb_raise_window(window *w) 
+/*inline*/ void xcb_raise_window(window *w) 
 {
     unsigned int arg[1] = { XCB_STACK_MODE_ABOVE };
     xcb_configure_window(con, w->win, XCB_CONFIG_WINDOW_STACK_MODE, arg);
@@ -233,6 +232,8 @@ void addwindow(xcb_window_t w, desktop *d, monitor *m)
         d->count++;
         tilenew(c, d, m);
     }
+
+    focus(c, d);
 }
 
 // on press of a button we should check if 
@@ -370,10 +371,10 @@ void deletewindow(window *r, desktop *d)
         *p = r->next;
     
     if (r == d->prevfocus) 
-        d->prevfocus = prev_window(d->current, d);
+        d->prevfocus = *p;
     if (r == d->current) {
         d->current = d->prevfocus ? d->prevfocus:d->head;
-        d->prevfocus = prev_window(d->current, d);
+        d->prevfocus = *p;
     }
 
     // handle retile
@@ -580,17 +581,6 @@ void maprequest(xcb_generic_event_t *e)
     DEBUG("maprequest\n");
 
     addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
-}
-
-// get the previous window from the given
-// if no such window, return NULL
-window* prev_window(window *w, desktop *d) 
-{
-    if (!w || !d->head->next)
-        return NULL;
-    window *p;
-    for (p = d->head; p->next && p->next != w; p = p->next);
-    return p;
 }
 
 // the windows properties have changed
