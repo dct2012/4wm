@@ -26,6 +26,15 @@
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x))
 
+#define SETWINDOWX(s, m) s->x = m->x + (float)s->xp/100 * m->w;
+#define SETWINDOWY(s, m) s->y = m->y + (float)s->yp/100 * m->h;
+#define SETWINDOWW(s, m) s->w = (float)s->wp/100 * m->w;
+#define SETWINDOWH(s, m) s->h = (float)s->hp/100 * m->h;
+#define SETWINDOW(w, m) \
+    SETWINDOWX(w, m); \
+    SETWINDOWY(w, m); \
+    SETWINDOWW(w, m); \
+    SETWINDOWH(w, m);
 
 // ENUMS
 enum { TILE, MONOCLE, VIDEO, FLOAT };
@@ -663,7 +672,7 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = (o->yp + o->hp) - n->yp;
 
             o->hp = n->yp - o->yp;
-            o->h = (float)o->hp/100 * m->h;
+            SETWINDOWH(o, m);
             break;
 
         case TLEFT:
@@ -673,9 +682,9 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp;
 
             o->xp = n->xp + n->wp;
-            o->x = m->x + (float)o->xp/100 * m->w;
+            SETWINDOWX(o, m);
             o->wp = (n->xp + o->wp) - o->xp;
-            o->w = (float)o->wp/100 * m->w;
+            SETWINDOWW(o, m);
             break;
 
         case TRIGHT:
@@ -685,7 +694,7 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp;
             
             o->wp = n->xp - o->xp;
-            o->w = (float)o->wp/100 * m->w;
+            SETWINDOWW(o, m);
             break;
 
         case TTOP:
@@ -695,19 +704,16 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp / 2;
 
             o->yp = n->yp + n->hp;
-            o->y = m->y + (float)o->yp/100 * m->h;
+            SETWINDOWY(o, m);
             o->hp = (n->yp + o->hp) - o->yp;
-            o->h = (float)o->hp/100 * m->h;
+            SETWINDOWH(o, m);
             break;
 
         default:
             break;
     }
 
-    n->x = m->x + (float)n->xp/100 * m->w;
-    n->y = m->y + (float)n->yp/100 * m->h;
-    n->w = (float)n->wp/100 * m->w;
-    n->h = (float)n->hp/100 * m->h;
+    SETWINDOW(n, m);
 }
 
 void switch_direction(const Arg *arg)
@@ -723,10 +729,7 @@ void tilenew(window *n, desktop *d, monitor *m)
         n->yp = 0;
         n->wp = 100;
         n->hp = 100;
-        n->x = m->x + n->xp/100 * m->w;
-        n->y = m->y + n->yp/100 * m->h;
-        n->w = n->wp/100 * m->w;
-        n->h = n->hp/100 * m->h;
+        SETWINDOW(n, m);
 
         xcb_move_resize(n);
         //xcb_raise_window(con, n);
@@ -756,7 +759,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->wp += r->wp;
             if(m) {
-                l[i]->w = (float)l[i]->wp/100 * m->w;
+                SETWINDOWW(l[i], m);
                 xcb_move_resize(l[i]);
             }
         }
@@ -764,7 +767,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->hp += r->hp;
             if(m) {
-                l[i]->h = (float)l[i]->hp/100 * m->h;
+                SETWINDOWH(l[i], m);
                 xcb_move_resize(l[i]);
             }
         }
@@ -773,8 +776,8 @@ void tileremove(window *r, desktop *d)
             l[i]->xp = r->xp;
             l[i]->wp += r->wp;
             if(m) {
-                l[i]->x = m->x + (float)l[i]->xp/100 * m->w;
-                l[i]->w = (float)l[i]->wp/100 * m->w;
+                SETWINDOWX(l[i], m);
+                SETWINDOWW(l[i], m);
                 xcb_move_resize(l[i]);
             }
         }
@@ -783,8 +786,8 @@ void tileremove(window *r, desktop *d)
             l[i]->yp = r->yp;
             l[i]->hp += r->hp;
             if(m) {
-                l[i]->y = m->y + (float)l[i]->yp/100 * m->h;
-                l[i]->h = (float)l[i]->hp/100 * m->h;
+                SETWINDOWY(l[i], m);
+                SETWINDOWH(l[i], m);
                 xcb_move_resize(l[i]);
             }
         }
