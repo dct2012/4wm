@@ -93,7 +93,10 @@ void spawn(const Arg *arg);
 void tilenew(window *n, desktop *d, monitor *m);
 void tileremove(window *r, desktop *d);
 void unmapnotify(xcb_generic_event_t *e);
+window** windowstothebottom(window *w, desktop *d);
 window** windowstotheleft(window *w, desktop *d);
+window** windowstotheright(window *w, desktop *d);
+window** windowstothetop(window *w, desktop *d);
 window *wintowin(xcb_window_t w);
 int xcb_checkotherwm();
 xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen);
@@ -169,7 +172,7 @@ xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode)
 }
 
 /* wrapper to move and resize window */
-inline void xcb_move_resize(xcb_connection_t *con, window *w) 
+inline void xcb_move_resize(window *w) 
 {
     printf("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
@@ -214,8 +217,10 @@ void addwindow(xcb_window_t w, desktop *d, monitor *m)
     unsigned int values[1] = { XCB_EVENT_MASK_PROPERTY_CHANGE|(FOLLOW_MOUSE?XCB_EVENT_MASK_ENTER_WINDOW:0) };
     xcb_change_window_attributes_checked(con, (c->win = w), XCB_CW_EVENT_MASK, values);
     
-    if(d->mode == TILE)
+    if(d->mode == TILE) {
+        d->count++;
         tilenew(c, d, m);
+    }
 }
 
 // on press of a button we should check if 
@@ -232,17 +237,17 @@ void buttonpress(xcb_generic_event_t *e)
 
 void clean()
 {
+    window *w;
+    for (int i = 0; i < DESKTOPS; i++)
+        for (w = desktops[i].head; w; w = w->next)
+            deletewindow(w, &desktops[i]);
+    
     // free each monitor
     monitor *m, *t;
     for (m = mons; m; m = t){
         t = m->next;
         free(m);
-    }
-
-    window *w;
-    for (int i = 0; i < DESKTOPS; i++)
-        for (w = desktops[i].head; w; w = w->next)
-            deletewindow(w, &desktops[i]);
+    } 
 }
 
 // we'll ignore this for now
@@ -717,15 +722,15 @@ void tilenew(window *n, desktop *d, monitor *m)
         n->w = n->wp/100 * m->w;
         n->h = n->hp/100 * m->h;
 
-        xcb_move_resize(con, n);
+        xcb_move_resize(n);
         //xcb_raise_window(con, n);
     } else {
         splitwindows(n, d->prevfocus, d, m);
 
-        xcb_move_resize(con, n);
+        xcb_move_resize(n);
         //xcb_raise_window(con, n);
 
-        xcb_move_resize(con, d->prevfocus);
+        xcb_move_resize(d->prevfocus);
         //xcb_raise_window(con, d->prevfocus);
     }
 
@@ -735,10 +740,50 @@ void tilenew(window *n, desktop *d, monitor *m)
 void tileremove(window *r, desktop *d)
 {
     window **l;
-    if((l = windowstotheleft(r, d)))
-        for(int i = 0; l[i]; i++)
-            l[i]->hp += r->hp;
+    
+    monitor *m;
+    for(m = mons; m; m = m->next)
+        if(&desktops[m->curr_dtop] == d)
+            break;
 
+    if((l = windowstotheleft(r, d)))
+        for(int i = 0; l[i]; i++) {
+            l[i]->wp += r->wp;
+            if(m) {
+                l[i]->w = (float)l[i]->wp/100 * m->w;
+                xcb_move_resize(l[i]);
+            }
+        }
+    else if((l = windowstothetop(r, d)))
+        for(int i = 0; l[i]; i++) {
+            l[i]->hp += r->hp;
+            if(m) {
+                l[i]->h = (float)l[i]->hp/100 * m->h;
+                xcb_move_resize(l[i]);
+            }
+        }
+    else if((l = windowstotheright(r, d)))
+        for(int i = 0; l[i]; i++) {
+            l[i]->xp = r->xp;
+            l[i]->wp += r->wp;
+            if(m) {
+                l[i]->x = m->x + (float)l[i]->xp/100 * m->w;
+                l[i]->w = (float)l[i]->wp/100 * m->w;
+                xcb_move_resize(l[i]);
+            }
+        }
+    else if((l = windowstothebottom(r, d)))
+        for(int i = 0; l[i]; i++) {
+            l[i]->yp = r->yp;
+            l[i]->hp += r->hp;
+            if(m) {
+                l[i]->y = m->y + (float)l[i]->yp/100 * m->h;
+                l[i]->h = (float)l[i]->hp/100 * m->h;
+                xcb_move_resize(l[i]);
+            }
+        }
+
+    free(l);
 }
 
 //window is being unmapped. we should delete it
@@ -756,15 +801,15 @@ void unmapnotify(xcb_generic_event_t *e)
             }
 }
 
-window** windowstotheleft(window *w, desktop *d)
+window** windowstothebottom(window *w, desktop *d)
 {
-    window **l = NULL;
+    window **l = (window**)malloc_safe(d->count * sizeof(window*));
     int size = 0;
     int i = 0;
 
     for(window *x = d->head; x; x = x->next) {
-        if((x->xp + x->wp) == w->xp) //directly to the left
-            if(x->yp >= w->yp && (x->yp + x->hp) <= (w->yp + w->hp)) {
+        if(x->yp == (w->yp + w->hp)) //directly below
+            if(x->xp >= w->xp && (x->xp + x->wp) <= (w->xp + w->wp)) { //width == or <=
                 l[i++] = x;
                 size += x->hp;
                 if(size == w->hp)
@@ -772,6 +817,67 @@ window** windowstotheleft(window *w, desktop *d)
             }
     }
 
+    free(l);
+    return NULL;
+}
+
+window** windowstotheleft(window *w, desktop *d)
+{
+    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    int size = 0;
+    int i = 0;
+
+    for(window *x = d->head; x; x = x->next) {
+        if((x->xp + x->wp) == w->xp) //directly to the left
+            if(x->yp >= w->yp && (x->yp + x->hp) <= (w->yp + w->hp)) { //height == or <=
+                l[i++] = x;
+                size += x->hp;
+                if(size == w->hp)
+                    return l;
+            }
+    }
+
+    free(l);
+    return NULL;
+}
+
+window** windowstotheright(window *w, desktop *d)
+{
+    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    int size = 0;
+    int i = 0;
+
+    for(window *x = d->head; x; x = x->next) {
+        if((w->xp + w->wp) == x->xp) //directly to the right
+            if(x->yp >= w->yp && (x->yp + x->hp) <= (w->yp + w->hp)) { //height == or <=
+                l[i++] = x;
+                size += x->hp;
+                if(size == w->hp)
+                    return l;
+            }
+    }
+
+    free(l);
+    return NULL;
+}
+
+window** windowstothetop(window *w, desktop *d)
+{
+    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    int size = 0;
+    int i = 0;
+
+    for(window *x = d->head; x; x = x->next) {
+        if(w->yp == (x->yp + x->hp)) //directly above
+            if(x->xp >= w->xp && (x->xp + x->wp) <= (w->xp + w->wp)) { //width == or <=
+                l[i++] = x;
+                size += x->hp;
+                if(size == w->hp)
+                    return l;
+            }
+    }
+
+    free(l);
     return NULL;
 }
 
