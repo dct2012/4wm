@@ -90,6 +90,7 @@ typedef struct {
 // FOWARD DECLARATIONS
 void change_desktop(const Arg *arg);
 void deletewindow(window *r, desktop *d);
+void focus(window *n, desktop *d);
 void killwindow();
 void* malloc_safe(size_t size);
 window* prev_window(window *w, desktop *d);
@@ -420,6 +421,9 @@ void enternotify(xcb_generic_event_t *e)
 {
     DEBUG("enternotify\n");
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
+
+    window *w = wintowin(ev->event);
+    focus(w, &desktops[selmon->curr_dtop]);
 }
 
 // window thinks it needs to be redrawn (repainted)
@@ -427,6 +431,14 @@ void expose(xcb_generic_event_t *e)
 {
     DEBUG("expose\n");
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
+}
+
+void focus(window *n, desktop *d)
+{
+    d->prevfocus = d->current;
+    d->current = n;
+
+    xcb_set_input_focus(con, XCB_INPUT_FOCUS_POINTER_ROOT, n->win, XCB_CURRENT_TIME);
 }
 
 // winodw wants focus or input focus
