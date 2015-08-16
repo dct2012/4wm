@@ -282,6 +282,7 @@ void change_desktop(const Arg *arg)
         if (n) {
             SETWINDOW(n, selmon);
             xcb_move_resize(n);
+            xcb_map_window(con, n->win);
             n = n->next;
         }
 
@@ -849,14 +850,14 @@ void unmapnotify(xcb_generic_event_t *e)
 {
     DEBUG("unmapnotify\n");
     xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *)e;
-    
+   /* 
     window *w;
     for (int i = 0; i < DESKTOPS; i++)
         for (w = desktops[i].head; w; w = w->next)
             if(w->win == ev->window) {
                 deletewindow(w, &desktops[i]);
                 return;
-            }
+            }*/
 }
 
 window** windowstothebottom(window *w, desktop *d)
