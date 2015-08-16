@@ -90,6 +90,7 @@ bool setup_keyboard();
 void setup_monitors();
 void sigchld();
 void spawn(const Arg *arg);
+void switch_direction(const Arg *arg);
 void tilenew(window *n, desktop *d, monitor *m);
 void tileremove(window *r, desktop *d);
 void unmapnotify(xcb_generic_event_t *e);
@@ -707,6 +708,11 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
     n->y = m->y + (float)n->yp/100 * m->h;
     n->w = (float)n->wp/100 * m->w;
     n->h = (float)n->hp/100 * m->h;
+}
+
+void switch_direction(const Arg *arg)
+{
+    desktops[selmon->curr_dtop].direction = arg->i;
 }
 
 void tilenew(window *n, desktop *d, monitor *m)
