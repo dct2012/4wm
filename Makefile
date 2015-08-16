@@ -1,4 +1,4 @@
-CFLAGS += -std=c11 -pedantic -Wall -Wextra
+CFLAGS += -std=c99 -pedantic -Wall -Wextra
 LDFLAGS += -lxcb -lxcb-keysyms -lxcb-randr
 
 DEBUG = 0

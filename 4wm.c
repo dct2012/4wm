@@ -105,14 +105,15 @@ int nmons = 0;
 bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
-xcb_atom_t wmatoms[WM_COUNT]/*, netatoms[NET_COUNT]*/;
-desktop desktops[DESKTOPS];
 monitor *mons = NULL, *selmon = NULL;
+xcb_atom_t wmatoms[WM_COUNT]/*, netatoms[NET_COUNT]*/;
+static desktop desktops[DESKTOPS];
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
+
 
 // WRAPPERS
 // wrapper to get atoms using xcb
-void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) 
+void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count)
 {
     xcb_intern_atom_cookie_t cookies[count];
     xcb_intern_atom_reply_t  *reply;
@@ -485,7 +486,7 @@ void mappingnotify(xcb_generic_event_t *e)
 //      else create a new window and tile or float it
 void maprequest(xcb_generic_event_t *e)
 {
-    DEBUG("maprequest\n");
+    
     xcb_map_request_event_t *ev = (xcb_map_request_event_t*)e;
 
     xcb_get_window_attributes_reply_t *attr = NULL;
@@ -496,6 +497,7 @@ void maprequest(xcb_generic_event_t *e)
     window *w = wintowin(ev->window);
     if(w)
         return;
+    DEBUG("maprequest\n");
 
     addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
 }
@@ -526,7 +528,7 @@ void quit()
 
 void run()
 {
-    xcb_generic_event_t *e;
+    xcb_generic_event_t *e; 
 
     while(running) {
         xcb_flush(con);
@@ -535,14 +537,13 @@ void run()
         if((e = xcb_wait_for_event(con))) {
             if(events[e->response_type & ~0x08])
                 events[e->response_type & ~0x08](e);
-
             free(e);
         }
     }
 }
 
 bool setup()
-{   
+{    
     sigchld();
     
     int default_screen;
@@ -552,6 +553,11 @@ bool setup()
     if(!(screen = xcb_screen_of_display(con, default_screen)))
         return false;
 
+    setup_monitors();
+    selmon->curr_dtop = 0; 
+
+    setup_desktops();
+    
     if(!setup_keyboard())
         return false;
 
@@ -567,11 +573,6 @@ bool setup()
     grabkeys();
 
     setup_events();
-
-    setup_monitors();
-    selmon->curr_dtop = 0;
-
-    setup_desktops();
 
     return true;
 }
