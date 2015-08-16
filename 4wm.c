@@ -88,6 +88,7 @@ typedef struct {
 
 
 // FOWARD DECLARATIONS
+void change_desktop(const Arg *arg);
 void deletewindow(window *r, desktop *d);
 void killwindow();
 void* malloc_safe(size_t size);
@@ -243,6 +244,54 @@ void buttonpress(xcb_generic_event_t *e)
     //check click to focus
 
     //check move/resize floater
+}
+
+void change_desktop(const Arg *arg)
+{
+    if(arg->i == selmon->curr_dtop)
+        return;
+
+    window *o = desktops[selmon->curr_dtop].head;
+
+    //handle desktop on another monitor
+    for(monitor *m = mons; m; m = m->next)
+        if(arg->i == m->curr_dtop) {
+            window *n = desktops[m->curr_dtop].head;
+            while(n || o) {
+                if(n) {
+                    SETWINDOW(n, selmon);
+                    xcb_move_resize(n);
+                    n = n->next;
+                }
+
+                if(o) {
+                    SETWINDOW(o, m);
+                    xcb_move_resize(o);
+                    o = o->next;
+                }
+            }
+
+            m->curr_dtop = selmon->curr_dtop; 
+            selmon->curr_dtop = arg->i;
+            return;
+        }
+
+    //handle desktop on no monitor
+    window *n = desktops[arg->i].head;
+    while(n || o) {
+        if (n) {
+            SETWINDOW(n, selmon);
+            xcb_move_resize(n);
+            n = n->next;
+        }
+
+        if (o) {
+            xcb_unmap_window(con, o->win);
+            o = o->next;
+        }
+    }
+
+    selmon->curr_dtop = arg->i;
 }
 
 void clean()

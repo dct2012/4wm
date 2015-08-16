@@ -27,6 +27,10 @@
 static const char *termcmd[] = { "xterm", NULL };
 static const char *webcmd[] = { "google-chrome-beta", NULL };
 
+#define DESKTOPCHANGE(K,N) \
+    {  MOD1,             K,              change_desktop, {.i = N}},
+    //{  MOD1|ShiftMask,   K,              client_to_desktop, {.i = N}},
+
 static Key keys[] = {
     // close focused window 
     {  MOD1|SHIFT,      XK_c,           killwindow,         {NULL}},
@@ -42,4 +46,13 @@ static Key keys[] = {
     {  MOD1|SHIFT,      XK_d,           switch_direction,   {.i = TRIGHT}},
     {  MOD1|SHIFT,      XK_w,           switch_direction,   {.i = TTOP}},
 
+    DESKTOPCHANGE(  XK_1,   0)
+    DESKTOPCHANGE(  XK_2,   1)
+    DESKTOPCHANGE(  XK_3,   2)
+    DESKTOPCHANGE(  XK_4,   3)
+    DESKTOPCHANGE(  XK_5,   4)
+    DESKTOPCHANGE(  XK_6,   5)
+    DESKTOPCHANGE(  XK_7,   6)
+    DESKTOPCHANGE(  XK_8,   7)
+    DESKTOPCHANGE(  XK_9,   8)
 };
