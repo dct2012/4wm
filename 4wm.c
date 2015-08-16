@@ -91,7 +91,9 @@ void setup_monitors();
 void sigchld();
 void spawn(const Arg *arg);
 void tilenew(window *n, desktop *d, monitor *m);
+void tileremove(window *r, desktop *d);
 void unmapnotify(xcb_generic_event_t *e);
+window** windowstotheleft(window *w, desktop *d);
 window *wintowin(xcb_window_t w);
 int xcb_checkotherwm();
 xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen);
@@ -311,6 +313,7 @@ void deletewindow(window *r, desktop *d)
     // handle retile
     // since we're only doing tiling right now
     // whichever window is next to it will gain its space
+    tileremove(r, d);
   
     xcb_client_message_event_t ev;
     ev.response_type = XCB_CLIENT_MESSAGE;
@@ -729,6 +732,15 @@ void tilenew(window *n, desktop *d, monitor *m)
     xcb_map_window(con, n->win);
 }
 
+void tileremove(window *r, desktop *d)
+{
+    window **l;
+    if((l = windowstotheleft(r, d)))
+        for(int i = 0; l[i]; i++)
+            l[i]->hp += r->hp;
+
+}
+
 //window is being unmapped. we should delete it
 void unmapnotify(xcb_generic_event_t *e)
 {
@@ -742,6 +754,25 @@ void unmapnotify(xcb_generic_event_t *e)
                 deletewindow(w, &desktops[i]);
                 return;
             }
+}
+
+window** windowstotheleft(window *w, desktop *d)
+{
+    window **l = NULL;
+    int size = 0;
+    int i = 0;
+
+    for(window *x = d->head; x; x = x->next) {
+        if((x->xp + x->wp) == w->xp) //directly to the left
+            if(x->yp >= w->yp && (x->yp + x->hp) <= (w->yp + w->hp)) {
+                l[i++] = x;
+                size += x->hp;
+                if(size == w->hp)
+                    return l;
+            }
+    }
+
+    return NULL;
 }
 
 window *wintowin(xcb_window_t w) 
