@@ -11,6 +11,7 @@
 #include <xcb/randr.h>
 #include <X11/keysym.h>
 #include <X11/Xresource.h>
+#include <xcb/xcb_icccm.h>
 
 
 // MACROS
@@ -32,7 +33,7 @@
 enum { TILE, MONOCLE, VIDEO, FLOAT };
 enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
-//enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
+enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
 
 // TYPES
@@ -98,6 +99,10 @@ void switch_direction(const Arg *arg);
 void tilenew(window *n, desktop *d, monitor *m);
 void tileremove(window *r, desktop *d, monitor *m);
 void unmapnotify(xcb_generic_event_t *e);
+void updatedir();
+void updatemode();
+void updatetitle(window *c);
+void updatews();
 window** windowstothebottom(window *w, desktop *d);
 window** windowstotheleft(window *w, desktop *d);
 window** windowstotheright(window *w, desktop *d);
@@ -109,6 +114,14 @@ xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen);
 
 #include "config.h"
 
+#if DESKTOP_INFO
+typedef struct {
+    char *ws;
+    char *mode;
+    char *dir;
+} di_data;
+#endif
+
 
 // VARIABLES
 unsigned int win_unfocus, win_focus, win_outer, win_urgent, win_flt;
@@ -117,9 +130,12 @@ bool running = true;
 xcb_connection_t *con;
 xcb_screen_t *screen;
 monitor *mons = NULL, *selmon = NULL;
-xcb_atom_t wmatoms[WM_COUNT]/*, netatoms[NET_COUNT]*/;
+xcb_atom_t wmatoms[WM_COUNT], netatoms[NET_COUNT];
 static desktop desktops[DESKTOPS];
 void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
+#if DESKTOP_INFO 
+di_data di;
+#endif
 
 
 // WRAPPERS
@@ -439,6 +455,14 @@ void deletewindow(window *r, desktop *d, monitor *m)
     free(r); 
     r = NULL; 
 }
+
+#if DESKTOP_INFO
+void desktopinfo(void) {
+    desktop *d = &desktops[selmon->curr_dtop];
+    DI_PRINTF;
+    fflush(stdout);
+}
+#endif
 
 // window is being closed
 //  we should delete it
@@ -772,10 +796,10 @@ bool setup()
     win_flt     = getcolor(FLTBRDCOL);
 
     char *WM_ATOM_NAME[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-    //char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
-    //                           "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
+    char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", 
+                               "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
     xcb_get_atoms(WM_ATOM_NAME, wmatoms, WM_COUNT);
-    //xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
+    xcb_get_atoms(NET_ATOM_NAME, netatoms, NET_COUNT);
 
     if (xcb_checkotherwm())
         return false;
@@ -783,6 +807,46 @@ bool setup()
     grabkeys();
 
     setup_events();
+
+    // new pipe to messenger, panel, dzen
+    #if DESKTOP_INFO
+    updatews();
+    updatemode();
+    updatedir();
+    
+    int pfds[2];
+    pid_t pid;
+
+    if (pipe(pfds) < 0) {
+        perror("pipe failed");
+        return EXIT_FAILURE;
+    }
+
+    pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        return EXIT_FAILURE;
+    } else if (pid == 0) { // child
+        close(pfds[0]); // close unused read end
+        // set write end of pipe as stdout for this child process
+        dup2(pfds[1], STDOUT_FILENO);
+        //pp_out = fdopen(pfds[1], "w");
+        close(pfds[1]);
+
+        desktopinfo();
+    } else /* if (pid > 0) */ { // parent
+        char *args[] = DI_CMD;
+        close(pfds[1]); // close unused write end
+        // set read end of pipe as stdin for this process
+        dup2(pfds[0], STDIN_FILENO);
+        //pp_in = fdopen(pfds[0], "r");
+        close(pfds[0]); // already redirected to stdin
+
+        execvp(args[0], args);
+        perror("exec failed");
+        exit(EXIT_FAILURE);
+    }
+    #endif
 
     return true;
 }
@@ -992,6 +1056,96 @@ void unmapnotify(xcb_generic_event_t *e)
                 return;
             }*/
 }
+
+#if DESKTOP_INFO
+void updatedir() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    char *tags_dir[] = DI_TAGS_DIR;
+    char temp[512];
+     
+    if (tags_dir[d->direction]) {
+        snprintf(temp, 512, "^fg(%s)%s ", DI_COL_DIR, tags_dir[d->direction]);
+        di.dir = realloc(di.dir, strlen(temp));
+        sprintf(di.dir, "^fg(%s)%s ", DI_COL_DIR, tags_dir[d->direction]);
+    } else {
+        snprintf(temp, 512, "^fg(%s)%d ", DI_COL_DIR, d->direction);
+        di.dir = realloc(di.dir, strlen(temp));
+        sprintf(di.dir, "^fg(%s)%d ", DI_COL_DIR, d->direction);
+    }
+}
+
+void updatemode() {
+    desktop *d = &desktops[selmon->curr_dtop];
+    char *tags_mode[] = DI_TAGS_MODE;
+    char temp[512];
+    
+    if (tags_mode[d->mode]) {
+        snprintf(temp, 512, "^fg(%s)%s ", DI_COL_MODE, tags_mode[d->mode]);
+        di.mode = realloc(di.mode, strlen(temp));
+        sprintf(di.mode, "^fg(%s)%s ", DI_COL_MODE, tags_mode[d->mode]);
+    } else {
+        snprintf(temp, 512, "^fg(%s)%d ", DI_COL_MODE, d->mode);
+        di.mode = realloc(di.mode, strlen(temp));
+        sprintf(di.mode, "^fg(%s)%d ", DI_COL_MODE, d->mode);
+    }
+}
+
+void updatetitle(window *c) {
+    xcb_icccm_get_text_property_reply_t reply;
+    xcb_generic_error_t *err = NULL;
+
+    if(!xcb_icccm_get_text_property_reply(con, xcb_icccm_get_text_property(con, c->win, netatoms[NET_WM_NAME]), &reply, &err))
+        if(!xcb_icccm_get_text_property_reply(con, xcb_icccm_get_text_property(con, c->win, XCB_ATOM_WM_NAME), &reply, &err))
+            return;
+
+    if(err) {
+        DEBUG("updatetitle: leaving, error\n");
+        free(err);
+        return;
+    }
+
+    if(!reply.name || !reply.name_len)
+        return;
+     
+    c->title = realloc(c->title, reply.name_len+1);  
+    strncpy(c->title, reply.name, reply.name_len); 
+    xcb_icccm_get_text_property_reply_wipe(&reply);
+}
+
+void updatews() {
+    desktop *d = NULL; window *c = NULL; monitor *m = NULL;
+    bool urgent = false; 
+    char *tags_ws[] = DI_TAGS_WS;
+    char t1[512] = { "" };
+    char t2[512] = { "" };
+    #if DEBUG
+    int count = 0;
+    #endif
+
+    for (int w = 0, i = 0; i < DESKTOPS; i++, w = 0, urgent = false) {
+        for (d = &desktops[i], c = d->head; c; urgent |= c->isurgent, ++w, c = c->next); 
+        for (m = mons; m; m = m->next)
+            if (i == m->curr_dtop && w == 0)
+                w++;
+        
+        if (tags_ws[i])
+            snprintf(t2, 512, "^fg(%s)%s ", 
+                    d == &desktops[selmon->curr_dtop] ? DI_COL_CURRENT:urgent ? DI_COL_URGENT:w ? DI_COL_VISIBLE:DI_COL_HIDDEN, 
+                    tags_ws[i]);
+        else 
+            snprintf(t2, 512, "^fg(%s)%d ", 
+                    d == &desktops[selmon->curr_dtop] ? DI_COL_CURRENT:urgent ? DI_COL_URGENT:w ? DI_COL_VISIBLE:DI_COL_HIDDEN, 
+                    i + 1);
+        strncat(t1, t2, strlen(t2));
+        #if DEBUG
+        count += strlen(t2);
+        DEBUGP("updatews: count = %d\n", count);
+        #endif
+    }
+    di.ws = (char *)realloc(di.ws, strlen(t1) + 1);
+    strncpy(di.ws, t1, strlen(t1));
+}
+#endif
 
 window** windowstothebottom(window *w, desktop *d)
 {

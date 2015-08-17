@@ -1,5 +1,5 @@
 CFLAGS += -std=c99 -pedantic -Wall -Wextra
-LDFLAGS += -lxcb -lxcb-keysyms -lxcb-randr
+LDFLAGS += -lxcb -lxcb-keysyms -lxcb-randr -lxcb-icccm
 
 DEBUG = 1
 ifeq (${DEBUG},0)

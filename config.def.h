@@ -40,6 +40,23 @@
 // floating outer border color
 #define FLTBRDCOL       "#00FF5F"
 
+// desktop info, 1 = on, 0 = off
+#define DESKTOP_INFO 0
+#if DESKTOP_INFO
+#define DI_CMD { "dzen2", "-x", "0", "-y", "784", "-h", "16", "-w", "640", NULL }
+#define DI_COL_CURRENT  "#005FFF"
+#define DI_COL_URGENT   "#FFFF5F"
+#define DI_COL_VISIBLE  "#FFFFFF"
+#define DI_COL_HIDDEN   "#262626"
+#define DI_COL_DIR      "#00FF5F"
+#define DI_COL_MODE     "#AF00FF"
+#define DI_COL_TITLE    "#FFFFFF"
+#define DI_TAGS_WS { "1", "2", "3", "4", "5", "6", "7", "8", "9" }
+#define DI_TAGS_MODE { "T", "M", "V", "F" }
+#define DI_TAGS_DIR { "L", "R", "D", "U" } 
+#define DI_PRINTF printf("%s %s %s ^fg(%s)%s\n", di.ws, di.mode, di.dir, DI_COL_TITLE, d->current ? d->current->title :"");
+#endif
+
 static const char *termcmd[] = { "xterm", NULL };
 static const char *webcmd[] = { "google-chrome-beta", NULL };
 
