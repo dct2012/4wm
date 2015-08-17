@@ -81,10 +81,11 @@ typedef struct {
 
 // FOWARD DECLARATIONS
 void change_desktop(const Arg *arg);
-void deletewindow(window *r, desktop *d);
+void deletewindow(window *r, desktop *d, monitor *m);
 void focus(window *n, desktop *d, monitor *m);
 void killwindow();
 void* malloc_safe(size_t size);
+window* prev_window(window *w, desktop *d);
 void quit();
 void setwindowborders(window *c, desktop *d, const monitor *m);
 void setup_desktops();
@@ -340,7 +341,7 @@ void clean()
     window *w;
     for (int i = 0; i < DESKTOPS; i++)
         for (w = desktops[i].head; w; w = w->next)
-            deletewindow(w, &desktops[i]);
+            deletewindow(w, &desktops[i], NULL);
     
     // free each monitor
     monitor *m, *t;
@@ -399,26 +400,28 @@ monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop)
 }
 
 //TODO: finish this, make it less complicated
-void deletewindow(window *r, desktop *d) 
+void deletewindow(window *r, desktop *d, monitor *m) 
 {
     window **p = NULL;
     for (p = &d->head; *p && (*p != r); p = &(*p)->next);
     if (!p) 
         return; 
-    else 
+    else
         *p = r->next;
     
     if (r == d->prevfocus) 
-        d->prevfocus = *p;
+        d->prevfocus = prev_window(r, d);;
     if (r == d->current) {
-        d->current = d->prevfocus ? d->prevfocus:d->head;
-        d->prevfocus = *p;
+        d->current = d->prevfocus;
+        d->prevfocus = prev_window(d->current, d);;
     }
 
     // handle retile
     // since we're only doing tiling right now
     // whichever window is next to it will gain its space
     tileremove(r, d);
+    if(m && d->current)
+        focus(d->current, d, m);
   
     xcb_client_message_event_t ev;
     ev.response_type = XCB_CLIENT_MESSAGE;
@@ -448,7 +451,7 @@ void destroynotify(xcb_generic_event_t *e)
     for (int i = 0; i < DESKTOPS; i++)
         for (w = desktops[i].head; w; w = w->next)
             if(w->win == ev->window) {
-                deletewindow(w, &desktops[i]);
+                deletewindow(w, &desktops[i], selmon);
                 return;
             }
 
@@ -462,7 +465,10 @@ void enternotify(xcb_generic_event_t *e)
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
 
     window *w = wintowin(ev->event);
-    focus(w, &desktops[selmon->curr_dtop], selmon);
+    desktop *d = &desktops[selmon->curr_dtop];
+    d->prevfocus = d->current;
+    d->current = w;
+    focus(w, d, selmon);
 }
 
 // window thinks it needs to be redrawn (repainted)
@@ -474,12 +480,10 @@ void expose(xcb_generic_event_t *e)
 
 void focus(window *n, desktop *d, monitor *m)
 {
-    d->prevfocus = d->current;
-    d->current = n;
-
     xcb_set_input_focus(con, XCB_INPUT_FOCUS_POINTER_ROOT, n->win, XCB_CURRENT_TIME);
-    setwindowborders(d->prevfocus, d, m);
-    setwindowborders(d->current, d, m);
+    if(d->prevfocus)
+        setwindowborders(d->prevfocus, d, m);
+    setwindowborders(n, d, m);
 }
 
 // winodw wants focus or input focus
@@ -608,7 +612,7 @@ void killwindow()
     if (!d->current) 
         return;
 
-    deletewindow(d->current, d);
+    deletewindow(d->current, d, selmon);
 }
 
 void* malloc_safe(size_t size) 
@@ -647,6 +651,13 @@ void maprequest(xcb_generic_event_t *e)
     DEBUG("maprequest\n");
 
     addwindow(ev->window, &desktops[selmon->curr_dtop], selmon);
+}
+
+window* prev_window(window *w, desktop *d)
+{
+    window *p;
+    for(p = d->head; p && p->next != w; p = p->next);
+    return p;
 }
 
 // the windows properties have changed
