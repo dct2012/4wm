@@ -127,38 +127,42 @@ bool NOBORDER(desktop *d)
     return (d->count == 1 || d->mode == MONOCLE || d->mode == VIDEO);
 }
 
-void SETWINDOWX(window *s, monitor *m) 
+void SETWINDOWX(window *s, desktop *d, monitor *m) 
 {
-    s->x = m->x + (float)s->xp/100 * m->w;
+    s->x = m->x + (float)s->xp/100 * m->w + (s->xp == 0 ? d->gap : d->gap/2);
 }
 
-void SETWINDOWY(window *s, monitor *m) 
+void SETWINDOWY(window *s, desktop *d, monitor *m) 
 {
-    s->y = m->y + (float)s->yp/100 * m->h;
+    s->y = m->y + (float)s->yp/100 * m->h + (s->yp == 0 ? d->gap : d->gap/2);
 }
 
-void SETWINDOWW(window *s, monitor *m) 
+void SETWINDOWW(window *s, desktop *d, monitor *m) 
 {
-    if(NOBORDER(&desktops[m->curr_dtop]))
-        s->w = (float)s->wp/100 * m->w;
+    if(NOBORDER(d))
+        s->w = (float)s->wp/100 * m->w - //gap 
+                    ((s->xp + s->wp) == 100 ? d->gap : d->gap/2) - (s->xp == 0 ? d->gap : d->gap/2);
     else
-        s->w = (float)s->wp/100 * m->w - 2*BORDER_WIDTH;
+        s->w = (float)s->wp/100 * m->w - 2*BORDER_WIDTH - //gap
+                    ((s->xp + s->wp) == 100 ? d->gap : d->gap/2) - (s->xp == 0 ? d->gap : d->gap/2);
 }
 
-void SETWINDOWH(window *s, monitor *m) 
+void SETWINDOWH(window *s, desktop *d, monitor *m) 
 {
-    if(NOBORDER(&desktops[m->curr_dtop]))
-        s->h = (float)s->hp/100 * m->h;
+    if(NOBORDER(d))
+        s->h = (float)s->hp/100 * m->h - //gap
+                    ((s->yp + s->hp) == 100 ? d->gap : d->gap/2) - (s->yp == 0 ? d->gap : d->gap/2);
     else
-        s->h = (float)s->hp/100 * m->h - 2*BORDER_WIDTH;
+        s->h = (float)s->hp/100 * m->h - 2*BORDER_WIDTH - //gap
+                    ((s->yp + s->hp) == 100 ? d->gap : d->gap/2) - (s->yp == 0 ? d->gap : d->gap/2);
 }
 
-void SETWINDOW(window *w, monitor *m)
+void SETWINDOW(window *w, desktop *d, monitor *m)
 {
-    SETWINDOWX(w, m);
-    SETWINDOWY(w, m);
-    SETWINDOWW(w, m);
-    SETWINDOWH(w, m);
+    SETWINDOWX(w, d, m);
+    SETWINDOWY(w, d, m);
+    SETWINDOWW(w, d, m);
+    SETWINDOWH(w, d, m);
 }
 
 // wrapper to get atoms using xcb
@@ -295,13 +299,13 @@ void change_desktop(const Arg *arg)
             window *n = desktops[m->curr_dtop].head;
             while(n || o) {
                 if(n) {
-                    SETWINDOW(n, selmon);
+                    SETWINDOW(n, &desktops[selmon->curr_dtop], selmon);
                     xcb_move_resize(n, &desktops[selmon->curr_dtop], selmon);
                     n = n->next;
                 }
 
                 if(o) {
-                    SETWINDOW(o, m);
+                    SETWINDOW(o, &desktops[m->curr_dtop], m);
                     xcb_move_resize(o, &desktops[m->curr_dtop], m);
                     o = o->next;
                 }
@@ -316,7 +320,7 @@ void change_desktop(const Arg *arg)
     window *n = desktops[arg->i].head;
     while(n || o) {
         if (n) {
-            SETWINDOW(n, selmon);
+            SETWINDOW(n, &desktops[selmon->curr_dtop], selmon);
             xcb_move_resize(n, &desktops[selmon->curr_dtop], selmon);
             xcb_map_window(con, n->win);
             n = n->next;
@@ -882,8 +886,8 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             break;
     }
 
-    SETWINDOW(o, m);
-    SETWINDOW(n, m);
+    SETWINDOW(o, d, m);
+    SETWINDOW(n, d, m);
 }
 
 void switch_direction(const Arg *arg)
@@ -899,7 +903,7 @@ void tilenew(window *n, desktop *d, monitor *m)
         n->yp = 0;
         n->wp = 100;
         n->hp = 100;
-        SETWINDOW(n, m);
+        SETWINDOW(n, d, m);
 
         xcb_move_resize(n, d, m);
         //xcb_raise_window(con, n);
@@ -931,7 +935,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->wp += r->wp;
             if(m) {
-                SETWINDOW(l[i], m);
+                SETWINDOW(l[i], d, m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -939,7 +943,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->hp += r->hp;
             if(m) {
-                SETWINDOW(l[i], m);
+                SETWINDOW(l[i], d, m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -948,7 +952,7 @@ void tileremove(window *r, desktop *d)
             l[i]->xp = r->xp;
             l[i]->wp += r->wp;
             if(m) {
-                SETWINDOW(l[i], m);
+                SETWINDOW(l[i], d, m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -957,7 +961,7 @@ void tileremove(window *r, desktop *d)
             l[i]->yp = r->yp;
             l[i]->hp += r->hp;
             if(m) {
-                SETWINDOW(l[i], m);
+                SETWINDOW(l[i], d, m);
                 xcb_move_resize(l[i], d, m);
             }
         }
