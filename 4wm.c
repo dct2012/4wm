@@ -26,23 +26,6 @@
 
 #define LENGTH(x) (sizeof(x)/sizeof(*x))
 #define ISFT(c) (c->isfloating || c->istransient)
-#define NOBORDER(d) ((d.count == 1 && !ISFT(d.head)) || d.mode == MONOCLE || d.mode == VIDEO)
-
-#define SETWINDOWX(s, m) s->x = m->x + (float)s->xp/100 * m->w;
-#define SETWINDOWY(s, m) s->y = m->y + (float)s->yp/100 * m->h;
-#define SETWINDOWW(s, m) if(NOBORDER(desktops[m->curr_dtop])) \
-                            s->w = (float)s->wp/100 * m->w; \
-                         else \
-                            s->w = (float)s->wp/100 * m->w - 2*BORDER_WIDTH;
-#define SETWINDOWH(s, m) if(NOBORDER(desktops[m->curr_dtop])) \
-                            s->h = (float)s->hp/100 * m->h; \
-                         else \
-                            s->h = (float)s->hp/100 * m->h - 2*BORDER_WIDTH;
-#define SETWINDOW(w, m) \
-    SETWINDOWX(w, m); \
-    SETWINDOWY(w, m); \
-    SETWINDOWW(w, m); \
-    SETWINDOWH(w, m);
 
 
 // ENUMS
@@ -99,11 +82,11 @@ typedef struct {
 // FOWARD DECLARATIONS
 void change_desktop(const Arg *arg);
 void deletewindow(window *r, desktop *d);
-void focus(window *n, desktop *d);
+void focus(window *n, desktop *d, monitor *m);
 void killwindow();
 void* malloc_safe(size_t size);
 void quit();
-void setclientborders(desktop *d, window *c, const monitor *m);
+void setwindowborders(window *c, desktop *d, const monitor *m);
 void setup_desktops();
 void setup_events();
 bool setup_keyboard();
@@ -139,6 +122,45 @@ void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
 
 // WRAPPERS
+bool NOBORDER(desktop *d) 
+{
+    return (d->count == 1 || d->mode == MONOCLE || d->mode == VIDEO);
+}
+
+void SETWINDOWX(window *s, monitor *m) 
+{
+    s->x = m->x + (float)s->xp/100 * m->w;
+}
+
+void SETWINDOWY(window *s, monitor *m) 
+{
+    s->y = m->y + (float)s->yp/100 * m->h;
+}
+
+void SETWINDOWW(window *s, monitor *m) 
+{
+    if(NOBORDER(&desktops[m->curr_dtop]))
+        s->w = (float)s->wp/100 * m->w;
+    else
+        s->w = (float)s->wp/100 * m->w - 2*BORDER_WIDTH;
+}
+
+void SETWINDOWH(window *s, monitor *m) 
+{
+    if(NOBORDER(&desktops[m->curr_dtop]))
+        s->h = (float)s->hp/100 * m->h;
+    else
+        s->h = (float)s->hp/100 * m->h - 2*BORDER_WIDTH;
+}
+
+void SETWINDOW(window *w, monitor *m)
+{
+    SETWINDOWX(w, m);
+    SETWINDOWY(w, m);
+    SETWINDOWW(w, m);
+    SETWINDOWH(w, m);
+}
+
 // wrapper to get atoms using xcb
 void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count)
 {
@@ -198,7 +220,7 @@ xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode)
 {
     printf("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
-    setclientborders(d, w, m);
+    setwindowborders(w, d, m);
     xcb_configure_window(con, w->win, XCB_MOVE_RESIZE, pos);
 }
 
@@ -245,7 +267,7 @@ void addwindow(xcb_window_t w, desktop *d, monitor *m)
         tilenew(c, d, m);
     }
 
-    focus(c, d);
+    focus(c, d, m);
 }
 
 // on press of a button we should check if 
@@ -436,7 +458,7 @@ void enternotify(xcb_generic_event_t *e)
     xcb_enter_notify_event_t *ev = (xcb_enter_notify_event_t*)e;
 
     window *w = wintowin(ev->event);
-    focus(w, &desktops[selmon->curr_dtop]);
+    focus(w, &desktops[selmon->curr_dtop], selmon);
 }
 
 // window thinks it needs to be redrawn (repainted)
@@ -446,12 +468,14 @@ void expose(xcb_generic_event_t *e)
     xcb_expose_event_t *ev = (xcb_expose_event_t*)e;
 }
 
-void focus(window *n, desktop *d)
+void focus(window *n, desktop *d, monitor *m)
 {
     d->prevfocus = d->current;
     d->current = n;
 
     xcb_set_input_focus(con, XCB_INPUT_FOCUS_POINTER_ROOT, n->win, XCB_CURRENT_TIME);
+    setwindowborders(d->prevfocus, d, m);
+    setwindowborders(d->current, d, m);
 }
 
 // winodw wants focus or input focus
@@ -650,7 +674,8 @@ void run()
     }
 }
 
-void setclientborders(desktop *d, window *c, const monitor *m) {
+void setwindowborders(window *c, desktop *d, const monitor *m) 
+{
     unsigned int values[1];  /* this is the color maintainer */
     unsigned int zero[1];
     int half;
@@ -660,10 +685,10 @@ void setclientborders(desktop *d, window *c, const monitor *m) {
 
     // find n = number of windows with set borders
     int n = d->count;
-    DEBUGP("setclientborders: d->count = %d\n", d->count);
+    DEBUGP("setwindowborders: d->count = %d\n", d->count);
 
     // rules for no border
-    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO) || c->istransient) {
+    if ((!c->isfloating && n == 1) || (d->mode == MONOCLE) || (d->mode == VIDEO)) {
         xcb_configure_window(con, c->win, XCB_CONFIG_WINDOW_BORDER_WIDTH, zero);
     }
     else {
@@ -821,7 +846,6 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = (o->yp + o->hp) - n->yp;
 
             o->hp = n->yp - o->yp;
-            SETWINDOWH(o, m);
             break;
 
         case TLEFT:
@@ -831,9 +855,7 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp;
 
             o->xp = n->xp + n->wp;
-            SETWINDOWX(o, m);
             o->wp = (n->xp + o->wp) - o->xp;
-            SETWINDOWW(o, m);
             break;
 
         case TRIGHT:
@@ -843,7 +865,6 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp;
             
             o->wp = n->xp - o->xp;
-            SETWINDOWW(o, m);
             break;
 
         case TTOP:
@@ -853,15 +874,15 @@ void splitwindows(window *n, window *o, desktop *d, monitor *m)
             n->hp = o->hp / 2;
 
             o->yp = n->yp + n->hp;
-            SETWINDOWY(o, m);
             o->hp = (n->yp + o->hp) - o->yp;
-            SETWINDOWH(o, m);
+            
             break;
 
         default:
             break;
     }
 
+    SETWINDOW(o, m);
     SETWINDOW(n, m);
 }
 
@@ -897,6 +918,8 @@ void tilenew(window *n, desktop *d, monitor *m)
 
 void tileremove(window *r, desktop *d)
 {
+    d->count--;
+
     window **l;
     
     monitor *m;
@@ -908,7 +931,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->wp += r->wp;
             if(m) {
-                SETWINDOWW(l[i], m);
+                SETWINDOW(l[i], m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -916,7 +939,7 @@ void tileremove(window *r, desktop *d)
         for(int i = 0; l[i]; i++) {
             l[i]->hp += r->hp;
             if(m) {
-                SETWINDOWH(l[i], m);
+                SETWINDOW(l[i], m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -925,8 +948,7 @@ void tileremove(window *r, desktop *d)
             l[i]->xp = r->xp;
             l[i]->wp += r->wp;
             if(m) {
-                SETWINDOWX(l[i], m);
-                SETWINDOWW(l[i], m);
+                SETWINDOW(l[i], m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -935,8 +957,7 @@ void tileremove(window *r, desktop *d)
             l[i]->yp = r->yp;
             l[i]->hp += r->hp;
             if(m) {
-                SETWINDOWY(l[i], m);
-                SETWINDOWH(l[i], m);
+                SETWINDOW(l[i], m);
                 xcb_move_resize(l[i], d, m);
             }
         }
@@ -961,7 +982,7 @@ void unmapnotify(xcb_generic_event_t *e)
 
 window** windowstothebottom(window *w, desktop *d)
 {
-    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    window **l = (window**)malloc_safe((d->count + 1) * sizeof(window*));
     int size = 0;
     int i = 0;
 
@@ -981,7 +1002,7 @@ window** windowstothebottom(window *w, desktop *d)
 
 window** windowstotheleft(window *w, desktop *d)
 {
-    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    window **l = (window**)malloc_safe((d->count + 1) * sizeof(window*));
     int size = 0;
     int i = 0;
 
@@ -1001,7 +1022,7 @@ window** windowstotheleft(window *w, desktop *d)
 
 window** windowstotheright(window *w, desktop *d)
 {
-    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    window **l = (window**)malloc_safe((d->count + 1) * sizeof(window*));
     int size = 0;
     int i = 0;
 
@@ -1021,7 +1042,7 @@ window** windowstotheright(window *w, desktop *d)
 
 window** windowstothetop(window *w, desktop *d)
 {
-    window **l = (window**)malloc_safe(d->count * sizeof(window*));
+    window **l = (window**)malloc_safe((d->count + 1) * sizeof(window*));
     int size = 0;
     int i = 0;
 
