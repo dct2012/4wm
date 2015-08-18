@@ -43,7 +43,7 @@
 // desktop info, 1 = on, 0 = off
 #define DESKTOP_INFO 0
 #if DESKTOP_INFO
-#define DI_CMD { "dzen2", "-x", "0", "-y", "784", "-h", "16", "-w", "640", NULL }
+#define DI_CMD { "dzen2", "-x", "0", "-y", "1668", "-h", "32", "-w", "1280", NULL }
 #define DI_COL_CURRENT  "#005FFF"
 #define DI_COL_URGENT   "#FFFF5F"
 #define DI_COL_VISIBLE  "#FFFFFF"
@@ -88,4 +88,9 @@ static Key keys[] = {
     DESKTOPCHANGE(  XK_7,   6)
     DESKTOPCHANGE(  XK_8,   7)
     DESKTOPCHANGE(  XK_9,   8)
+};
+
+static Button buttons[] = {
+    { MOD1, Button1, mousemotion, {.i = MOVE}},
+    { MOD1, Button3, mousemotion, {.i = RESIZE}},
 };
