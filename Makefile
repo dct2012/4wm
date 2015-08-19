@@ -8,19 +8,15 @@ BINDIR ?= ${PREFIX}/bin
 MANPREFIX = ${PREFIX}/share/man
 
 DEBUG 	 = 0
-CFLAGS   += -std=c99 -pedantic -Wall -Wextra -Os 
+CFLAGS   += -std=c11 -pedantic -Wall -Wextra -Os 
 LDFLAGS  += -lxcb -lxcb-randr -lxcb-icccm -lxcb-keysyms -lxcb-ewmh -lX11
 
 EXEC = ${WMNAME}
 
 SRC = ${WMNAME}.c
 
-ifeq (${DEBUG},0)
-   CFLAGS  += -Os
-   LDFLAGS += -s
-else
+ifeq (${DEBUG},1) 
    CFLAGS  += -g
-   LDFLAGS += -g
 endif
 
 all: options ${WMNAME}
