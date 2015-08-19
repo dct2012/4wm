@@ -1,6 +1,232 @@
 // see license for copyright and license 
 
-#include "4wm.h"
+#define _DEFAULT_SOURCE
+#include <stdlib.h>
+#include <stdio.h>
+#include <err.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <X11/keysym.h>
+#include <X11/Xresource.h>
+#include <xcb/randr.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_atom.h>
+#include <xcb/xcb_icccm.h>
+#include <xcb/xcb_keysyms.h>
+#include <xcb/xcb_ewmh.h>
+
+/* TODO: Reduce SLOC */
+
+/* set this to 1 to enable debug prints */
+#if 0
+#  define DEBUG(x)      fputs(x, stderr);
+#  define DEBUGP(x,...) fprintf(stderr, x, ##__VA_ARGS__);
+#else
+#  define DEBUG(x)      ;
+#  define DEBUGP(x,...) ;
+#endif
+
+/* upstream compatility */
+#define XCB_MOVE_RESIZE XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+
+#define LENGTH(x) (sizeof(x)/sizeof(*x))
+#define BUTTONMASK      XCB_EVENT_MASK_BUTTON_PRESS|XCB_EVENT_MASK_BUTTON_RELEASE
+#define INRECT(X,Y,RX,RY,RW,RH) ((X) >= (RX) && (X) < (RX) + (RW) && (Y) >= (RY) && (Y) < (RY) + (RH))
+#define ISFT(c)        (c->isfloating || c->istransient)
+
+enum { RESIZE, MOVE };
+enum { TILE, MONOCLE, VIDEO, FLOAT };
+enum { TLEFT, TRIGHT, TBOTTOM, TTOP, TDIRECS };
+enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
+enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
+
+/* a client is a wrapper to a window that additionally
+ * holds some properties for that window
+ *
+ * isurgent    - set when the window received an urgent hint
+ * istransient - set when the window is transient
+ * isfloating  - set when the window is floating
+ *
+ * istransient is separate from isfloating as floating window can be reset
+ * to their tiling positions, while the transients will always be floating
+ */
+typedef struct client {
+    struct client *next;                                // the client after this one, or NULL if the current is the last client
+    int x, y, w, h;                                     // actual window size
+    int xp, yp, wp, hp;                                 // percent of monitor, before adjustment (percent is a int from 0-100)
+    int gapx, gapy, gapw, gaph;                         // gap sizes
+    bool isurgent, istransient, isfloating;             // property flags
+    xcb_window_t win;                                   // the window this client is representing
+    char *title;
+} client;
+
+/* properties of each desktop
+ * mode         - the desktop's tiling layout mode
+ * gap          - the desktops gap size
+ * direction    - the direction to tile
+ * count        - the number of clients on that desktop
+ * head         - the start of the client list
+ * current      - the currently highlighted window
+ * prevfocus    - the client that previously had focus
+ * dead         - the start of the dead client list
+ * showpanel    - the visibility status of the panel
+ */
+typedef struct {
+    int mode, gap, direction, count;
+    client *head, *current, *prevfocus;
+    bool showpanel;
+} desktop;
+
+typedef struct monitor {
+    xcb_randr_output_t id;  // id
+    int x, y, w, h;         // size in pixels
+    struct monitor *next;   // the next monitor after this one
+    int curr_dtop;          // which desktop the monitor is displaying
+    bool haspanel;          // does this monitor display a panel
+} monitor;
+
+//argument structure to be passed to function by config.h 
+typedef struct {
+    const char** com;                                                               // a command to run
+    const int i;                                                                    // an integer to indicate different states
+    const int p;                                                                    // represents a percentage for resizing
+    void (*m)(int*, client*, client**, desktop*);                                   // for the move client command
+    void (*r)(desktop*, const int, int*, const int, client*, monitor*, client**);   // for the resize client command
+    char **list;                                                                    // list for menus
+} Arg;
+
+// a key struct represents a combination of
+typedef struct {
+    unsigned int mod;           // a modifier mask
+    xcb_keysym_t keysym;        // and the key pressed
+    void (*func)(const Arg *);  // the function to be triggered because of the above combo
+    const Arg arg;              // the argument to the function
+} Key;
+
+// a button struct represents a combination of
+typedef struct {
+    unsigned int mask, button;  // a modifier mask and the mouse button pressed
+    void (*func)(const Arg *);  // the function to be triggered because of the above combo
+    const Arg arg;              // the argument to the function
+} Button;
+
+typedef struct Menu {
+    char **list;                // list to hold the original list of commands
+    struct Menu *next;          // next menu incase of multiple
+    struct Menu_Entry *head;
+} Menu;
+
+typedef struct Menu_Entry {
+    char *cmd[2];                               // cmd to be executed
+    int x, y;                                   // w and h will be default or defined
+    struct Menu_Entry *next, *b, *l, *r, *t;    // next and neighboring entries
+    xcb_rectangle_t *rectangles;                // tiles to draw
+} Menu_Entry;
+
+typedef struct Xresources {
+    unsigned int color[12];
+    xcb_gcontext_t gc_color[12];
+    xcb_gcontext_t font_gc[12];
+} Xresources;
+
+// COMMANDS
+static void change_desktop(const Arg *arg);
+static void client_to_desktop(const Arg *arg);
+static void decreasegap(const Arg *arg);
+static void focusurgent();
+static void increasegap(const Arg *arg);
+static void killclient();
+static void launchmenu(const Arg *arg);
+static void moveclient(const Arg *arg);
+static void moveclientup(int *num, client *c, client **list, desktop *d);
+static void moveclientleft(int *num, client *c, client **list, desktop *d);
+static void moveclientdown(int *num, client *c, client **list, desktop *d);
+static void moveclientright(int *num, client *c, client **list, desktop *d);
+static void movefocus(const Arg *arg);
+static void mousemotion(const Arg *arg);
+static void next_win();
+static void prev_win();
+static void pulltofloat();
+static void pushtotiling();
+static void quit(const Arg *arg);
+static void resizeclient(const Arg *arg);
+static void resizeclientbottom(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+static void resizeclientleft(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+static void resizeclientright(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+static void resizeclienttop(desktop *d, const int grow, int *n, const int size, client *c, monitor *m, client **list);
+static void rotate(const Arg *arg);
+static void rotate_filled(const Arg *arg);
+static void spawn(const Arg *arg);
+static void switch_mode(const Arg *arg);
+static void switch_direction(const Arg *arg);
+static void togglepanel();
+
+#include "config.h"
+
+#if PRETTY_PRINT
+typedef struct pp_data {
+    char *ws;
+    char *mode;
+    char *dir;
+} pp_data;
+#endif
+
+// UTILITIES
+static void adjustclientgaps(const int gap, client *c);
+static bool clientstouchingbottom(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingleft(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingright(desktop *d, client *c, client **list, int *num);
+static bool clientstouchingtop(desktop *d, client *c, client **list, int *num);
+static void deletewindow(xcb_window_t w);
+#if PRETTY_PRINT
+static void desktopinfo(void);
+#endif
+static void focus(client *c, desktop *d, const monitor *m);
+static bool getrootptr(int *x, int *y);
+static void grabbuttons(client *c);
+static void grabkeys(void);
+static void* malloc_safe(size_t size);
+static client* prev_client(client *c, desktop *d);
+static void setclientborders(desktop *d, client *c, const monitor *m);
+static void setdesktopborders(desktop *d, const monitor *m);
+#if PRETTY_PRINT
+static void updatedir();
+static void updatemode();
+static void updatetitle(client *c);
+static void updatews();
+#endif
+static monitor *wintomon(xcb_window_t w);
+static xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym);
+
+// EVENTS
+static void buttonpress(xcb_generic_event_t *e);
+static void clientmessage(xcb_generic_event_t *e);
+static void configurerequest(xcb_generic_event_t *e);
+static void destroynotify(xcb_generic_event_t *e);
+static void enternotify(xcb_generic_event_t *e);
+static void expose(xcb_generic_event_t *e);
+static void focusin(xcb_generic_event_t *e);
+static void keypress(xcb_generic_event_t *e);
+static void mappingnotify(xcb_generic_event_t *e);
+static void maprequest(xcb_generic_event_t *e);
+static void propertynotify(xcb_generic_event_t *e);
+static void unmapnotify(xcb_generic_event_t *e);
+
+// TILING
+static void monocle(int x, int y, int w, int h, const desktop *d, const monitor *m);
+static void retile(desktop *d, const monitor *m);
+static void tilenew(desktop *d, const monitor *m);
+static void tilenewbottom(client *n, client *c);
+static void tilenewleft(client *n, client *c);
+static void tilenewright(client *n, client *c);
+static void tilenewtop(client *n, client *c);
+static void tileremove(client *dead, desktop *d, const monitor *m);
 
 // variables
 static bool running = true;
@@ -17,6 +243,7 @@ static Menu *menus = NULL;
 static Xresources xres;
 #endif
 #if PRETTY_PRINT
+pid_t pid;
 pp_data pp;
 #endif
 
@@ -1002,7 +1229,7 @@ void togglepanel() {
 
 // UTILITIES 
 
-static monitor* ptrtomon(int x, int y) {
+monitor* ptrtomon(int x, int y) {
     monitor *m;
     int i;
 
@@ -1504,7 +1731,7 @@ xcb_keycode_t* xcb_get_keycodes(xcb_keysym_t keysym) {
 #define CLEANMASK(mask) (mask & ~(numlockmask | XCB_MOD_MASK_LOCK))
 
 // wrapper to get xcb keysymbol from keycode
-static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
+xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
     xcb_key_symbols_t *keysyms;
     xcb_keysym_t       keysym;
 
@@ -1516,7 +1743,7 @@ static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
 }
 
 // wrapper to window get attributes using xcb */
-static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_reply_t **reply, unsigned int count) {
+void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_reply_t **reply, unsigned int count) {
     xcb_get_window_attributes_cookie_t cookies[count];
     for (unsigned int i = 0; i < count; i++) cookies[i] = xcb_get_window_attributes(dis, windows[i]);
     for (unsigned int i = 0; i < count; i++) reply[i]   = xcb_get_window_attributes_reply(dis, cookies[i], NULL); // TODO: Handle error
@@ -1524,7 +1751,7 @@ static void xcb_get_attributes(xcb_window_t *windows, xcb_get_window_attributes_
 
 // create a new client and add the new window
 // window should notify of property change events
-static client* addwindow(xcb_window_t w, desktop *d) {
+client* addwindow(xcb_window_t w, desktop *d) {
     client *c, *t = prev_client(d->head, d);
  
     if (!(c = (client *)malloc_safe(sizeof(client)))) err(EXIT_FAILURE, "cannot allocate client");
@@ -1541,7 +1768,7 @@ static client* addwindow(xcb_window_t w, desktop *d) {
 }
 
 // find which client the given window belongs to
-static client *wintoclient(xcb_window_t w) {
+client *wintoclient(xcb_window_t w) {
     client *c = NULL;
     int i;
  
@@ -1561,7 +1788,7 @@ static client *wintoclient(xcb_window_t w) {
 // we must return back to the current focused desktop.
 // if c was the previously focused, prevfocus must be updated
 // else if c was the current one, current must be updated.
-static void removeclient(client *c, desktop *d, const monitor *m) {
+void removeclient(client *c, desktop *d, const monitor *m) {
     client **p = NULL;
     for (p = &d->head; *p && (*p != c); p = &(*p)->next);
     if (!p) 
@@ -2246,13 +2473,13 @@ void tileremove(client *dead, desktop *d, const monitor *m) {
 
 // 4WM 
 
-static char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
-static char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
+char *WM_ATOM_NAME[]   = { "WM_PROTOCOLS", "WM_DELETE_WINDOW" };
+char *NET_ATOM_NAME[]  = { "_NET_SUPPORTED", "_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE", "_NET_WM_NAME", "_NET_ACTIVE_WINDOW" };
 
 #define USAGE           "usage: 4wm [-h] [-v]"
 
 // get screen of display
-static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
+xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
     xcb_screen_iterator_t iter;
     iter = xcb_setup_roots_iterator(xcb_get_setup(con));
     for (; iter.rem; --screen, xcb_screen_next(&iter)) if (screen == 0) return iter.data;
@@ -2260,14 +2487,14 @@ static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *con, int screen) {
 }
 
 // retieve RGB color from hex (think of html)
-static unsigned int xcb_get_colorpixel(char *hex) {
+unsigned int xcb_get_colorpixel(char *hex) {
     char strgroups[3][3]  = {{hex[1], hex[2], '\0'}, {hex[3], hex[4], '\0'}, {hex[5], hex[6], '\0'}};
     unsigned int rgb16[3] = {(strtol(strgroups[0], NULL, 16)), (strtol(strgroups[1], NULL, 16)), (strtol(strgroups[2], NULL, 16))};
     return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
 }
 
 // wrapper to get atoms using xcb
-static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
+void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
     xcb_intern_atom_cookie_t cookies[count];
     xcb_intern_atom_reply_t  *reply;
 
@@ -2282,7 +2509,7 @@ static void xcb_get_atoms(char **names, xcb_atom_t *atoms, unsigned int count) {
 }
 
 // check if other wm exists
-static int xcb_checkotherwm(void) {
+int xcb_checkotherwm(void) {
     xcb_generic_error_t *error;
     unsigned int values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT|XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY|
                               XCB_EVENT_MASK_PROPERTY_CHANGE|XCB_EVENT_MASK_BUTTON_PRESS};
@@ -2294,7 +2521,7 @@ static int xcb_checkotherwm(void) {
 
 
 // remove all windows in all desktops by sending a delete message
-static void cleanup(void) {
+void cleanup(void) {
     xcb_query_tree_reply_t  *query;
     xcb_window_t *c;
 
@@ -2330,16 +2557,15 @@ static void cleanup(void) {
     }
     #endif
     #if PRETTY_PRINT
+    kill(pid, SIGKILL);
     free(pp.ws);
     free(pp.mode);
     free(pp.dir);
-    //fclose(pp_in);
-    //fclose(pp_out);
     #endif 
 }
 
 #if MENU
-static Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
+Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     Menu_Entry *m = (Menu_Entry*)malloc_safe(sizeof(Menu_Entry));
     
     m->cmd[0] = cmd;
@@ -2354,7 +2580,7 @@ static Menu_Entry* createmenuentry(int x, int y, int w, int h, char *cmd) {
     return m;
 }
 
-static Menu* createmenu(char **list) {
+Menu* createmenu(char **list) {
     Menu *m = (Menu*)malloc_safe(sizeof(Menu));
     Menu_Entry *mentry, *sentry = NULL, *itr = NULL;
     int i, x, y;
@@ -2431,7 +2657,7 @@ static Menu* createmenu(char **list) {
 }
 #endif
 
-static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
+monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int dtop) {
     monitor *m = (monitor*)malloc_safe(sizeof(monitor));
     
     m->id = id;
@@ -2448,7 +2674,7 @@ static monitor* createmon(xcb_randr_output_t id, int x, int y, int w, int h, int
 
 // get a pixel with the requested color
 // to fill some window area - borders
-static unsigned int getcolor(char* color) {
+unsigned int getcolor(char* color) {
     xcb_colormap_t map = screen->default_colormap;
     xcb_alloc_color_reply_t *c;
     unsigned int r, g, b, rgb, pixel;
@@ -2463,7 +2689,7 @@ static unsigned int getcolor(char* color) {
     return pixel;
 }
 
-static void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp) {
+void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp_t timestamp) {
     // Walk through all the RANDR outputs (number of outputs == len) there
     // was at time timestamp.
     xcb_randr_get_crtc_info_cookie_t icookie;
@@ -2547,7 +2773,7 @@ static void getoutputs(xcb_randr_output_t *outputs, const int len, xcb_timestamp
     }
 }
 
-static void getrandr(void) { // Get RANDR resources and figure out how many outputs there are.
+void getrandr(void) { // Get RANDR resources and figure out how many outputs there are.
     xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(dis, screen->root);
     xcb_randr_get_screen_resources_current_reply_t *res = xcb_randr_get_screen_resources_current_reply(dis, rcookie, NULL);
     if (NULL == res) return;
@@ -2560,7 +2786,7 @@ static void getrandr(void) { // Get RANDR resources and figure out how many outp
 }
 
 #if MENU
-static void initializexresources() {
+void initializexresources() {
     //we should also go ahead and intitialize all the font gc's
     uint32_t            value_list[3];
     uint32_t            gcvalues[2];
@@ -2639,7 +2865,7 @@ static void initializexresources() {
 #endif
 
 // main event loop - on receival of an event call the appropriate event handler
-static void run(void) {
+void run(void) {
     xcb_generic_event_t *ev; 
     while(running) {
         DEBUG("run: running\n");
@@ -2664,7 +2890,7 @@ static void run(void) {
 }
 
 // get numlock modifier using xcb
-static int setup_keyboard(void) {
+int setup_keyboard(void) {
     xcb_get_modifier_mapping_reply_t *reply;
     xcb_keycode_t                    *modmap;
     xcb_keycode_t                    *numlock;
@@ -2691,13 +2917,13 @@ static int setup_keyboard(void) {
     return 0;
 }
 
-static void sigchld() {
+void sigchld() {
     if (signal(SIGCHLD, sigchld) == SIG_ERR)
         err(EXIT_FAILURE, "cannot install SIGCHLD handler");
     while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
-static int setuprandr(void) { // Set up RANDR extension. Get the extension base and subscribe to
+int setuprandr(void) { // Set up RANDR extension. Get the extension base and subscribe to
     // events.
     const xcb_query_extension_reply_t *extension = xcb_get_extension_data(dis, &xcb_randr_id);
     if (!extension->present) return -1;
@@ -2713,7 +2939,7 @@ static int setuprandr(void) { // Set up RANDR extension. Get the extension base 
 // root window - screen height/width - atoms - xerror handler
 // set masks for reporting events handled by the wm
 // and propagate the suported net atoms
-static int setup(int default_screen) {
+int setup(int default_screen) {
     sigchld();
     screen = xcb_screen_of_display(dis, default_screen);
     if (!screen) err(EXIT_FAILURE, "error: cannot aquire screen\n");
@@ -2799,8 +3025,7 @@ static int setup(int default_screen) {
     updatemode();
     updatedir();
     
-    int pfds[2];
-    pid_t pid;
+    int pfds[2]; 
 
     if (pipe(pfds) < 0) {
         perror("pipe failed");
@@ -2838,11 +3063,14 @@ static int setup(int default_screen) {
 
 int main(int argc, char *argv[]) {
     int default_screen;
-    if (argc == 2 && argv[1][0] == '-') switch (argv[1][1]) {
-        case 'v': errx(EXIT_SUCCESS, "%s - by Derek Taaffe", VERSION);
-        case 'h': errx(EXIT_SUCCESS, "%s", USAGE);
-        default: errx(EXIT_FAILURE, "%s", USAGE);
-    } else if (argc != 1) errx(EXIT_FAILURE, "%s", USAGE);
+    if (argc == 2 && argv[1][0] == '-') {
+        switch (argv[1][1]) { 
+            case 'v': errx(EXIT_SUCCESS, "by dct");
+            case 'h': errx(EXIT_SUCCESS, "%s", USAGE);
+            default: errx(EXIT_FAILURE, "%s", USAGE);
+        }
+    } else if (argc != 1) 
+        errx(EXIT_FAILURE, "%s", USAGE);
     if (xcb_connection_has_error((dis = xcb_connect(NULL, &default_screen))))
         errx(EXIT_FAILURE, "error: cannot open display\n");
     if (setup(default_screen) != -1) {

@@ -117,8 +117,6 @@ Thanks
 
 TODO
 ----
-* remove DEBUG(P) start using gdb
-
 * Better floating support
   * add title bar to be able to move by
   * resize with mouse on edges
@@ -129,9 +127,6 @@ TODO
 
 
 ***BUGS***
-  * killing a chrome window, causes snafu (wtf). You can exit chrome through its menu and all will be
-    fine. But we need to fix this.
-  * prevent clients from resizing or mapping when not enough room.
 
 ***New Features***
   * the stdin issue. This is when another program prints to the same stream we're reading from with

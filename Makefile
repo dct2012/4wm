@@ -7,19 +7,13 @@ PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 MANPREFIX = ${PREFIX}/share/man
 
-INCS = -I.
-LIBS = -lc `pkg-config --libs xcb xcb-randr xcb-icccm xcb-keysyms x11 xcb-ewmh`
-
-CPPFLAGS += -DVERSION=\"${VERSION}\" -DWMNAME=\"${WMNAME}\"
-
 DEBUG 	 = 0
-CFLAGS   += -std=c99 -pedantic -Wall -Wextra -Os ${INCS} ${CPPFLAGS} -DVERSION=\"${VERSION}\"
-LDFLAGS  += -s ${LIBS}
+CFLAGS   += -std=c99 -pedantic -Wall -Wextra -Os 
+LDFLAGS  += -lxcb -lxcb-randr -lxcb-icccm -lxcb-keysyms -lxcb-ewmh -lX11
 
 EXEC = ${WMNAME}
 
 SRC = ${WMNAME}.c
-OBJ = ${SRC:.c=.o}
 
 ifeq (${DEBUG},0)
    CFLAGS  += -Os
@@ -41,7 +35,7 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h ${WMNAME}.h
+${OBJ}: config.h
 
 config.h:
 	@echo creating $@ from config.def.h
@@ -49,11 +43,15 @@ config.h:
 
 ${WMNAME}: ${OBJ}
 	@echo CC -o $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@${CC} ${CFLAGS} ${LDFLAGS} ${SRC} -o $@ ${OBJ} 
 
 clean:
 	@echo cleaning
 	@rm -fv ${WMNAME} ${OBJ} ${WMNAME}-${VERSION}.tar.gz
+
+backup_config:
+	@mkdir -p ~/.config/4wm
+	@cp config.h ~/.config/4wm/
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
