@@ -268,12 +268,6 @@ void SETWINDOW(client *w, const desktop *d, const monitor *m) {
     SETWINDOWH(w, d, m);
 }
 
-/* wrapper to move and resize window
-inline void xcb_move_resize(xcb_connection_t *con, xcb_window_t win, int x, int y, int w, int h) {
-    unsigned int pos[4] = { x, y, w, h };
-    xcb_configure_window(con, win, XCB_MOVE_RESIZE, pos);
-}*/
-
 inline void xcb_move_resize(client *w, const desktop *d, const monitor *m) {
     DEBUGP("xcb_move_resize: x: %d, y: %d, w: %d, h: %d\n", w->x, w->y, w->w, w->h);
     unsigned int pos[4] = { w->x, w->y, w->w, w->h };
@@ -660,7 +654,6 @@ void client_to_desktop(const Arg *arg) {
     else
         xcb_unmap_window(dis, o->win);
 
-    DEBUG("CHECK\n");
     #if PRETTY_PRINT
     updatews();
     desktopinfo();
@@ -1863,10 +1856,8 @@ void pushtotiling() {
     n->isfloating = false;
     n->istransient = false;
 
-    DEBUG("CHECK\n");
     if (c && c->isfloating)
         c = clientbehindfloater(d);
-    DEBUG("CHECK2\n");
 
     tilenew(n, c, d, selmon);
     xcb_lower_window(n->win);
