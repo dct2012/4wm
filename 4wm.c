@@ -95,8 +95,6 @@ typedef struct {
     const char** com;                                                       // a command to run
     const int i;                                                            // an integer to indicate different states
     const int p;                                                            // represents a percentage for resizing
-    void (*m)(int*, client*, client**, desktop*);                           // for the move client command
-    void (*r)(const int, const int, client*, desktop*, monitor*);     // for the resize client command
     char **list;                                                            // list for menus
 } Arg;
 
@@ -141,10 +139,6 @@ void client_to_desktop(const Arg *arg);
 void killclient();
 void launchmenu(const Arg *arg);
 void moveclient(const Arg *arg);
-void moveclientup(int *num, client *c, client **list, desktop *d);
-void moveclientleft(int *num, client *c, client **list, desktop *d);
-void moveclientdown(int *num, client *c, client **list, desktop *d);
-void moveclientright(int *num, client *c, client **list, desktop *d);
 void movefocus(const Arg *arg);
 void mousemotion(const Arg *arg);
 void next_win();
@@ -153,10 +147,6 @@ void pulltofloat();
 void pushtotiling();
 void quit(const Arg *arg);
 void resizeclient(const Arg *arg);
-void resizeclientbottom(const int grow, const int size, client *c, desktop *d, monitor *m);
-void resizeclientleft(const int grow, const int size, client *c, desktop *d, monitor *m);
-void resizeclientright(const int grow, const int size, client *c, desktop *d, monitor *m);
-void resizeclienttop(const int grow, const int size, client *c, desktop *d, monitor *m);
 void rotate(const Arg *arg);
 void rotate_filled(const Arg *arg);
 void spawn(const Arg *arg);
@@ -187,6 +177,10 @@ void* malloc_safe(size_t size);
 client* prev_client(client *c, desktop *d);
 void removeclient(client *c, desktop *d, const monitor *m, bool delete);
 void removeclientfromlist(client *c, desktop *d);
+void resizeclientbottom(const int size, client **c, desktop *d, monitor *m);
+void resizeclientleft(const int size, client **c, desktop *d, monitor *m);
+void resizeclientright(const int size, client **c, desktop *d, monitor *m);
+void resizeclienttop(const int size, client **c, desktop *d, monitor *m);
 void retile(desktop *d, const monitor *m);
 void setclientborders(client *c, const desktop *d, const monitor *m);
 int setuprandr(void);
@@ -229,6 +223,11 @@ void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 client** (*clientstothe[TDIRECS])(client *w, desktop *d, bool samesize) = {
     [TBOTTOM] = clientstothebottom, [TLEFT] = clientstotheleft, [TRIGHT] = clientstotheright,
     [TTOP] = clientstothetop,
+};
+
+void (*resize[TDIRECS])(const int size, client **c, desktop *d, monitor *m) = {
+    [TBOTTOM] = resizeclientbottom, [TLEFT] = resizeclientleft, [TRIGHT] = resizeclientright,
+    [TTOP] = resizeclienttop,
 };
 
 bool NOBORDER(const desktop *d) {
@@ -381,57 +380,6 @@ int xcb_checkotherwm(void) {
     return 0;
 }
 
-void growbyh(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->hp = match ? (match->yp - c->yp):(c->hp + size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void growbyw(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->wp = match ? (match->xp - c->xp):(c->wp + size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void growbyx(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp + size);
-    c->xp = match ? (match->xp + match->wp):(c->xp - size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void growbyy(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp + size);
-    c->yp = match ? (match->yp + match->hp):(c->yp - size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void shrinkbyh(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->hp = match ? (match->yp - c->yp):(c->hp - size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void shrinkbyw(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->wp = match ? (match->xp - c->xp):(c->wp - size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void shrinkbyx(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->wp = match ? ((c->xp + c->wp) - (match->xp + match->wp)):(c->wp - size);
-    c->xp = match ? (match->xp + match->wp):(c->xp + size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
-
-void shrinkbyy(client *match, const int size, client *c, desktop *d, const monitor *m) {
-    c->hp = match ? ((c->yp + c->hp) - (match->yp + match->hp)):(c->hp - size);
-    c->yp = match ? (match->yp + match->hp):(c->yp + size);
-    SETWINDOW(c, d, m);
-    xcb_move_resize(c, d, m);
-}
 
 
 void addclienttolist(client *c, desktop *d) {
@@ -445,6 +393,42 @@ void addclienttolist(client *c, desktop *d) {
         d->current = c;
     }
     c->next = NULL;
+}
+
+//if fed a positive size the clients grow by h, if negative shrink
+//if you flip the lists you'll grow by y
+void adjustbyh(client **grow, client **shrink, const int size, desktop *d, const monitor *m) {
+    for(int i = 0; grow[i]; i++) {
+        grow[i]->hp += size;
+
+        SETWINDOW(grow[i], d, m);
+        xcb_move_resize(grow[i], d, m);
+    }
+    
+    for(int i = 0; shrink[i]; i++) {
+        shrink[i]->yp += size;
+        shrink[i]->hp -= size;
+
+        SETWINDOW(shrink[i], d, m);
+        xcb_move_resize(shrink[i], d, m);
+    }
+}
+
+void adjustbyw(client **grow, client **shrink, const int size, desktop *d, const monitor *m) {
+    for(int i = 0; grow[i]; i++) {
+        grow[i]->wp += size;
+        
+        SETWINDOW(grow[i], d, m);
+        xcb_move_resize(grow[i], d, m);
+    }
+
+    for(int i = 0; shrink[i]; i++) {
+        shrink[i]->xp += size;
+        shrink[i]->wp -= size;
+
+        SETWINDOW(shrink[i], d, m);
+        xcb_move_resize(shrink[i], d, m);
+    }
 }
 
 // create a new client and add the new window
@@ -1927,114 +1911,48 @@ void resizeclient(const Arg *arg) {
         }
         monitor *m = wintomon(c->win);
 
-        (arg->r)(arg->i, arg->p, c, d, m);
+        client** p = (client**)malloc_safe(2 * sizeof(client*));
+        p[0] = c;
+        resize[arg->i](arg->p, p, d, m);
     }
 } 
 
-void resizeclientbottom(const int grow, const int size, client *c, desktop *d, monitor *m) {
-    client** list; 
-    if ((list = clientstothe[TBOTTOM](c, d, true))) {
-        if (grow) {
-            for (int i = 0; list[i]; i++) //client in list y increases and height decreases
-                shrinkbyy(NULL, size, list[i], d, m);
-            growbyh(list[0], size, c, d, m); //current windows height increases
-        } else {
-            shrinkbyh(NULL, size, c, d, m);
-            for (int i = 0; list[i]; i++)
-                growbyy(c, size, list[i], d, m);
-        }
-    } else if ((list = clientstothe[TTOP](c, d, true))) {
-        if (grow) {
-            shrinkbyy(NULL, size, c, d, m); //current windows y increases and height decreases
-            for (int i = 0; list[i]; i++) //client in list height increases
-                growbyh(c, size, list[i], d, m);
-        } else {
-            for (int i = 0; list[i]; i++)
-                shrinkbyh(NULL, size, list[i], d, m);
-            growbyy(list[0], size, c, d, m);
-        }
-    }
+void resizeclientbottom(const int size, client **c, desktop *d, monitor *m) {
+    client** list;
+    if ((list = clientstothe[TBOTTOM](c[0], d, true)))
+        adjustbyh(c, list, size, d, m);
+    else if ((list = clientstothe[TTOP](c[0], d, true)))
+        adjustbyh(list, c, size, d, m);
 
     free(list);
 }
 
-void resizeclientleft(const int grow, const int size, client *c, desktop *d, monitor *m) {
+void resizeclientleft(const int size, client **c, desktop *d, monitor *m) {
     client** list;
-    if ((list = clientstothe[TLEFT](c, d, true))) {
-        if (grow) {
-            for (int i = 0; list[i]; i++) //client in list width decreases
-                shrinkbyw(NULL, size, list[i], d, m);
-            growbyx(list[0], size, c, d, m); //the current windows x decreases and width increases
-        } else {
-            shrinkbyx(NULL, size, c, d, m);
-            for (int i = 0; list[i]; i++)
-                growbyw(c, size, list[i], d, m);
-        }
-    } else if ((list = clientstothe[TRIGHT](c, d, true))) {
-        if (grow) {
-            shrinkbyw(NULL, size, c, d, m); //current windows width decreases
-            for (int i = 0; list[i]; i++) //clients in list x decreases width increases
-                growbyx(c, size, list[i], d, m);
-        } else { 
-            for (int i = 0; list[i]; i++)
-                shrinkbyx(NULL, size, list[i], d, m);
-            growbyw(list[0], size, c, d, m);
-        }
-    }
+    if ((list = clientstothe[TLEFT](c[0], d, true)))
+        adjustbyw(list, c, -size, d, m);
+    else if ((list = clientstothe[TRIGHT](c[0], d, true)))
+        adjustbyw(c, list, -size, d, m);
 
     free(list);
 }
 
-void resizeclientright(const int grow, const int size, client *c, desktop *d, monitor *m) {
+void resizeclientright(const int size, client **c, desktop *d, monitor *m) {
     client** list;
-    if ((list = clientstothe[TRIGHT](c, d, true))) { 
-        if (grow) {
-            for (int i = 0; list[i]; i++) //clients in list x increases and width decrease
-                shrinkbyx(NULL, size, list[i], d, m);
-            growbyw(list[0], size, c, d, m); //the current windows width increases
-        } else {
-            shrinkbyw(NULL, size, c, d, m);
-            for (int i = 0; list[i]; i++)
-                growbyx(c, size, list[i], d, m);
-        }
-    } else if ((list = clientstothe[TLEFT](c, d, true))) {
-        if (grow) {
-            shrinkbyx(NULL, size, c, d, m); //current windows x increases and width decreases
-            for (int i = 0; list[i]; i++) //other windows width increases
-                growbyw(c, size, list[i], d, m);
-        } else {
-            for (int i = 0; list[i]; i++)
-                shrinkbyw(NULL, size, list[i], d, m);
-            growbyx(list[0], size, c, d, m);
-        }
-    }
+    if ((list = clientstothe[TRIGHT](c[0], d, true)))
+        adjustbyw(c, list, size, d, m);
+    else if ((list = clientstothe[TLEFT](c[0], d, true)))
+        adjustbyw(list, c, size, d, m);
 
     free(list);
 }
 
-void resizeclienttop(const int grow, const int size, client *c, desktop *d, monitor *m) {
+void resizeclienttop(const int size, client **c, desktop *d, monitor *m) {
     client** list;
-    if ((list = clientstothe[TTOP](c, d, true))) {
-        if (grow) {
-            for (int i = 0; list[i]; i++) //client in list height decreases
-                shrinkbyh(NULL, size, list[i], d, m);
-            growbyy(list[0], size, c, d, m); //current windows y decreases and height increases
-        } else {
-            shrinkbyy(NULL, size, c, d, m);
-            for (int i = 0; list[i]; i++)
-                growbyh(c, size, list[i], d, m);
-        }
-    } else if ((list = clientstothe[TBOTTOM](c, d, true))) {
-        if (grow) { 
-            shrinkbyh(NULL, size, c, d, m); //current windows height decreases
-            for (int i = 0; list[i]; i++) //client in list y decreases and height increases
-               growbyy(c, size, list[i], d, m);
-        }else { 
-            for (int i = 0; list[i]; i++)
-                shrinkbyy(NULL, size, list[i], d, m);
-            growbyh(list[0], size, c, d, m);
-        }
-    }
+    if ((list = clientstothe[TTOP](c[0], d, true)))
+        adjustbyh(list, c, -size, d, m);
+    else if ((list = clientstothe[TBOTTOM](c[0], d, true)))
+        adjustbyh(c, list, -size, d, m);
 
     free(list);
 }
