@@ -28,8 +28,6 @@
 #define DEFAULT_MODE            TILE
 // initial tiling direction: TBOTTOM, TLEFT, TRIGHT, TTOP
 #define DEFAULT_DIRECTION       TRIGHT
-// focus the window the mouse just entered
-#define FOLLOW_MOUSE            true
 // focus an unfocused window when clicked
 #define CLICK_TO_FOCUS          true
 // mouse button to be used along with CLICK_TO_FOCUS
@@ -46,10 +44,10 @@
 #define UNFOCUS         "#262626"
 // outer border color
 #define OTRBRDRCOL      "#626262"
-// urgent color for border
-#define URGNBRDRCOL     "#FFFF5F"
 // floating outer border color
 #define FLTBRDCOL       "#00FF5F"
+// transeint outer border color
+#define TRNBDRCOL       "#7F5AA1"
 // minimum window size in pixels
 #define MINWSZ          50          
 // the desktop to focus initially
@@ -58,17 +56,12 @@
 #define DESKTOPS        9
 // the default size of the gap between windows in pixels
 #define GAP             8
-// the maximum gap size
-#define MAXGAP          30
-// the minimum gap size
-#define MINGAP          0
 
 // pretty print, 1 = on, 0 = off
 #define PRETTY_PRINT 0
 #if PRETTY_PRINT
 #define PP_CMD { "dzen2", "-x", "0", "-y", "784", "-h", "16", "-w", "640", NULL }
 #define PP_COL_CURRENT  "#005FFF"
-#define PP_COL_URGENT   "#FFFF5F"
 #define PP_COL_VISIBLE  "#FFFFFF"
 #define PP_COL_HIDDEN   "#262626"
 #define PP_COL_DIR      "#00FF5F"
@@ -101,14 +94,12 @@ static char *menu1[] = { "xterm", "chromium", "firefox", "libreoffice", "mupen64
 // keyboard shortcuts
 static Key keys[] = {
     // modifier         key             function            argument
-    {  MOD1,            XK_b,           togglepanel,        {NULL}},
-    {  MOD1,            XK_BackSpace,   focusurgent,        {NULL}},
     // close focused window 
     {  MOD1|SHIFT,      XK_c,           killclient,         {NULL}}, 
     // decrease gap between windows
-    {  MOD1,            XK_minus,       decreasegap,        {.i = 2}},
+    {  MOD1,            XK_minus,       changegap,          {.i = -2}},
     // increase gap between windows
-    {  MOD1,            XK_equal,       increasegap,        {.i = 2}}, 
+    {  MOD1,            XK_equal,       changegap,          {.i = 2}}, 
     // rotate backwards through desktops
     {  MOD1|CONTROL,    XK_minus,       rotate,             {.i = -1}},
     // rotate fowards through desktops
@@ -133,10 +124,10 @@ static Key keys[] = {
     {  MOD1|CONTROL,    XK_w,           resizeclient,       {.p = 1, .i = 0, .r = &resizeclientbottom}},
     {  MOD1|CONTROL,    XK_s,           resizeclient,       {.p = 1, .i = 0, .r = &resizeclienttop}},
     // switch clients, with the first it find up/left/down/right
-    {  MOD1|SHIFT,      XK_k,           moveclient,         {.m = &moveclientup}},
-    {  MOD1|SHIFT,      XK_h,           moveclient,         {.m = &moveclientleft}},
-    {  MOD1|SHIFT,      XK_j,           moveclient,         {.m = &moveclientdown}},
-    {  MOD1|SHIFT,      XK_l,           moveclient,         {.m = &moveclientright}},
+    {  MOD1|SHIFT,      XK_k,           moveclient,         {.i = TTOP}},
+    {  MOD1|SHIFT,      XK_h,           moveclient,         {.i = TLEFT}},
+    {  MOD1|SHIFT,      XK_j,           moveclient,         {.i = TBOTTOM}},
+    {  MOD1|SHIFT,      XK_l,           moveclient,         {.i = TRIGHT}},
     // push client into tiling
     {  MOD1,            XK_t,           pushtotiling,       {NULL}},
     // pull client to float

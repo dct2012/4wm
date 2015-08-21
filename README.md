@@ -3,8 +3,8 @@
 
 
 ----------------------
-**4wm** is a versatile, lightweight, dynamic tiling window manager with 
-two borders. Its mission is to be small, versatile, and quick. There are four modes: 
+**4wm** is a versatile, dynamic tiling and floating window manager with 
+two borders. Its goal is to be versatile and simple. There are four modes: 
 tiling, floating, monocle and video. There are four direction in which you can tile, four
 directions in which a window can swap with another, and four directions in which you can 
 resize a window. Each desktop can have gaps between windows and the size can be change. 
@@ -17,8 +17,8 @@ Modes
 There are four modes: tiling, floating, monocle and video. 
 * **Tiling**
   * Tiling mode has four directions it can tile: bottom, left, right, and top. In tile 
-  mode, the current window will be resized half of its size and the new window will be 
-  placed in the new space created in the direction selected.
+  mode, the current window will slpit and the new window will fill the half of which
+  direction is currently selected.
 * **Monocle**
   * Monocle is a fullscreen mode that respects the desktops' gaps and a screens' panel. 
 * **Video**
@@ -26,12 +26,14 @@ There are four modes: tiling, floating, monocle and video.
 
 This is a tiling window manager, so anytime a window is created, we tile/handle/manage it. 
 The exception to the rule is in floating mode.
+
 * **Floating**
-  * In floating mode, the window will configure its width and height, then we'll move it
-  to the center, from there the user will manage it.
+  * In floating mode, the window will appear in the middle of the screen. You then manage it.
+  If you drag it to a desktop that's in monocle or video mode, it'll be drawn as such.
 
 In video and monocle mode, each window is handled like it is in the tiling mode; it only 
-appears to be fullscreen.
+appears to be fullscreen. Meaning, the windows will be split and placed according to the
+current direction, the window is only drawn in fullscreen.
 
 Panel - Statusbar
 -----------------
@@ -45,7 +47,7 @@ Menu - launcher
 ---------------
 
 4wm provides a menu or a launcher similar to xmonad's grid select. It will use
-the colors from your Xdefaults for the tiles.
+the colors from your Xdefaults for the tiles. 
 
 Installation
 ------------
@@ -118,9 +120,7 @@ Thanks
 TODO
 ----
 * Better floating support
-  * add title bar to be able to move by
-  * resize with mouse on edges
-  * fix laggy move
+  * fix laggy move?
 
 * start removing features (do less!)
 * readability
@@ -134,23 +134,19 @@ TODO
     we be somehow making our pipe more private.
   * maybe add commands to adjust the borders
   * add its own pager like dzen2
-  * steal from kde's android notification system
-  * maybe add three finger scroll through workspaces like OSX
+  * steal from kde's android notification system?
+  * maybe add three finger scroll through workspaces like OSX? (I don't think X is capable of this)
   * Menu.
     * limit string length to rectangle/tile width.
     * add user defined fonts in Xdefaults.
     * add keyboard use.
   * pretty print.
-    * make sure it also works for messengers other than dzen2. (I don't think X is capable of this)
+    * make sure it also works for messengers other than dzen2. 
   * make a "placeholder"
     * I sometimes make use xterm (a window) just to manipulate how windows
       will be tiled.
   * add a command to invert the current windows color.
 
 ***MISC***
-  * Overall organization.
-    * look for conditional statements that can be moved to preprocessor conditionals.
-    * preprocessor conditions for function/variables/etc.
-    * constantly improve readability.
   * Work on the man page.
   * Double check all options.
