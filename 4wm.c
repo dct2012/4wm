@@ -2599,15 +2599,19 @@ void updatews() {
     char *tags_ws[] = PP_TAGS_WS;
     char t1[512] = { "" };
     char t2[512] = { "" };
+    bool onmonitor = false;
 
     for (int i = 0; i < DESKTOPS; i++) {
+        for(monitor *m = mons; m; m = m->next)
+            if((onmonitor = (i == m->curr_dtop)))
+                break;
         if (tags_ws[i])
             snprintf(t2, 512, "^fg(%s)%s ", 
-                    i == selmon->curr_dtop ? PP_COL_CURRENT : desktops[i].head ? PP_COL_VISIBLE : PP_COL_HIDDEN, 
+                    i == selmon->curr_dtop ? PP_COL_CURRENT : onmonitor ? PP_COL_VISIBLE : desktops[i].head ? PP_COL_VISIBLE : PP_COL_HIDDEN, 
                     tags_ws[i]);
         else 
             snprintf(t2, 512, "^fg(%s)%d ", 
-                    i == selmon->curr_dtop ? PP_COL_CURRENT : desktops[i].head ? PP_COL_VISIBLE : PP_COL_HIDDEN,
+                    i == selmon->curr_dtop ? PP_COL_CURRENT : onmonitor ? PP_COL_VISIBLE : desktops[i].head ? PP_COL_VISIBLE : PP_COL_HIDDEN,
                     i + 1);
         strncat(t1, t2, strlen(t2)); 
     }
