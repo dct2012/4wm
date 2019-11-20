@@ -83,14 +83,7 @@ License
 Licensed under MIT/X Consortium License, see [LICENSE][law] file for more copyright and license information.
 
    [law]: https://raw.github.com/dct2012/4wm/master/LICENSE
-
-Donate
-------
-
-Bitcoin: 1EqURvUkiP4BtZBxY6X8uUSe6F2zPtqGEB  
-Litecoin: LWeBjVZHsR5KnV4t89x7ESHVgyvwDSjZZP  
-Dogecoin: DDrqVPBkC2e3c9Z56oWRnJxssdNFncUbSQ  
-
+ 
 Thanks
 ------
 
