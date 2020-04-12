@@ -1,7 +1,7 @@
+**THIS REPO IS ARCHIVED AND UNMAINTAINED**
+
 4wm
 =============
-
-
 ----------------------
 **4wm** is a versatile, dynamic tiling and floating window manager with 
 two borders. Its goal is to be versatile and simple. There are four modes: 
@@ -109,37 +109,3 @@ Thanks
   [2bwm]: https://github.com/venam/2bwm
   [vnm]: https://github.com/venam
   [i3]: http://i3wm.org/
-
-TODO
-----
-* Better floating support
-  * fix laggy move?
-
-* start removing features (do less!)
-* readability
-
-
-***BUGS***
-
-***New Features***
-  * the stdin issue. This is when another program prints to the same stream we're reading from with
-    pretty print. I believe dolphin does this, not sure what the case for it is though. The fix to this
-    we be somehow making our pipe more private.
-  * maybe add commands to adjust the borders
-  * add its own pager like dzen2
-  * steal from kde's android notification system?
-  * maybe add three finger scroll through workspaces like OSX? (I don't think X is capable of this)
-  * Menu.
-    * limit string length to rectangle/tile width.
-    * add user defined fonts in Xdefaults.
-    * add keyboard use.
-  * pretty print.
-    * make sure it also works for messengers other than dzen2. 
-  * make a "placeholder"
-    * I sometimes make use xterm (a window) just to manipulate how windows
-      will be tiled.
-  * add a command to invert the current windows color.
-
-***MISC***
-  * Work on the man page.
-  * Double check all options.
